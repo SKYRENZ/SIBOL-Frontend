@@ -4,8 +4,9 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './index.css'
 
 // Import your page components
-import Login from './Pages/Login.tsx'
+import Login from './Pages/SignIN.tsx'
 import Registration from './Pages/Registration.tsx'
+import SignUp from './Pages/SignUp.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
 
 createRoot(document.getElementById('root')).render(
@@ -17,6 +18,7 @@ createRoot(document.getElementById('root')).render(
         {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Registration />} />
+        <Route path="/signup" element={<SignUp />} />
         
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
