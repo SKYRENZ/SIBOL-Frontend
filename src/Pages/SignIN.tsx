@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getHello } from '../services/api'
 
 const Login: React.FC = () => {
   const [email, setEmail] = useState('')
@@ -28,8 +29,16 @@ const Login: React.FC = () => {
     }
   }
 
-  const handleGoogleSignIn = () => {
-    alert('Google Sign In Clicked')
+  const handleGoogleSignIn = async () => {
+    try {
+      console.log('Testing backend connection...')
+      const response = await getHello()
+      alert(`✅ Backend Connected! Message: ${response.message}`)
+      console.log('Backend response:', response)
+    } catch (error) {
+      console.error('Backend connection failed:', error)
+      alert('❌ Backend connection failed! Check console for details.')
+    }
   }
 
   
