@@ -5,7 +5,6 @@ import './index.css'
 
 // Import your page components
 import Login from './Pages/SignIN.tsx'
-import Registration from './Pages/Registration.tsx'
 import SignUp from './Pages/SignUp.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
 
@@ -17,7 +16,6 @@ createRoot(document.getElementById('root')).render(
         <Route path="/" element={<Navigate to="/login" replace />} />
         {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Registration />} />
         <Route path="/signup" element={<SignUp />} />
         
         {/* Protected/Main Application Routes */}

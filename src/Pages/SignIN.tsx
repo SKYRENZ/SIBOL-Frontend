@@ -1,164 +1,88 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getHello } from '../services/api'
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({})
   const navigate = useNavigate()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
 
-  const green = '#8BAA95'
-  const greenDark = '#779983'
-  const borderColor = '#8BAA95'
-  const textMuted = '#8AA08F'
+  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
 
-  const validate = () => {
-    const newErrors: { email?: string; password?: string } = {}
-    if (!email) newErrors.email = 'Username is required'
-    if (!password) newErrors.password = 'Password is required'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
+  const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (validate()) {
-      alert('Login Successful')
-      console.log('Login:', { email, password })
+    setTouched({ username: true, password: true })
+    if (isValid) {
+      // As requested, only log success on valid submit
+      console.log('Sign In Successful')
     }
   }
 
-  const handleGoogleSignIn = async () => {
-    try {
-      console.log('Testing backend connection...')
-      const response = await getHello()
-      alert(`✅ Backend Connected! Message: ${response.message}`)
-      console.log('Backend response:', response)
-    } catch (error) {
-      console.error('Backend connection failed:', error)
-      alert('❌ Backend connection failed! Check console for details.')
-    }
-  }
-
-  
-
-  const logo = new URL('../assets/images/Caratao (3) 1.png', import.meta.url).href
+  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
+  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
+  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
+  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
 
   return (
-    <div style={{
-      position: 'relative',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      minHeight: '100vh',
-      backgroundColor: '#ffffff',
-      padding: '24px'
-    }}>
-      <img src={logo} alt="SIBOL" style={{ position: 'absolute', top: 16, left: 16, height: 'clamp(56px, 8vw, 96px)' }} />
-      <div style={{ width: '100%', maxWidth: '560px', padding: '0 8px' }}>
-        <h1 style={{
-          textAlign: 'center',
-          marginBottom: '24px',
-          color: green,
-          fontSize: 'clamp(28px, 4vw, 36px)',
-          fontWeight: 700
-        }}>
-          Sign in
-        </h1>
+    <div className="auth-shell">
+      <div className="auth-left" style={{ backgroundImage: `url(${leftBg})` }}>
+        <div className="auth-left-content">
+          <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
+          {/* <p className="auth-tagline"></p> */}
+        </div>
+      </div>
 
-        <form onSubmit={handleSubmit} style={{ maxWidth: '560px', margin: '0 auto' }}>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', color: green, marginBottom: '6px', fontSize: 'clamp(14px, 2.5vw, 16px)' }}>Username</label>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: `2px solid ${borderColor}`,
-                borderRadius: '10px',
-                fontSize: 'clamp(13px, 2.5vw, 15px)',
-                outline: 'none'
-              }}
-            />
-            {errors.email && (
-              <div style={{ color: '#cc0000', marginTop: '6px', fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.email}</div>
-            )}
+      <div className="auth-right">
+        <div className="auth-card">
+          <img className="auth-top-logo" src={topLogo} alt="SIBOL" />
+          <h1 className="auth-title">Sign in to your account</h1>
+
+          <button className="auth-google" type="button" onClick={() => console.log('Google Sign In Clicked')}>
+            <img src={googleIcon} className="auth-google-icon" alt="Google" />
+            <span>Sign in with Google</span>
+          </button>
+
+          <div className="auth-divider">
+            <span>Or</span>
           </div>
 
-          <div style={{ marginBottom: '6px' }}>
-            <label style={{ display: 'block', color: green, marginBottom: '6px', fontSize: 'clamp(14px, 2.5vw, 16px)' }}>Password</label>
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <label className="auth-label">Username</label>
             <input
+              className={`auth-input${usernameError ? ' is-error' : ''}`}
+              type="text"
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+            />
+            {usernameError ? <div className="auth-error">{usernameError}</div> : null}
+
+            <label className="auth-label">Password</label>
+            <input
+              className={`auth-input${passwordError ? ' is-error' : ''}`}
               type="password"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '10px 12px',
-                border: `2px solid ${borderColor}`,
-                borderRadius: '10px',
-                fontSize: 'clamp(13px, 2.5vw, 15px)',
-                outline: 'none'
-              }}
+              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
             />
-            {errors.password && (
-              <div style={{ color: '#cc0000', marginTop: '6px', fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.password}</div>
-            )}
-          </div>
+            {passwordError ? <div className="auth-error">{passwordError}</div> : null}
 
-          <div style={{ textAlign: 'right', marginBottom: '16px' }}>
-            <button type="button" onClick={() => {}} style={{
-              background: 'none',
-              border: 'none',
-              color: textMuted,
-              cursor: 'pointer',
-              fontSize: 'clamp(12px, 2.5vw, 14px)'
-            }}>Forgot Password</button>
-          </div>
+            <div className="auth-forgot">
+              <button type="button" className="auth-link" onClick={() => {}}>Forgot Password?</button>
+            </div>
 
-          <button type="button" onClick={handleGoogleSignIn} style={{
-            width: '100%',
-            maxWidth: '420px',
-            display: 'block',
-            margin: '0 auto 12px',
-            padding: '10px 12px',
-            backgroundColor: green,
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: 'clamp(14px, 3vw, 16px)',
-            cursor: 'pointer'
-          }}>Sign in with Google</button>
+            <button className="auth-submit" type="submit" disabled={!isValid}>Sign in</button>
+          </form>
 
-          <button type="submit" style={{
-            width: '100%',
-            maxWidth: '420px',
-            display: 'block',
-            margin: '0 auto 8px',
-            padding: '10px 12px',
-            backgroundColor: greenDark,
-            color: 'white',
-            border: 'none',
-            borderRadius: '10px',
-            fontSize: 'clamp(14px, 3vw, 16px)',
-            cursor: 'pointer'
-          }}>Sign in</button>
-          
-        </form>
-
-        <p style={{
-          textAlign: 'center',
-          marginTop: '24px',
-          color: '#7b8a7f',
-          fontSize: 'clamp(14px, 3.2vw, 18px)'
-        }}>
-          Don't have an account? <span
-            onClick={() => navigate('/signup')}
-            style={{ color: green, cursor: 'pointer', fontWeight: 700 }}
-          >Sign up</span>
-        </p>
+          <p className="auth-bottom-text">
+            Don't have an account? <button className="auth-link" type="button" onClick={() => navigate('/signup')}>Sign up</button>
+          </p>
+        </div>
       </div>
     </div>
   )
