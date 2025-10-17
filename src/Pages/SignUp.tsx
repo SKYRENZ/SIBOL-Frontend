@@ -7,9 +7,7 @@ const SignUp: React.FC = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [barangay, setBarangay] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   const validateForm = () => {
@@ -20,7 +18,6 @@ const SignUp: React.FC = () => {
     if (!email) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       newErrors.email = "Enter a valid email";
-    if (!password) newErrors.password = "Password is required";
     if (!barangay) newErrors.barangay = "Barangay is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -101,23 +98,7 @@ const SignUp: React.FC = () => {
             />
             {errors.email && <div className="auth-error">{errors.email}</div>}
 
-            <label className="auth-label">Password</label>
-            <div style={{ position: "relative" }}>
-              <input
-                type={showPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Create your password"
-                className="auth-input"
-              />
-              <span
-                onClick={() => setShowPassword(!showPassword)}
-                className="auth-password-toggle"
-              >
-                {showPassword ? "Hide" : "Show"}
-              </span>
-            </div>
-            {errors.password && <div className="auth-error">{errors.password}</div>}
+            {/* Password field removed as requested */}
 
             <label className="auth-label">Barangay</label>
             <select

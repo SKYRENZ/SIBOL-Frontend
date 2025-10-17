@@ -255,6 +255,11 @@ html, body, #root {
   gap: 8px;
 }
 
+/* Add vertical spacing between inputs on Sign Up */
+.signup-page .auth-form > * + * {
+  margin-top: 1.5%;
+}
+
 /* Row for side-by-side inputs */
 .auth-row {
   display: grid;
@@ -272,6 +277,8 @@ html, body, #root {
   font-size: 14px;
   color: #374151;
   font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
 }
 
 .auth-input {
@@ -308,7 +315,7 @@ html, body, #root {
 .auth-error {
   color: #dc2626;
   font-size: 12px;
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .auth-forgot {

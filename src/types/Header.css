@@ -1,4 +1,9 @@
 .header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
     background-color: #355842; /* dark green tone */
     padding: 0.8rem 2rem;
     display: flex;
@@ -27,7 +32,7 @@
     text-decoration: none;
     color: #d1d1d1;
     font-size: 1rem;
-    font-weight: 500;
+    font-weight: 400; /* regular */
     transition: color 0.3s ease;
   }
   
@@ -36,7 +41,7 @@
   }
   
   .nav-link.active {
-    font-weight: 600;
+    font-weight: 400; /* keep regular weight */
     color: white;
     border-bottom: 2px solid white;
     padding-bottom: 2px;

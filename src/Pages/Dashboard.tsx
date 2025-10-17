@@ -1,12 +1,16 @@
 import React from 'react'
+import Header from '../Components/Header'
 
 const Dashboard: React.FC = () => {
   return (
     <div style={{
       minHeight: '100vh',
       backgroundColor: '#f5f5f5',
-      padding: '20px'
+      paddingTop: '64px',
+      paddingLeft: '20px',
+      paddingRight: '20px'
     }}>
+      <Header />
       <div style={{
         maxWidth: '1200px',
         margin: '0 auto',
