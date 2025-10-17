@@ -99,6 +99,38 @@ html, body, #root {
   }
 }
 
+/* Mobile: stack vertically and put image below the form */
+@media (max-width: 979.98px) {
+  .auth-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .auth-left, .auth-right {
+    width: 100%;
+  }
+  /* Sign In: ensure form first, image second */
+  .signin-page .auth-left { order: 1; }
+  .signin-page .auth-right { order: 2; min-height: 40vh; }
+  /* Sign Up: form is already left; keep first, image second */
+  .signup-page .auth-left { order: 1; }
+  .signup-page .auth-right { order: 2; min-height: 40vh; }
+  /* Remove desktop-only offsets on small screens */
+  .signup-page .auth-card { margin-left: 0; }
+  .signup-page .signup-submit { margin-top: 16px; }
+}
+
+/* Sign Up specific layout tweaks */
+@media (min-width: 980px) {
+  .signup-page .auth-card {
+    margin-left: 7%; /* move form 7% to the right */
+  }
+
+  .signup-page .signup-submit {
+    margin-top: 10%; /* push submit button 10% down */
+  }
+}
+
 .auth-left {
   position: relative;
   background-repeat: no-repeat;
@@ -128,7 +160,7 @@ html, body, #root {
 
 .auth-tagline {
   margin: 0;
-  color: #2E523A;
+  color: #162d1d;
   font-weight: 600;
   font-size: clamp(16px, 1.6vw, 22px);
 }
@@ -148,9 +180,24 @@ html, body, #root {
   }
 }
 
+/* Remove left divider/shadow on Sign Up to blend image with white */
+@media (min-width: 980px) {
+  .signup-page .auth-left {
+    border-right: none;
+    box-shadow: none;
+  }
+}
+
 .auth-card {
   width: 100%;
   max-width: 520px;
+}
+
+/* Subtitle (e.g., "Already have an account? Sign In") */
+.auth-subtitle {
+  margin: 0 0 16px;
+  color: #4b5563;
+  font-size: 14px;
 }
 
 .auth-top-logo {
@@ -221,6 +268,9 @@ html, body, #root {
   border-radius: 12px;
   font-size: 14px;
   outline: none;
+  background-color: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
 }
 .auth-input:is(:focus) {
   border-color: #a7b5a9;
@@ -228,6 +278,18 @@ html, body, #root {
 }
 .auth-input.is-error {
   border-color: #dc2626;
+}
+
+/* Password toggle (Show/Hide) */
+.auth-password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  user-select: none;
 }
 
 .auth-error {

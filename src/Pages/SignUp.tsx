@@ -1,165 +1,139 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const SignUp: React.FC = () => {
-  const navigate = useNavigate()
-  const [step, setStep] = useState<1 | 2>(1)
+  const navigate = useNavigate();
+  const [role, setRole] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [barangay, setBarangay] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
-  // Step 1
-  const [firstName, setFirstName] = useState('')
-  const [lastName, setLastName] = useState('')
-  const [role, setRole] = useState('')
-  const [barangay, setBarangay] = useState('')
-  // Step 2
-  const [email, setEmail] = useState('')
-
-  const [errors, setErrors] = useState<{ [k: string]: string }>({})
-
-  const green = '#8BAA95'
-  const borderColor = '#8BAA95'
-  const thinBorder = `1px solid ${borderColor}`
-
-  const logo = new URL('../assets/images/Caratao (3) 1.png', import.meta.url).href
-
-  const validateStep1 = () => {
-    const newErrors: { [k: string]: string } = {}
-    if (!firstName) newErrors.firstName = 'First name is required'
-    if (!lastName) newErrors.lastName = 'Last name is required'
-    if (!role) newErrors.role = 'Role is required'
-    if (!barangay) newErrors.barangay = 'Barangay is required'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const validateStep2 = () => {
-    const newErrors: { [k: string]: string } = {}
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!email) newErrors.email = 'Email is required'
-    else if (!emailRegex.test(email)) newErrors.email = 'Enter a valid email'
-    if (!lastName) newErrors.lastName = 'Last name is required'
-    if (!role) newErrors.role = 'Role is required'
-    if (!barangay) newErrors.barangay = 'Barangay is required'
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleProceed = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (validateStep1()) setStep(2)
-  }
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!role) newErrors.role = "Role is required";
+    if (!fullName) newErrors.fullName = "Full name is required";
+    if (!email) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      newErrors.email = "Enter a valid email";
+    if (!password) newErrors.password = "Password is required";
+    if (!barangay) newErrors.barangay = "Barangay is required";
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleSignUp = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (validateStep2()) {
-      alert('Sign Up Successful')
-      navigate('/login')
+    e.preventDefault();
+    if (validateForm()) {
+      alert("Sign Up Successful!");
+      navigate("/login");
     }
-  }
-
-  const inputStyle: React.CSSProperties = {
-    width: '100%',
-    padding: '10px 12px',
-    border: thinBorder,
-    borderRadius: '10px',
-    fontSize: 'clamp(13px, 2.5vw, 15px)',
-    outline: 'none'
-  }
-
-  const labelStyle: React.CSSProperties = {
-    display: 'block',
-    color: green,
-    marginBottom: '6px',
-    fontSize: 'clamp(14px, 2.5vw, 16px)'
-  }
+  };
 
   return (
-    <div style={{
-      position: 'relative',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'flex-start',
-      minHeight: '100vh',
-      backgroundColor: '#ffffff',
-      padding: '8vh 24px 24px'
-    }}>
-      <img src={logo} alt="SIBOL" style={{ position: 'absolute', top: 16, left: 16, height: 'clamp(56px, 8vw, 96px)' }} />
-      <div style={{ width: '100%', maxWidth: '640px', padding: '0 8px' }}>
-        <h1 style={{
-          textAlign: 'center',
-          marginBottom: '24px',
-          color: green,
-          fontSize: 'clamp(28px, 4vw, 36px)',
-          fontWeight: 700
-        }}>
-          {step === 1 ? 'Sign up' : 'Other Details'}
-        </h1>
+    <div className="auth-shell signup-page">
+      {/* Left Panel (Sign Up Form) */}
+      <div className="auth-left signup-left">
+        <div className="auth-card">
+          <h1 className="auth-title">Create your account with us below</h1>
+          <p className="auth-subtitle">
+            Already have an account?{" "}
+            <button
+              className="auth-link"
+              type="button"
+              onClick={() => navigate("/login")}
+            >
+              Sign In
+            </button>
+          </p>
 
-        {step === 1 ? (
-          <form onSubmit={handleProceed} style={{ maxWidth: '640px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>First Name</label>
-              <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} style={inputStyle} />
-              {errors.firstName && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.firstName}</div>}
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Last Name</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={inputStyle} />
-              {errors.lastName && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.lastName}</div>}
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Role</label>
-              <input type="text" value={role} onChange={(e) => setRole(e.target.value)} style={inputStyle} />
-              {errors.role && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.role}</div>}
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Baranggay</label>
-              <input type="text" value={barangay} onChange={(e) => setBarangay(e.target.value)} style={inputStyle} />
-              {errors.barangay && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.barangay}</div>}
-            </div>
-            <button type="submit" style={{
-              width: '100%', maxWidth: '420px', display: 'block', margin: '8px auto 0', padding: '12px',
-              backgroundColor: '#8BAA95', color: 'white', border: 'none', borderRadius: 12,
-              fontSize: 'clamp(14px, 3vw, 16px)', cursor: 'pointer'
-            }}>Proceed</button>
-          </form>
-        ) : (
-          <form onSubmit={handleSignUp} style={{ maxWidth: '640px', margin: '0 auto' }}>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Email</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
-              {errors.email && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.email}</div>}
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Last Name</label>
-              <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} style={inputStyle} />
-              {errors.lastName && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.lastName}</div>}
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Role</label>
-              <input type="text" value={role} onChange={(e) => setRole(e.target.value)} style={inputStyle} />
-              {errors.role && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.role}</div>}
-            </div>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={labelStyle}>Baranggay</label>
-              <input type="text" value={barangay} onChange={(e) => setBarangay(e.target.value)} style={inputStyle} />
-              {errors.barangay && <div style={{ color: '#cc0000', marginTop: 6, fontSize: 'clamp(12px, 2.5vw, 13px)' }}>{errors.barangay}</div>}
-            </div>
-            <button type="submit" style={{
-              width: '100%', maxWidth: '420px', display: 'block', margin: '8px auto 0', padding: '12px',
-              backgroundColor: '#8BAA95', color: 'white', border: 'none', borderRadius: 12,
-              fontSize: 'clamp(14px, 3vw, 16px)', cursor: 'pointer'
-            }}>Sign Up</button>
-          </form>
-        )}
+          <form className="auth-form" onSubmit={handleSignUp} noValidate>
+            <label className="auth-label">You're creating an account as?</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+              className="auth-input"
+            >
+              <option value="">Select Role</option>
+              <option value="Admin">Admin</option>
+              <option value="Barangay Staff">Barangay Staff</option>
+              <option value="Operator">Operator</option>
+              <option value="Household">Household</option>
+            </select>
+            {errors.role && <div className="auth-error">{errors.role}</div>}
 
-        <p style={{ textAlign: 'center', marginTop: '24px', color: '#7b8a7f', fontSize: 'clamp(14px, 3.2vw, 18px)' }}>
-          Already have an account? <span onClick={() => navigate('/login')} style={{ color: green, cursor: 'pointer', fontWeight: 700 }}>Sign in</span>
-        </p>
+            <label className="auth-label">Full Name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Enter your full name"
+              className="auth-input"
+            />
+            {errors.fullName && <div className="auth-error">{errors.fullName}</div>}
+
+            <label className="auth-label">Email Address</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email address"
+              className="auth-input"
+            />
+            {errors.email && <div className="auth-error">{errors.email}</div>}
+
+            <label className="auth-label">Password</label>
+            <div style={{ position: "relative" }}>
+              <input
+                type={showPassword ? "text" : "password"}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Create your password"
+                className="auth-input"
+              />
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                className="auth-password-toggle"
+              >
+                {showPassword ? "Hide" : "Show"}
+              </span>
+            </div>
+            {errors.password && <div className="auth-error">{errors.password}</div>}
+
+            <label className="auth-label">Barangay</label>
+            <select
+              value={barangay}
+              onChange={(e) => setBarangay(e.target.value)}
+              className="auth-input"
+            >
+              <option value="">Select Barangay</option>
+              <option value="1">Barangay 1</option>
+              <option value="2">Barangay 2</option>
+              <option value="3">Barangay 3</option>
+            </select>
+            {errors.barangay && <div className="auth-error">{errors.barangay}</div>}
+
+            <button className="auth-submit signup-submit" type="submit">
+              Create Account
+            </button>
+          </form>
+        </div>
       </div>
+
+      {/* Right Panel (Image) */}
+      <div
+        className="auth-right"
+        style={{
+          backgroundImage: `url(${new URL("../assets/images/lilisignup.png", import.meta.url).href})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+      />
     </div>
-  )
-}
+  );
+};
 
-export default SignUp
-
-
+export default SignUp;

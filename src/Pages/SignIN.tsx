@@ -16,18 +16,16 @@ const Login: React.FC = () => {
     e.preventDefault()
     setTouched({ username: true, password: true })
     if (isValid) {
-      // As requested, only log success on valid submit
-      console.log('Sign In Successful')
+      navigate('/dashboard')
     }
   }
 
-  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
 
   return (
-    <div className="auth-shell">
+    <div className="auth-shell signin-page">
       <div className="auth-left" style={{ backgroundImage: `url(${leftBg})` }}>
         <div className="auth-left-content">
           <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
@@ -40,14 +38,7 @@ const Login: React.FC = () => {
           <img className="auth-top-logo" src={topLogo} alt="SIBOL" />
           <h1 className="auth-title">Sign in to your account</h1>
 
-          <button className="auth-google" type="button" onClick={() => console.log('Google Sign In Clicked')}>
-            <img src={googleIcon} className="auth-google-icon" alt="Google" />
-            <span>Sign in with Google</span>
-          </button>
-
-          <div className="auth-divider">
-            <span>Or</span>
-          </div>
+          {/* Third-party sign-in removed as requested */}
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             <label className="auth-label">Username</label>
