@@ -4,7 +4,8 @@ import { useNavigate } from "react-router-dom";
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
   const [role, setRole] = useState("");
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [barangay, setBarangay] = useState("");
@@ -14,7 +15,8 @@ const SignUp: React.FC = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!role) newErrors.role = "Role is required";
-    if (!fullName) newErrors.fullName = "Full name is required";
+    if (!firstName) newErrors.firstName = "First name is required";
+    if (!lastName) newErrors.lastName = "Last name is required";
     if (!email) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       newErrors.email = "Enter a valid email";
@@ -64,15 +66,30 @@ const SignUp: React.FC = () => {
             </select>
             {errors.role && <div className="auth-error">{errors.role}</div>}
 
-            <label className="auth-label">Full Name</label>
-            <input
-              type="text"
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              placeholder="Enter your full name"
-              className="auth-input"
-            />
-            {errors.fullName && <div className="auth-error">{errors.fullName}</div>}
+            <div className="auth-row">
+              <div>
+                <label className="auth-label">First Name</label>
+                <input
+                  type="text"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  placeholder="First Name"
+                  className="auth-input"
+                />
+                {errors.firstName && <div className="auth-error">{errors.firstName}</div>}
+              </div>
+              <div>
+                <label className="auth-label">Last Name</label>
+                <input
+                  type="text"
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  placeholder="Last Name"
+                  className="auth-input"
+                />
+                {errors.lastName && <div className="auth-error">{errors.lastName}</div>}
+              </div>
+            </div>
 
             <label className="auth-label">Email Address</label>
             <input

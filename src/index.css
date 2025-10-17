@@ -255,6 +255,19 @@ html, body, #root {
   gap: 8px;
 }
 
+/* Row for side-by-side inputs */
+.auth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 579.98px) {
+  .auth-row {
+    grid-template-columns: 1fr; /* stack on very small screens */
+  }
+}
+
 .auth-label {
   font-size: 14px;
   color: #374151;

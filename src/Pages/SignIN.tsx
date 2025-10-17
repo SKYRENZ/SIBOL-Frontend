@@ -20,6 +20,7 @@ const Login: React.FC = () => {
     }
   }
 
+  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
@@ -38,7 +39,14 @@ const Login: React.FC = () => {
           <img className="auth-top-logo" src={topLogo} alt="SIBOL" />
           <h1 className="auth-title">Sign in to your account</h1>
 
-          {/* Third-party sign-in removed as requested */}
+          <button className="auth-google" type="button" onClick={() => console.log('Google Sign In Clicked')}>
+            <img src={googleIcon} className="auth-google-icon" alt="Google" />
+            <span>Sign in with Google</span>
+          </button>
+
+          <div className="auth-divider">
+            <span>Or</span>
+          </div>
 
           <form className="auth-form" onSubmit={handleSubmit} noValidate>
             <label className="auth-label">Username</label>
