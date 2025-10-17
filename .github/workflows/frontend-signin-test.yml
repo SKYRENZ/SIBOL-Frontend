@@ -1,0 +1,43 @@
+name: frontend-signin-test
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'SIBOL-Frontend/**'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'SIBOL-Frontend/**'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: SIBOL-Frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run frontend unit tests (Vitest)
+        env:
+          CI: true
+        run: npm run test:unit -- --run --reporter dot
+
+      - name: Archive test results (optional)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-logs
+          path: SIBOL-Frontend/test-results || SIBOL-Frontend/coverage || SIBOL-Frontend/vitest-report || ''

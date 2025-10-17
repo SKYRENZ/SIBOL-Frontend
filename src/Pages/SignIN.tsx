@@ -1,22 +1,43 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { login as apiLogin } from '../services/auth' // changed from '../services/api'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
+  const [loading, setLoading] = useState(false) // added
+  const [serverError, setServerError] = useState<string | null>(null) // added
 
   const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
 
   const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
   const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setTouched({ username: true, password: true })
-    if (isValid) {
-      navigate('/dashboard')
+    setServerError(null)
+
+    if (!isValid) return
+
+    try {
+      setLoading(true)
+      const res = await apiLogin(username.trim(), password)
+      // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
+      if (res && res.user) {
+        // persist simple session (adjust to your auth plan: tokens, context, etc.)
+        localStorage.setItem('user', JSON.stringify(res.user))
+        navigate('/dashboard')
+      } else {
+        setServerError('Invalid response from server')
+      }
+    } catch (err: any) {
+      // map known messages from backend (e.g. "Invalid credentials")
+      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -75,7 +96,11 @@ const Login: React.FC = () => {
               <button type="button" className="auth-link" onClick={() => {}}>Forgot Password?</button>
             </div>
 
-            <button className="auth-submit" type="submit" disabled={!isValid}>Sign in</button>
+            {serverError && <div className="auth-error" style={{ marginBottom: 8 }}>{serverError}</div>}
+
+            <button className="auth-submit" type="submit" disabled={!isValid || loading}>
+              {loading ? 'Signing in…' : 'Sign in'}
+            </button>
           </form>
 
           <p className="auth-bottom-text">
