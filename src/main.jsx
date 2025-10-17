@@ -7,6 +7,7 @@ import './index.css'
 import Login from './Pages/SignIN.tsx'
 import SignUp from './Pages/SignUp.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
+import Admin from './Pages/Admin.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -20,6 +21,7 @@ createRoot(document.getElementById('root')).render(
         
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin" element={<Admin />} />
         
         {/* 
           HOW TO ADD MORE ROUTES IN THE FUTURE:
