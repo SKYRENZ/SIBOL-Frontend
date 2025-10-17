@@ -82,3 +82,274 @@ html, body, #root {
     background-color: #f9f9f9;
   }
 }
+
+/* ------------------------------ */
+/* Auth Layout (responsive, pixel-accurate) */
+/* ------------------------------ */
+.auth-shell {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+  background: #fff;
+}
+
+@media (min-width: 980px) {
+  .auth-shell {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Mobile: stack vertically and put image below the form */
+@media (max-width: 979.98px) {
+  .auth-shell {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+  }
+  .auth-left, .auth-right {
+    width: 100%;
+  }
+  /* Sign In: ensure form first, image second */
+  .signin-page .auth-left { order: 1; }
+  .signin-page .auth-right { order: 2; min-height: 40vh; }
+  /* Sign Up: form is already left; keep first, image second */
+  .signup-page .auth-left { order: 1; }
+  .signup-page .auth-right { order: 2; min-height: 40vh; }
+  /* Remove desktop-only offsets on small screens */
+  .signup-page .auth-card { margin-left: 0; }
+  .signup-page .signup-submit { margin-top: 16px; }
+}
+
+/* Sign Up specific layout tweaks */
+@media (min-width: 980px) {
+  .signup-page .auth-card {
+    margin-left: 7%; /* move form 7% to the right */
+  }
+
+  .signup-page .signup-submit {
+    margin-top: 10%; /* push submit button 10% down */
+  }
+}
+
+.auth-left {
+  position: relative;
+  background-repeat: no-repeat;
+  background-size: contain; /* keep illustration proportions */
+  background-position: center bottom;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start; /* move content to the left */
+  padding: 32px 24px;
+}
+
+.auth-left-content {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* left align items */
+  text-align: left;
+  gap: 20px;
+  margin-left: clamp(12px, 6vw, 60px); /* visual left offset */
+}
+
+.auth-wordmark {
+  width: clamp(160px, 28vw, 320px);
+  height: auto;
+}
+
+.auth-tagline {
+  margin: 0;
+  color: #162d1d;
+  font-weight: 600;
+  font-size: clamp(16px, 1.6vw, 22px);
+}
+
+.auth-right {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+}
+
+/* Subtle separator between left background and right card on larger screens */
+@media (min-width: 980px) {
+  .auth-left {
+    border-right: 1px solid #e5e7eb;
+    box-shadow: 8px 0 20px -16px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* Remove left divider/shadow on Sign Up to blend image with white */
+@media (min-width: 980px) {
+  .signup-page .auth-left {
+    border-right: none;
+    box-shadow: none;
+  }
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 520px;
+}
+
+/* Subtitle (e.g., "Already have an account? Sign In") */
+.auth-subtitle {
+  margin: 0 0 16px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.auth-top-logo {
+  display: block;
+  width: 56px;
+  height: auto;
+  margin: 0 auto 16px;
+}
+
+.auth-title {
+  margin: 0 0 20px;
+  text-align: center;
+  color: #1d1d1f;
+  font-size: clamp(22px, 2.3vw, 28px);
+  font-weight: 800;
+}
+
+.auth-google {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  padding: 12px 14px;
+  border-radius: 10px;
+}
+
+.auth-google-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0 8px;
+  color: #9ca3af;
+  font-weight: 600;
+}
+.auth-divider:before,
+.auth-divider:after {
+  content: "";
+  height: 1px;
+  background: #e5e7eb;
+  flex: 1;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Add vertical spacing between inputs on Sign Up */
+.signup-page .auth-form > * + * {
+  margin-top: 1.5%;
+}
+
+/* Row for side-by-side inputs */
+.auth-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 579.98px) {
+  .auth-row {
+    grid-template-columns: 1fr; /* stack on very small screens */
+  }
+}
+
+.auth-label {
+  font-size: 14px;
+  color: #374151;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  font-size: 14px;
+  outline: none;
+  background-color: #ffffff;
+  color: #111827;
+  box-sizing: border-box;
+}
+.auth-input:is(:focus) {
+  border-color: #a7b5a9;
+  box-shadow: 0 0 0 3px rgba(135, 169, 144, 0.2);
+}
+.auth-input.is-error {
+  border-color: #dc2626;
+}
+
+/* Password toggle (Show/Hide) */
+.auth-password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  user-select: none;
+}
+
+.auth-error {
+  color: #dc2626;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.auth-forgot {
+  display: flex;
+  justify-content: flex-end;
+  margin: 2px 0 8px;
+}
+
+.auth-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #0a3d25;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.auth-submit {
+  width: 100%;
+  background: #274a34;
+  color: #fff;
+  border: none;
+  padding: 14px 16px;
+  border-radius: 999px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.auth-submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.auth-bottom-text {
+  text-align: center;
+  margin: 18px 0 0;
+  color: #2c4737;
+}
