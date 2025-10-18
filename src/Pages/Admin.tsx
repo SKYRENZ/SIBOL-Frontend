@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
+import AdminControls from '../Components/admin/AdminControls';
 import { Account } from '../types/Types';
 import Header from '../Components/Header';
 import { useAdmin } from '../hooks/useAdmin';
@@ -21,6 +22,22 @@ export default function Admin() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
+
+  // Global UI controls
+  const [globalQuery, setGlobalQuery] = useState('');
+  // roleFilter now stores role id (from user_roles_tbl) or 'all'
+  const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
+
+  const filteredAccounts = useMemo(() => {
+    const q = globalQuery.trim().toLowerCase();
+    return accounts.filter((a: any) => {
+      if (roleFilter !== 'all') {
+        if (a.Roles !== roleFilter) return false;
+      }
+      if (!q) return true;
+      return `${a.Username ?? a.FirstName ?? ''} ${a.LastName ?? ''} ${a.Email ?? ''}`.toLowerCase().includes(q);
+    });
+  }, [accounts, globalQuery, roleFilter]);
 
   // UI-level slim wrappers (network handled in hook)
   const onCreate = async (p: Partial<Account>) => {
@@ -48,8 +65,31 @@ export default function Admin() {
       alert(err?.message ?? 'Toggle active failed');
     }
   };
-  const onAccept = async (a: Account) => { if (!a.Account_id) return await approveAccount(a.Account_id); };
-  const onReject = async (a: Account) => { if (!a.Account_id) return await rejectAccount(a.Account_id); };
+
+  // Confirmation wrappers for approval flows
+  const onAccept = async (a: Account) => {
+    if (!a.Account_id) return;
+    if (!confirm(`Approve account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
+    try {
+      await approveAccount(a.Account_id);
+      alert('Account approved');
+    } catch (err: any) {
+      alert(err?.message ?? 'Approve failed');
+    }
+  };
+  const onReject = async (a: Account) => {
+    if (!a.Account_id) return;
+    const reason = prompt('Reason for rejection (optional)', '') ?? undefined;
+    if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
+    try {
+      // use the hook's rejectAccount (which calls backend)
+      await rejectAccount(a.Account_id);
+      // optionally send reason to backend if your hook supports it in future
+      alert('Account rejected');
+    } catch (err: any) {
+      alert(err?.message ?? 'Reject failed');
+    }
+  };
 
   const pendingCount = accounts.filter(
     (a: any) => a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
@@ -58,95 +98,89 @@ export default function Admin() {
   return (
     <>
       <Header />
-      {/* Create a safe spacing under the header; fallback height 96px */}
-      <div className="px-6 pt-[calc(var(--header-h,96px)+12px)]">
-
-        {/* Sticky sub-header: copies the "header button" aesthetics via shared classes */}
-        <div className="subheader sticky top-[var(--header-h,96px)] z-30">
-          <div className="max-w-screen-xl mx-auto flex items-end justify-between py-4">
-            {/* Tabs */}
-            <nav className="flex items-center gap-0 bg-sibol-green rounded-none" role="tablist" aria-label="Admin tabs">
+      {/* make white background touch the header by using a full-bleed white wrapper
+          and a spacer equal to the header height so content stays below the fixed header */}
+      <div className="w-full bg-white">
+        <div style={{ height: 'var(--header-h,96px)' }} aria-hidden />
+        {/* subheader with more visible separator (tabs centered vertically, slightly shifted left) */}
+        <div className="subheader sticky top-[var(--header-h,96px)] z-30 w-full border-b-2 border-sibol-green/20 bg-white">
+          {/* reduced vertical padding to make subheader shorter */}
+          <div className="max-w-screen-2xl mx-auto flex items-center justify-between py-2 px-6">
+            {/* tabs vertically centered, moved slightly left */}
+            <nav className="flex items-center gap-8 -ml-10 -mt-3" role="tablist" aria-label="Admin tabs">
               <button
+                type="button"
                 role="tab"
                 aria-selected={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}
-                className={`tab ${activeTab === 'list' ? 'tab-active' : ''}`}
-                style={{ borderRadius: 0 }}
+                className={`text-2xl px-6 py-3 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform hover:scale-105 hover:-translate-y-1
+                  ${activeTab === 'list'
+                    ? 'text-sibol-green font-semibold underline underline-offset-4'
+                    : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'}`}
               >
                 List of Accounts
               </button>
+
               <button
+                type="button"
                 role="tab"
                 aria-selected={activeTab === 'approval'}
                 onClick={() => setActiveTab('approval')}
-                className={`tab flex items-center gap-2 ${activeTab === 'approval' ? 'tab-active' : ''}`}
-                style={{ borderRadius: 0 }}
+                className={`flex items-center gap-2 text-2xl px-6 py-3 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform hover:scale-105 hover:-translate-y-1
+                  ${activeTab === 'approval'
+                    ? 'text-sibol-green font-semibold underline underline-offset-4'
+                    : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'}`}
               >
                 User Approval
-                <span className="chip chip-rose">{pendingCount}</span>
+                <span className="chip chip-rose ml-2">{pendingCount}</span>
               </button>
             </nav>
-
-            {/* Right controls: search + filter */}
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center bg-white border border-green-100 rounded-full px-3 py-1">
-                <svg className="w-4 h-4 text-sibol-green mr-2" viewBox="0 0 24 24" fill="none">
-                  <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-                <input
-                  placeholder="Search"
-                  className="text-sm text-slate-600 placeholder:text-slate-400 outline-none bg-transparent"
-                />
-              </div>
-
-              <button className="btn btn-outline">
-                Filter by
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M5 8h10L10 13 5 8z" />
-                </svg>
-              </button>
-            </div>
+            <div aria-hidden />
           </div>
         </div>
 
-        {/* Content */}
-        <div className="max-w-screen-xl mx-auto mt-6">
-          {loading && <div className="text-sm text-gray-600">Loading...</div>}
-          {error && <div className="text-sm text-red-500">{error}</div>}
-
-          {activeTab === 'list' && (
-            <>
-              <AdminList accounts={accounts} onEdit={setEditingAccount} onToggleActive={onToggleActive} />
-              <div className="mt-4">
-                <button onClick={() => setCreating(true)} className="btn btn-primary">
-                  Create User
-                </button>
-              </div>
-            </>
-          )}
-
-          {activeTab === 'approval' && (
-            <UserApproval accounts={accounts} onAccept={onAccept} onReject={onReject} />
-          )}
-
-          {creating && <AdminForm onSubmit={onCreate} onCancel={() => setCreating(false)} />}
-
-          {editingAccount && (
-            <AdminForm
-              initialData={editingAccount}
-              onSubmit={onUpdate}
-              onCancel={() => setEditingAccount(null)}
+        <div className="w-full bg-white mt-0">
+          <div className="max-w-screen-2xl mx-auto px-6">
+            {/* controls (search + role filter) placed below subheader and above lists */}
+            <AdminControls
+              globalQuery={globalQuery}
+              setGlobalQuery={setGlobalQuery}
+              roleFilter={roleFilter}
+              setRoleFilter={setRoleFilter}
+              onReset={() => { /* nothing extra for now */ }}
+              onCreate={() => setCreating(true)}
             />
-          )}
+            {loading && <div className="text-sm text-gray-600">Loading...</div>}
+            {error && <div className="text-sm text-red-500">{error}</div>}
+
+            {activeTab === 'list' && (
+              <AdminList accounts={filteredAccounts} onEdit={setEditingAccount} onToggleActive={onToggleActive} />
+            )}
+
+            {activeTab === 'approval' && (
+              <UserApproval onAccept={onAccept} onReject={onReject} />
+            )}
+
+            {creating && <AdminForm onSubmit={onCreate} onCancel={() => setCreating(false)} />}
+
+            {editingAccount && (
+              <AdminForm
+                initialData={editingAccount}
+                onSubmit={onUpdate}
+                onCancel={() => setEditingAccount(null)}
+              />
+            )}
+          </div>
         </div>
       </div>
+
       <div className="px-6 py-2 flex items-center justify-between text-sm text-gray-600 bg-white border-t border-green-50">
         <div>
           Records per page: <span className="font-medium">10</span>
           <svg className="inline w-3 h-3 ml-1" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8h10L10 13 5 8z" /></svg>
         </div>
         <div>
-          1-10 of 10
+          1-10 of {filteredAccounts.length}
           <button className="mx-2 text-sibol-green hover:underline">&lt;&lt;</button>
           <button className="mx-1 text-sibol-green hover:underline">&lt;</button>
           <button className="mx-1 text-sibol-green hover:underline">&gt;</button>

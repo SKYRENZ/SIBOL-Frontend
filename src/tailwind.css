@@ -6,6 +6,9 @@
 :root {
   --sibol-green: #2E523A;
 }
+
+button:focus { outline: none; box-shadow: none; }
+
 @layer components {
   /* Shared button primitives (copy these to match your Header buttons) */
   .btn {
@@ -38,5 +41,30 @@
   /* Sub-header wrapper that sits right under the main header */
   .subheader {
     @apply bg-white/90 backdrop-blur border-b border-green-50;
+  }
+
+  /* Remove browser focus/hover outline on the tab buttons (keep focus-visible for keyboard) */
+  nav[role="tablist"] button {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;            /* some browsers */
+    border: none;
+    box-shadow: none;
+    @apply bg-transparent shadow-none;
+  }
+
+  nav[role="tablist"] button:hover,
+  nav[role="tablist"] button:active,
+  nav[role="tablist"] button:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Keep an accessible visible state for keyboard users only */
+  nav[role="tablist"] button:focus-visible {
+    outline: none;
+    box-shadow: none;
+    @apply underline font-semibold;
   }
 }

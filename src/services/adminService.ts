@@ -7,6 +7,21 @@ export const fetchAccounts = async (): Promise<Account[]> => {
   return (data?.rows ?? data ?? []) as Account[];
 };
 
+// NEW: fetch pending accounts for UserApproval component
+export const fetchPendingAccounts = async (): Promise<Account[]> => {
+  const res = await api.get<any>('/api/admin/pending-accounts');
+  const data = res.data as any;
+  return (data?.pendingAccounts ?? data?.rows ?? data ?? []) as Account[];
+};
+
+// fetch user roles from backend (reads user_roles_tbl)
+export const fetchUserRoles = async (): Promise<{ Roles_id: number; Roles: string }[]> => {
+  const res = await api.get<any>('/api/admin/roles');
+  const data = res.data as any;
+  // backend might return rows or roles array
+  return (data?.rows ?? data?.roles ?? data ?? []) as { Roles_id: number; Roles: string }[];
+};
+
 export const createAccount = async (accountData: Partial<Account>): Promise<any> => {
   const response = await api.post('/admin/create', accountData);
   return response.data;
