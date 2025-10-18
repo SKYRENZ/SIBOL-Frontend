@@ -82,7 +82,7 @@ const SignUp: React.FC = () => {
                 {errors.lastName && <div className="auth-error">{errors.lastName}</div>}
               </div>
             </div>
-
+            
             {/* Email field - always show but make it readonly for SSO */}
             <label className="auth-label">
               Email Address

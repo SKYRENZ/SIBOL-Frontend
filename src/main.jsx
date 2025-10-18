@@ -11,8 +11,9 @@ import SignUp from './Pages/SignUp.tsx'
 import EmailVerification from './Pages/EmailVerification.tsx'
 import AdminPending from './Pages/AdminPending.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
-import Admin from './Pages/Admin.tsx'
-import TestPage from './Pages/TestPage.tsx'
+import Admin from './Pages/Admin.tsx';
+import TestPage from './Pages/TestPage.tsx'; // <-- add this import
+import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -31,6 +32,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<Admin />} />
         <Route path="/test" element={<TestPage />} /> {/* <-- add this route */}
+        <Route path="/sibol-machines" element={<SibolMachinePage />} />
         
         {/* 
           HOW TO ADD MORE ROUTES IN THE FUTURE:
