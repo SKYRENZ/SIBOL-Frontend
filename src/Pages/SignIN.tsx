@@ -41,6 +41,13 @@ const Login: React.FC = () => {
     }
   }
 
+  // ✅ Add Google Sign In handler
+  const handleGoogleSignIn = () => {
+    console.log('🔍 Google Sign In clicked')
+    // Redirect to Google OAuth endpoint
+    window.location.href = 'http://localhost:5000/api/auth/google'
+  }
+
   const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
@@ -60,7 +67,8 @@ const Login: React.FC = () => {
           <img className="auth-top-logo" src={topLogo} alt="SIBOL" />
           <h1 className="auth-title">Sign in to your account</h1>
 
-          <button className="auth-google" type="button" onClick={() => console.log('Google Sign In Clicked')}>
+          {/* ✅ Fixed Google Sign In button */}
+          <button className="auth-google" type="button" onClick={handleGoogleSignIn}>
             <img src={googleIcon} className="auth-google-icon" alt="Google" />
             <span>Sign in with Google</span>
           </button>
