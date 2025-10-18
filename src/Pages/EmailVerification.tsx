@@ -1,0 +1,141 @@
+import React from 'react';
+import { useEmailVerification } from '../hooks/useEmailVerification';
+import AuthLayout from '../Components/verification/AuthLayout';
+import LoadingSpinner from '../Components/verification/LoadingSpinner';
+import StatusCard from '../Components/verification/StatusCard';
+import ActionButton from '../Components/verification/ActionButton';
+import CountdownProgress from '../Components/verification/CountdownProgress';
+
+const EmailVerification: React.FC = () => {
+  const {
+    // State
+    status,
+    message,
+    email,
+    isResending,
+    countdown,
+    
+    // Assets
+    topLogo,
+    leftBg,
+    leftLogo,
+    
+    // Actions
+    handleResendEmail,
+    goBackToLogin,
+  } = useEmailVerification();
+
+  const renderContent = () => {
+    switch (status) {
+      case 'loading':
+        return (
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8">Verifying your email...</h2>
+            <p className="text-gray-600">Please wait while we verify your email address.</p>
+            <StatusCard 
+              type="info" 
+              title="🔍 Checking verification token..." 
+            />
+          </div>
+        );
+
+      case 'success':
+        return (
+          <div className="text-center">
+            <div className="text-6xl mb-6 animate-bounce">✅</div>
+            <h2 className="text-2xl font-bold text-green-600 mb-4">Email Verified Successfully!</h2>
+            <p className="text-gray-600 mb-6">Your email has been verified. Redirecting to admin approval...</p>
+            
+            <StatusCard type="success" title="🎉 Verification Complete!" message="Taking you to the admin approval page...">
+              <CountdownProgress countdown={countdown} total={3} />
+            </StatusCard>
+          </div>
+        );
+
+      case 'error':
+        return (
+          <div className="text-center">
+            <div className="text-6xl mb-6">❌</div>
+            <h2 className="text-2xl font-bold text-red-600 mb-4">Email Verification Failed</h2>
+            <p className="text-gray-600 mb-6">{message}</p>
+            
+            <StatusCard 
+              type="error" 
+              title="⚠️ The verification link may have expired or is invalid."
+            />
+            
+            {email && (
+              <StatusCard type="info" title="Need a new verification email?">
+                <ActionButton
+                  onClick={handleResendEmail}
+                  loading={isResending}
+                  fullWidth
+                >
+                  Resend Verification Email
+                </ActionButton>
+              </StatusCard>
+            )}
+            
+            <ActionButton
+              onClick={goBackToLogin}
+              variant="secondary"
+              fullWidth
+            >
+              Back to Login
+            </ActionButton>
+          </div>
+        );
+
+      default: // waiting state
+        return (
+          <div className="text-center">
+            <div className="text-6xl mb-6 animate-pulse">📧</div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Check Your Email</h2>
+            <p className="text-gray-600 mb-2">We've sent a verification email to</p>
+            <p className="text-blue-600 font-semibold mb-6 break-words bg-blue-50 p-3 rounded-lg">{email}</p>
+            <p className="text-gray-600 mb-8">Please click the verification link in your email to continue.</p>
+            
+            <StatusCard 
+              type="warning" 
+              title="Check your inbox (and spam folder) for the verification email."
+            />
+            
+            {email && (
+              <StatusCard type="info" title="Didn't receive the email?">
+                <div className="space-y-4">
+                  <ActionButton
+                    onClick={handleResendEmail}
+                    loading={isResending}
+                    fullWidth
+                  >
+                    Resend Verification Email
+                  </ActionButton>
+                </div>
+              </StatusCard>
+            )}
+            
+            <ActionButton
+              onClick={goBackToLogin}
+              variant="secondary"
+              fullWidth
+            >
+              Back to Login
+            </ActionButton>
+          </div>
+        );
+    }
+  };
+
+  return (
+    <AuthLayout 
+      leftBg={leftBg} 
+      leftLogo={leftLogo} 
+      topLogo={topLogo}
+    >
+      {renderContent()}
+    </AuthLayout>
+  );
+};
+
+export default EmailVerification;

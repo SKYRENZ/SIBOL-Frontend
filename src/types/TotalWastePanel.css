@@ -1,0 +1,132 @@
+.total-waste-panel.refined {
+  display: flex;
+  flex-direction: column;
+  padding: 24px;
+  min-height: 450px; /* increased height for breathing space */
+  gap: 24px;
+  justify-content: space-between;
+}
+
+.top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+/* Vertical legend layout */
+.legend-manual {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-grow: 1;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+  color: #355842;
+}
+
+.legend-box {
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+/* Dropdown styling with arrow icon */
+.filter-dropdown {
+  align-self: flex-start;
+  position: relative;
+}
+
+.filter-dropdown select {
+  padding: 8px 36px 8px 16px; /* room for arrow */
+  font-size: 14px;
+  border: 2px solid #2E523A;
+  border-radius: 6px;
+  font-weight: 600;
+  color: #2E523A;
+  background-color: #e8f5e9;
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='12'%20height='8'%20viewBox='0%200%2012%208'%3E%3Cpath%20d='M2%202l4%204%204-4'%20stroke='%232E523A'%20stroke-width='2'%20fill='none'%20fill-rule='evenodd'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  min-width: 120px;
+}
+
+.filter-dropdown select:hover {
+  background-color: #d0ecd4;
+}
+
+.filter-dropdown option {
+  background-color: white;
+  color: black;
+}
+
+.filter-dropdown option:checked {
+  background-color: #2E523A;
+  color: #ffffff;
+}
+
+.chart-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 220px;
+}
+
+.chart-container canvas {
+  max-width: 200px;
+  max-height: 200px;
+}
+
+.center-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  font-weight: bold;
+  color: #355842;
+}
+
+.stats-row {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 16px;
+  gap: 24px;
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+}
+
+.stat-amount {
+  margin: 0;
+  color: #355842;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+}

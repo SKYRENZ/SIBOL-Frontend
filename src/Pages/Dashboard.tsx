@@ -1,42 +1,74 @@
-import React from 'react'
-import Header from '../Components/Header'
+import React, { useEffect, useState } from 'react';
+import Header from '../Components/Header';
+import TotalWastePanel from '../Components/TotalWastePanel';
+import ProcessPanel from '../Components/ProcessPanel';
+import CollectionSchedule from '../Components/CollectionSchedule';
+import EnergyChart from '../Components/EnergyChart';
+import '../types/dashboard.css';
 
 const Dashboard: React.FC = () => {
-  return (
-    <div style={{
-      minHeight: '100vh',
-      backgroundColor: '#f5f5f5',
-      paddingTop: '64px',
-      paddingLeft: '20px',
-      paddingRight: '20px'
-    }}>
-      <Header />
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        backgroundColor: 'white',
-        padding: '40px',
-        borderRadius: '8px',
-        boxShadow: '0 2px 10px rgba(0,0,0,0.1)'
-      }}>
-        <h1 style={{
-          color: '#007bff',
-          fontSize: '32px',
-          fontWeight: 'bold',
-          marginBottom: '20px'
-        }}>
-          SIBOL Dashboard
-        </h1>
-        
-        <p style={{
-          color: '#666',
-          fontSize: '18px'
-        }}>
-          Welcome to your dashboard! This is where your main content will go.
-        </p>
-      </div>
-    </div>
-  )
-}
+  const [barangay] = useState('Barangay 176 - E');
+  const [currentDate, setCurrentDate] = useState<string>('');
 
-export default Dashboard
+  useEffect(() => {
+    const updateDate = () => {
+      const today = new Date();
+      const options: Intl.DateTimeFormatOptions = {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      };
+      return today.toLocaleDateString(undefined, options);
+    };
+
+    setCurrentDate(updateDate());
+
+    const timer = setInterval(() => {
+      setCurrentDate(updateDate());
+    }, 60 * 60 * 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="dashboardContainer">
+      <Header />
+      <main>
+        <div className="headerSection">
+          <div>
+            <h1 className="welcomeTitle">Welcome, {barangay}!</h1>
+            <p className="subtitle">
+              Come and save the environment with{' '}
+              <span className="highlightGreen">SIBOL Project</span>.
+            </p>
+          </div>
+          <div className="dateText">{currentDate}</div>
+        </div>
+
+        <div className="dashboardGrid">
+          {/* Waste panel on left full height */}
+          <div className="widgetBox wastePanel">
+            <TotalWastePanel />
+          </div>
+
+          {/* Right side container for process + bottom panels */}
+          <div className="rightSide">
+            <div className="widgetBox processPanel">
+              <ProcessPanel />
+            </div>
+            <div className="bottomRightRow">
+              <div className="widgetBox schedulePanel">
+                <CollectionSchedule />
+              </div>
+              <div className="widgetBox chartPanel">
+                <EnergyChart />
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default Dashboard;

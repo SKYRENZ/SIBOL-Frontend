@@ -1,0 +1,42 @@
+.collection-schedule {
+  border: 2px solid #cce0d0;
+  border-radius: 12px;
+  padding: 24px;
+  background-color: white;
+  color: #1c3c2d;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.schedule-title {
+  font-size: 20px;
+  font-weight: 800;
+  text-align: center;
+  margin-bottom: 24px;
+  color: #1c3c2d;
+}
+
+.schedule-header {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  font-weight: 600;
+  color: #1c3c2d;
+  margin-bottom: 12px;
+  padding: 0 12px;
+}
+
+.schedule-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  background-color: #f9f9f9;
+  border: 1px solid #dce5dc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  font-weight: 600;
+  color: #2e523a;
+}
+
+.schedule-row .date {
+  color: #b0b0b0;
+  font-weight: 500;
+}
