@@ -44,40 +44,43 @@ const SignUp: React.FC = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
-        // Call your registration API here
+        const requestData = {
+          firstName,
+          lastName,
+          email,
+          areaId: parseInt(barangay),
+          roleId: getRoleId(role),
+          isSSO: isSSO,
+        };
+
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            firstName,
-            lastName,
-            email,
-            areaId: parseInt(barangay), // Convert barangay to area ID
-            roleId: getRoleId(role), // Convert role string to ID
-            isSSO: isSSO, // Add this flag to indicate SSO registration
-          }),
+          body: JSON.stringify(requestData),
         });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
 
         const data = await response.json();
 
         if (data.success) {
           if (isSSO) {
-            // For SSO users, redirect directly to pending approval since email is already verified
-            alert("Sign Up Successful! Your account is pending admin approval.");
-            navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true`);
+            // For SSO users, redirect directly to admin pending (email already verified)
+            navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
           } else {
-            // For regular users, ask them to verify email
-            alert("Sign Up Successful! Please check your email to verify your account.");
-            navigate("/login");
+            // For regular users, redirect to email verification page
+            navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
           }
         } else {
           alert(`Sign Up Failed: ${data.error}`);
         }
       } catch (error) {
         console.error('Registration error:', error);
-        alert("Sign Up Failed: Network error");
+        alert(`Sign Up Failed: ${error instanceof Error ? error.message : 'Network error'}`);
       }
     }
   };

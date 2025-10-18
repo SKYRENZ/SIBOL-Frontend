@@ -2,15 +2,17 @@ import React from 'react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import './tailwind.css'   // <-- new
+import './tailwind.css'
 import './index.css'
 
 // Import your page components
 import Login from './Pages/SignIN.tsx'
 import SignUp from './Pages/SignUp.tsx'
+import EmailVerification from './Pages/EmailVerification.tsx'
+import AdminPending from './Pages/AdminPending.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
-import Admin from './Pages/Admin.tsx';
-import TestPage from './Pages/TestPage.tsx'; // <-- add this import
+import Admin from './Pages/Admin.tsx'
+import TestPage from './Pages/TestPage.tsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -18,9 +20,12 @@ createRoot(document.getElementById('root')).render(
       <Routes>
         {/* makes the login page as our main page (starting point) */}
         <Route path="/" element={<Navigate to="/login" replace />} />
+        
         {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
+        <Route path="/email-verification" element={<EmailVerification />} />
+        <Route path="/admin-pending" element={<AdminPending />} />
         
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
