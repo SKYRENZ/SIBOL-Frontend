@@ -2,7 +2,7 @@ import api from './apiClient';
 import { Account } from '../types/Types';
 
 export const fetchAccounts = async (): Promise<Account[]> => {
-  const res = await api.get<any>('/api/admin/accounts'); // changed path
+  const res = await api.get<any>('/api/admin/accounts'); // <-- uses apiClient with JWT
   const data = res.data as any;
   return (data?.rows ?? data ?? []) as Account[];
 };
