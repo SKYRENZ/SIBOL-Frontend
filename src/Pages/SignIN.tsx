@@ -1,57 +1,52 @@
-import React, { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { login as apiLogin } from '../services/auth' // changed from '../services/api'
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { login as apiLogin } from '../services/authService';
 
 const Login: React.FC = () => {
-  const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
-  const [loading, setLoading] = useState(false) // added
-  const [serverError, setServerError] = useState<string | null>(null) // added
+  const navigate = useNavigate();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({});
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
-  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
+  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
 
-  const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
-  const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
+  const usernameError = !username.trim() && touched.username ? 'This field is required' : '';
+  const passwordError = !password.trim() && touched.password ? 'This field is required' : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setTouched({ username: true, password: true })
-    setServerError(null)
+    e.preventDefault();
+    setTouched({ username: true, password: true });
+    setServerError(null);
 
-    if (!isValid) return
+    if (!isValid) return;
 
     try {
-      setLoading(true)
-      const res = await apiLogin(username.trim(), password)
-      // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
+      setLoading(true);
+      const res = await apiLogin(username.trim(), password);
       if (res && res.user) {
-        // persist simple session (adjust to your auth plan: tokens, context, etc.)
-        localStorage.setItem('user', JSON.stringify(res.user))
-        navigate('/dashboard')
+        navigate('/dashboard');
       } else {
-        setServerError('Invalid response from server')
+        setServerError('Invalid response from server');
       }
     } catch (err: any) {
-      // map known messages from backend (e.g. "Invalid credentials")
-      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed')
+      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
-  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
-  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
-  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
+  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href;
+  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
+  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
+  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
 
   return (
     <div className="auth-shell signin-page">
       <div className="auth-left" style={{ backgroundImage: `url(${leftBg})` }}>
         <div className="auth-left-content">
           <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
-          {/* <p className="auth-tagline"></p> */}
         </div>
       </div>
 
@@ -109,7 +104,7 @@ const Login: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;

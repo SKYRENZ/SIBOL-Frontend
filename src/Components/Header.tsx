@@ -23,6 +23,11 @@ const Header: React.FC = () => {
             </NavLink>
           </li>
           <li>
+            <NavLink to="/admin" className="nav-link">
+              Admin
+            </NavLink>
+          </li>
+          <li>
             <NavLink to="/maintenance" className="nav-link">
               Maintenance
             </NavLink>
