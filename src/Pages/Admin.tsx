@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
@@ -21,24 +21,6 @@ export default function Admin() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
-  const [headerPadding, setHeaderPadding] = useState('112px');
-
-  useEffect(() => {
-    const update = () => {
-      const h = (document.querySelector('.header') as HTMLElement)?.getBoundingClientRect().height ?? 96;
-      setHeaderPadding(`${Math.round(h + 12)}px`);
-    };
-    update();
-    const RO = (window as any).ResizeObserver;
-    const ro = RO ? new RO(() => update()) : undefined;
-    const headerEl = document.querySelector('.header');
-    if (ro && headerEl) ro.observe(headerEl);
-    window.addEventListener('resize', update);
-    return () => {
-      if (ro && headerEl) ro.unobserve(headerEl);
-      window.removeEventListener('resize', update);
-    };
-  }, []);
 
   // UI-level slim wrappers (network handled in hook)
   const onCreate = async (p: Partial<Account>) => {
@@ -69,46 +51,65 @@ export default function Admin() {
   const onAccept = async (a: Account) => { if (!a.Account_id) return await approveAccount(a.Account_id); };
   const onReject = async (a: Account) => { if (!a.Account_id) return await rejectAccount(a.Account_id); };
 
+  const pendingCount = accounts.filter(
+    (a: any) => a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
+  ).length;
+
   return (
     <>
       <Header />
-      <div className="px-6" style={{ paddingTop: headerPadding }}>
-        {/* Tabs / header controls (Figma style) */}
-        <div className="bg-white rounded-sm border-b border-green-50 pb-4">
+      {/* Create a safe spacing under the header; fallback height 96px */}
+      <div className="px-6 pt-[calc(var(--header-h,96px)+12px)]">
+
+        {/* Sticky sub-header: copies the "header button" aesthetics via shared classes */}
+        <div className="subheader sticky top-[var(--header-h,96px)] z-30">
           <div className="max-w-screen-xl mx-auto flex items-end justify-between py-4">
-            <nav className="flex items-center gap-8">
+            {/* Tabs */}
+            <nav className="flex items-center gap-0 bg-sibol-green rounded-none" role="tablist" aria-label="Admin tabs">
               <button
+                role="tab"
+                aria-selected={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}
-                className={`text-sibol-green font-semibold text-lg pb-2 ${activeTab === 'list' ? 'border-b-2 border-sibol-green' : 'opacity-90'}`}
+                className={`tab ${activeTab === 'list' ? 'tab-active' : ''}`}
+                style={{ borderRadius: 0 }}
               >
                 List of Accounts
               </button>
-
               <button
+                role="tab"
+                aria-selected={activeTab === 'approval'}
                 onClick={() => setActiveTab('approval')}
-                className={`text-sibol-green font-semibold text-lg pb-2 flex items-center gap-2 ${activeTab === 'approval' ? 'border-b-2 border-sibol-green' : 'opacity-90'}`}
+                className={`tab flex items-center gap-2 ${activeTab === 'approval' ? 'tab-active' : ''}`}
+                style={{ borderRadius: 0 }}
               >
                 User Approval
-                <span className="inline-flex items-center justify-center text-xs font-medium bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full">
-                  {accounts.filter((a: any) => (a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false)).length}
-                </span>
+                <span className="chip chip-rose">{pendingCount}</span>
               </button>
             </nav>
 
+            {/* Right controls: search + filter */}
             <div className="flex items-center gap-3">
               <div className="hidden sm:flex items-center bg-white border border-green-100 rounded-full px-3 py-1">
-                <svg className="w-4 h-4 text-sibol-green mr-2" viewBox="0 0 24 24" fill="none"><path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-                <input placeholder="Search" className="text-sm text-slate-600 placeholder:text-slate-400 outline-none" />
+                <svg className="w-4 h-4 text-sibol-green mr-2" viewBox="0 0 24 24" fill="none">
+                  <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+                <input
+                  placeholder="Search"
+                  className="text-sm text-slate-600 placeholder:text-slate-400 outline-none bg-transparent"
+                />
               </div>
 
-              <button className="flex items-center gap-2 border border-green-100 rounded-md px-3 py-1 text-sm text-sibol-green bg-white">
+              <button className="btn btn-outline">
                 Filter by
-                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8h10L10 13 5 8z"/></svg>
+                <svg className="w-3 h-3" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M5 8h10L10 13 5 8z" />
+                </svg>
               </button>
             </div>
           </div>
         </div>
 
+        {/* Content */}
         <div className="max-w-screen-xl mx-auto mt-6">
           {loading && <div className="text-sm text-gray-600">Loading...</div>}
           {error && <div className="text-sm text-red-500">{error}</div>}
@@ -117,7 +118,9 @@ export default function Admin() {
             <>
               <AdminList accounts={accounts} onEdit={setEditingAccount} onToggleActive={onToggleActive} />
               <div className="mt-4">
-                <button onClick={() => setCreating(true)} className="px-4 py-2 rounded-md bg-black text-white">Create User</button>
+                <button onClick={() => setCreating(true)} className="btn btn-primary">
+                  Create User
+                </button>
               </div>
             </>
           )}
@@ -128,7 +131,26 @@ export default function Admin() {
 
           {creating && <AdminForm onSubmit={onCreate} onCancel={() => setCreating(false)} />}
 
-          {editingAccount && <AdminForm initialData={editingAccount} onSubmit={onUpdate} onCancel={() => setEditingAccount(null)} />}
+          {editingAccount && (
+            <AdminForm
+              initialData={editingAccount}
+              onSubmit={onUpdate}
+              onCancel={() => setEditingAccount(null)}
+            />
+          )}
+        </div>
+      </div>
+      <div className="px-6 py-2 flex items-center justify-between text-sm text-gray-600 bg-white border-t border-green-50">
+        <div>
+          Records per page: <span className="font-medium">10</span>
+          <svg className="inline w-3 h-3 ml-1" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8h10L10 13 5 8z" /></svg>
+        </div>
+        <div>
+          1-10 of 10
+          <button className="mx-2 text-sibol-green hover:underline">&lt;&lt;</button>
+          <button className="mx-1 text-sibol-green hover:underline">&lt;</button>
+          <button className="mx-1 text-sibol-green hover:underline">&gt;</button>
+          <button className="mx-1 text-sibol-green hover:underline">&gt;&gt;</button>
         </div>
       </div>
     </>

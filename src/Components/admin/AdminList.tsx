@@ -61,13 +61,23 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, onEdit, onToggleActive 
                   {acct.Roles === 3 ? 'Admin' : acct.Roles === 2 ? 'Maintenance' : 'User'}
                 </td>
                 <td className="px-6 py-4">
-                  <button onClick={() => onEdit(acct)} className="inline-block mr-3 px-4 py-2 rounded bg-black text-white">
+                  <button
+                    onClick={() => onEdit(acct)}
+                    className="inline-flex items-center gap-1 mr-3 px-4 py-2 rounded bg-black text-white hover:bg-gray-800"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
+                      <path d="M4 21v-2a4 4 0 0 1 4-4h2" stroke="currentColor" strokeWidth="2" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L10 17l-4 1 1-4 11.5-11.5Z" stroke="currentColor" strokeWidth="2" />
+                    </svg>
                     Edit
                   </button>
                   <button
                     onClick={() => onToggleActive(acct)}
-                    className={`inline-block px-4 py-2 rounded text-white ${acct.IsActive ? 'bg-red-600' : 'bg-green-600'}`}
+                    className={`inline-flex items-center gap-1 px-4 py-2 rounded text-white ${acct.IsActive ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
                   >
+                    <svg className="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24">
+                      <path d="M6 18L18 6M6 6l12 12" stroke="currentColor" strokeWidth="2" />
+                    </svg>
                     {acct.IsActive ? 'Disable' : 'Enable'}
                   </button>
                 </td>
