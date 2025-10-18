@@ -1,130 +1,24 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useEmailVerification } from '../hooks/useEmailVerification';
 
 const EmailVerification: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'waiting'>('waiting');
-  const [message, setMessage] = useState('');
-  const [email, setEmail] = useState('');
-  const [isResending, setIsResending] = useState(false);
-  const [countdown, setCountdown] = useState(3);
-
-  const token = searchParams.get('token');
-  const emailParam = searchParams.get('email');
-  const usernameParam = searchParams.get('username');
-
-  // Get the same images from SignIn/SignUp
-  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
-  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
-  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
-
-  useEffect(() => {
-    console.log('📋 EmailVerification - URL params:', {
-      token,
-      emailParam,
-      usernameParam
-    });
-
-    if (emailParam) {
-      setEmail(emailParam);
-    }
-
-    if (token) {
-      // If token is present, start verification immediately with loading state
-      console.log('🔍 Token found, starting verification...');
-      setStatus('loading');
-      // Small delay to show the loading state
-      setTimeout(() => {
-        verifyEmailToken(token);
-      }, 500);
-    } else if (!emailParam) {
-      // If no token and no email, redirect to login
-      console.log('❌ No token or email found, redirecting to login');
-      navigate('/login');
-    } else {
-      // Show waiting state if email is present but no token
-      console.log('📧 Email found, showing waiting state');
-      setStatus('waiting');
-    }
-  }, [token, emailParam, navigate]);
-
-  // Countdown effect for redirect
-  useEffect(() => {
-    if (status === 'success' && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      
-      return () => clearTimeout(timer);
-    } else if (status === 'success' && countdown === 0) {
-      // Redirect when countdown reaches 0
-      const redirectUrl = `/admin-pending?email=${encodeURIComponent(email)}${usernameParam ? `&username=${encodeURIComponent(usernameParam)}` : ''}`;
-      console.log('🔄 Redirecting to:', redirectUrl);
-      navigate(redirectUrl);
-    }
-  }, [status, countdown, email, usernameParam, navigate]);
-
-  const verifyEmailToken = async (token: string) => {
-    try {
-      console.log('🚀 Verifying token:', token);
-      
-      const response = await fetch(`/api/auth/verify-email/${token}`);
-      console.log('📡 Verification response status:', response.status);
-      
-      const data = await response.json();
-      console.log('📋 Verification response data:', data);
-
-      if (data.success) {
-        setStatus('success');
-        setEmail(data.email);
-        setMessage('Email verified successfully! Redirecting to admin approval...');
-        // Countdown will start automatically via useEffect
-      } else {
-        console.log('❌ Verification failed:', data.error);
-        setStatus('error');
-        setMessage(data.error || 'Email verification failed');
-      }
-    } catch (error) {
-      console.error('❌ Verification error:', error);
-      setStatus('error');
-      setMessage('Network error occurred while verifying email');
-    }
-  };
-
-  const handleResendEmail = async () => {
-    if (!email) {
-      alert('Email address is required to resend verification');
-      return;
-    }
-
-    try {
-      setIsResending(true);
-      console.log('📤 Resending verification email to:', email);
-      
-      const response = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email }),
-      });
-
-      const data = await response.json();
-      console.log('📋 Resend response:', data);
-
-      if (data.success) {
-        alert('Verification email resent! Please check your inbox.');
-      } else {
-        alert(`Failed to resend email: ${data.error}`);
-      }
-    } catch (error) {
-      console.error('❌ Resend error:', error);
-      alert('Network error occurred while resending email');
-    } finally {
-      setIsResending(false);
-    }
-  };
+  const {
+    // State
+    status,
+    message,
+    email,
+    isResending,
+    countdown,
+    
+    // Assets
+    topLogo,
+    leftBg,
+    leftLogo,
+    
+    // Actions
+    handleResendEmail,
+    goBackToLogin,
+  } = useEmailVerification();
 
   const renderContent = () => {
     switch (status) {
@@ -210,7 +104,7 @@ const EmailVerification: React.FC = () => {
             
             <button 
               className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-              onClick={() => navigate('/login')}
+              onClick={goBackToLogin}
             >
               Back to Login
             </button>
@@ -227,7 +121,7 @@ const EmailVerification: React.FC = () => {
             <p className="text-gray-600 mb-8">Please click the verification link in your email to continue.</p>
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-              <p className="text-yellow-700 text-sm mb-4">
+              <p className="text-yellow-700 text-sm">
                 Check your inbox (and spam folder) for the verification email.
               </p>
             </div>
@@ -258,7 +152,7 @@ const EmailVerification: React.FC = () => {
             
             <button 
               className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-              onClick={() => navigate('/login')}
+              onClick={goBackToLogin}
             >
               Back to Login
             </button>

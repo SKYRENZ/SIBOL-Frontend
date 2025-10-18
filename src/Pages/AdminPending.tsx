@@ -1,75 +1,22 @@
-import React, { useEffect, useState } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useAdminPending } from '../hooks/useAdminPending';
 
 const AdminPending: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [isSSO, setIsSSO] = useState(false);
-  const [username, setUsername] = useState('');
-  const [checkingStatus, setCheckingStatus] = useState(false);
-
-  // Get the same images from SignIn/SignUp
-  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
-  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
-  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
-
-  useEffect(() => {
-    const emailParam = searchParams.get('email');
-    const ssoParam = searchParams.get('sso');
-    const usernameParam = searchParams.get('username');
-
-    if (emailParam) {
-      setEmail(emailParam);
-    }
-    if (ssoParam === 'true') {
-      setIsSSO(true);
-    }
-    if (usernameParam) {
-      setUsername(usernameParam);
-    }
-
-    // If no email or username, redirect to login
-    if (!emailParam && !usernameParam) {
-      navigate('/login');
-    }
-  }, [searchParams, navigate]);
-
-  const checkAccountStatus = async () => {
-    if (!username && !email) {
-      alert('Username or email is required to check status');
-      return;
-    }
-
-    try {
-      setCheckingStatus(true);
-      
-      // Extract username from email if username is not available
-      let usernameToCheck = username;
-      if (!usernameToCheck && email) {
-        // Assume username format is firstname.lastname
-        const emailPrefix = email.split('@')[0];
-        usernameToCheck = emailPrefix.replace(/[^a-zA-Z.]/g, '').toLowerCase();
-      }
-
-      const response = await fetch(`/api/auth/check-status/${usernameToCheck}`);
-      const data = await response.json();
-
-      if (data.status === 'active') {
-        alert('Your account has been approved! You can now sign in.');
-        navigate('/login');
-      } else if (data.status === 'email_pending') {
-        alert('Please verify your email first before admin approval.');
-        navigate(`/email-verification?email=${encodeURIComponent(email)}`);
-      } else {
-        alert(`Status: ${data.message}`);
-      }
-    } catch (error) {
-      alert('Error checking account status. Please try again later.');
-    } finally {
-      setCheckingStatus(false);
-    }
-  };
+  const {
+    // State
+    email,
+    isSSO,
+    checkingStatus,
+    
+    // Assets
+    topLogo,
+    leftBg,
+    leftLogo,
+    
+    // Actions
+    checkAccountStatus,
+    goBackToLogin,
+  } = useAdminPending();
 
   return (
     <div className="auth-shell min-h-screen flex">
@@ -90,7 +37,7 @@ const AdminPending: React.FC = () => {
             
             {/* Pending Icon with Animation */}
             <div className="text-center mb-8">
-              <div className="text-4xl animate-pulse mb-6">⏳</div>
+              <div className="text-5xl animate-pulse mb-6">⏳</div>
             </div>
 
             {/* Title */}
@@ -124,10 +71,10 @@ const AdminPending: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-4 mb-8">         
+            <div className="space-y-4 mb-8">              
               <button 
                 className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
-                onClick={() => navigate('/login')}
+                onClick={goBackToLogin}
               >
                 Back to Login
               </button>
