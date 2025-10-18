@@ -1,5 +1,10 @@
 import React from 'react';
 import { useEmailVerification } from '../hooks/useEmailVerification';
+import AuthLayout from '../Components/verification/AuthLayout';
+import LoadingSpinner from '../Components/verification/LoadingSpinner';
+import StatusCard from '../Components/verification/StatusCard';
+import ActionButton from '../Components/verification/ActionButton';
+import CountdownProgress from '../Components/verification/CountdownProgress';
 
 const EmailVerification: React.FC = () => {
   const {
@@ -25,14 +30,13 @@ const EmailVerification: React.FC = () => {
       case 'loading':
         return (
           <div className="text-center">
-            <div className="mx-auto w-20 h-20 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mb-8"></div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Verifying your email...</h2>
+            <LoadingSpinner size="lg" />
+            <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8">Verifying your email...</h2>
             <p className="text-gray-600">Please wait while we verify your email address.</p>
-            <div className="mt-6">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-blue-700 text-sm">🔍 Checking verification token...</p>
-              </div>
-            </div>
+            <StatusCard 
+              type="info" 
+              title="🔍 Checking verification token..." 
+            />
           </div>
         );
 
@@ -43,25 +47,9 @@ const EmailVerification: React.FC = () => {
             <h2 className="text-2xl font-bold text-green-600 mb-4">Email Verified Successfully!</h2>
             <p className="text-gray-600 mb-6">Your email has been verified. Redirecting to admin approval...</p>
             
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-              <div className="text-green-700 mb-4">
-                <p className="font-medium">🎉 Verification Complete!</p>
-                <p className="text-sm mt-2">Taking you to the admin approval page...</p>
-              </div>
-              
-              {/* Countdown and progress bar */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-center">
-                  <span className="text-green-600 font-bold text-lg">Redirecting in {countdown}...</span>
-                </div>
-                <div className="w-full bg-green-200 rounded-full h-3">
-                  <div 
-                    className="bg-green-600 h-3 rounded-full transition-all duration-1000 ease-linear"
-                    style={{width: `${((3 - countdown) / 3) * 100}%`}}
-                  ></div>
-                </div>
-              </div>
-            </div>
+            <StatusCard type="success" title="🎉 Verification Complete!" message="Taking you to the admin approval page...">
+              <CountdownProgress countdown={countdown} total={3} />
+            </StatusCard>
           </div>
         );
 
@@ -72,42 +60,30 @@ const EmailVerification: React.FC = () => {
             <h2 className="text-2xl font-bold text-red-600 mb-4">Email Verification Failed</h2>
             <p className="text-gray-600 mb-6">{message}</p>
             
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
-              <p className="text-red-700 text-sm mb-4">
-                ⚠️ The verification link may have expired or is invalid.
-              </p>
-            </div>
+            <StatusCard 
+              type="error" 
+              title="⚠️ The verification link may have expired or is invalid."
+            />
             
             {email && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-                <p className="text-gray-700 mb-4">Need a new verification email?</p>
-                <button 
-                  className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                    isResending 
-                      ? 'bg-gray-400 cursor-not-allowed text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
+              <StatusCard type="info" title="Need a new verification email?">
+                <ActionButton
                   onClick={handleResendEmail}
-                  disabled={isResending}
+                  loading={isResending}
+                  fullWidth
                 >
-                  {isResending ? (
-                    <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Resending...
-                    </div>
-                  ) : (
-                    'Resend Verification Email'
-                  )}
-                </button>
-              </div>
+                  Resend Verification Email
+                </ActionButton>
+              </StatusCard>
             )}
             
-            <button 
-              className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+            <ActionButton
               onClick={goBackToLogin}
+              variant="secondary"
+              fullWidth
             >
               Back to Login
-            </button>
+            </ActionButton>
           </div>
         );
 
@@ -120,70 +96,45 @@ const EmailVerification: React.FC = () => {
             <p className="text-blue-600 font-semibold mb-6 break-words bg-blue-50 p-3 rounded-lg">{email}</p>
             <p className="text-gray-600 mb-8">Please click the verification link in your email to continue.</p>
             
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
-              <p className="text-yellow-700 text-sm">
-                Check your inbox (and spam folder) for the verification email.
-              </p>
-            </div>
+            <StatusCard 
+              type="warning" 
+              title="Check your inbox (and spam folder) for the verification email."
+            />
             
             {email && (
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 mb-6">
-                <p className="text-gray-700 mb-4">Didn't receive the email?</p>
-                <button 
-                  className={`w-full py-3 px-4 rounded-lg font-medium transition-colors mb-4 ${
-                    isResending 
-                      ? 'bg-gray-400 cursor-not-allowed text-white' 
-                      : 'bg-blue-600 hover:bg-blue-700 text-white'
-                  }`}
-                  onClick={handleResendEmail}
-                  disabled={isResending}
-                >
-                  {isResending ? (
-                    <div className="flex items-center justify-center">
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                      Resending...
-                    </div>
-                  ) : (
-                    'Resend Verification Email'
-                  )}
-                </button>
-              </div>
+              <StatusCard type="info" title="Didn't receive the email?">
+                <div className="space-y-4">
+                  <ActionButton
+                    onClick={handleResendEmail}
+                    loading={isResending}
+                    fullWidth
+                  >
+                    Resend Verification Email
+                  </ActionButton>
+                </div>
+              </StatusCard>
             )}
             
-            <button 
-              className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
+            <ActionButton
               onClick={goBackToLogin}
+              variant="secondary"
+              fullWidth
             >
               Back to Login
-            </button>
+            </ActionButton>
           </div>
         );
     }
   };
 
   return (
-    <div className="auth-shell min-h-screen flex">
-      {/* Left Panel - Same as SignIn */}
-      <div 
-        className="auth-left flex-1 bg-cover bg-center bg-no-repeat flex items-center justify-center"
-        style={{ backgroundImage: `url(${leftBg})` }}
-      >
-        <div className="auth-left-content">
-          <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
-        </div>
-      </div>
-
-      {/* Right Panel - Verification Content */}
-      <div className="auth-right flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            
-            {/* Content */}
-            {renderContent()}
-          </div>
-        </div>
-      </div>
-    </div>
+    <AuthLayout 
+      leftBg={leftBg} 
+      leftLogo={leftLogo} 
+      topLogo={topLogo}
+    >
+      {renderContent()}
+    </AuthLayout>
   );
 };
 
