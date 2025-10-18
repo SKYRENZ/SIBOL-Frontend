@@ -15,25 +15,53 @@ const Header: React.FC = () => {
     <header className="header">
       <nav className="nav">
         <img
-          src={new URL("../assets/images/SIBOLWORDLOGO.png", import.meta.url).href}
+          src={new URL('../assets/images/collection.png', import.meta.url).href}
           alt="SIBOL"
           style={{ height: 28, width: "auto" }}
         />
 
         {/* Navigation Links */}
         <ul className="nav-links">
-          {links.map((link) => (
-            <li key={link.to}>
-              <NavLink
-                to={link.to}
-                className={({ isActive }) =>
-                  isActive ? "nav-link active" : "nav-link"
-                }
-              >
-                {link.label}
-              </NavLink>
-            </li>
-          ))}
+          <li>
+            <NavLink 
+              to="/dashboard" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              Dashboard
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/sibol-machines" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              SIBOL Machines
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/maintenance" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              Maintenance
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/household" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              Household
+            </NavLink>
+          </li>
+          <li>
+            <NavLink 
+              to="/chat-support" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
+              Chat Support
+            </NavLink>
+          </li>
         </ul>
 
         {/* Right-side Icons */}

@@ -6,6 +6,8 @@ import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
   globalIgnores(['dist']),
+
+  // Normal browser/react rules
   {
     files: ['**/*.{js,jsx}'],
     extends: [
@@ -24,6 +26,23 @@ export default defineConfig([
     },
     rules: {
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+    },
+  },
+
+  // Node config files (postcss/tailwind/vite/etc.)
+  {
+    files: ['*.config.js', 'postcss.config.js', 'tailwind.config.js', 'vite.config.js'],
+    languageOptions: {
+      ecmaVersion: 2020,
+      globals: globals.node,
+      parserOptions: {
+        // config files are often CommonJS; set sourceType to 'script' to avoid ESM-specific checks
+        sourceType: 'script',
+      },
+    },
+    rules: {
+      // allow module.exports in these files
+      'no-undef': 'off',
     },
   },
 ])

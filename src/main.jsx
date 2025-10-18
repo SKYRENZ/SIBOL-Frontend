@@ -1,12 +1,17 @@
+import React from 'react'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import './tailwind.css'   // <-- new
 import './index.css'
 
 // Import your page components
 import Login from './Pages/SignIN.tsx'
 import SignUp from './Pages/SignUp.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
+import Admin from './Pages/Admin.tsx';
+import TestPage from './Pages/TestPage.tsx'; // <-- add this import
+import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -20,6 +25,9 @@ createRoot(document.getElementById('root')).render(
         
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/test" element={<TestPage />} /> {/* <-- add this route */}
+        <Route path="/sibol-machines" element={<SibolMachinePage />} />
         
         {/* 
           HOW TO ADD MORE ROUTES IN THE FUTURE:
