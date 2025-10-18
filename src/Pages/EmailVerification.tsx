@@ -228,7 +228,7 @@ const EmailVerification: React.FC = () => {
             
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-6">
               <p className="text-yellow-700 text-sm mb-4">
-                📬 Check your inbox (and spam folder) for the verification email.
+                Check your inbox (and spam folder) for the verification email.
               </p>
             </div>
             
@@ -283,10 +283,6 @@ const EmailVerification: React.FC = () => {
       <div className="auth-right flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-md">
           <div className="bg-white rounded-lg shadow-lg p-8">
-            {/* Logo */}
-            <div className="text-center mb-8">
-              <img className="mx-auto w-16 h-16" src={topLogo} alt="SIBOL" />
-            </div>
             
             {/* Content */}
             {renderContent()}

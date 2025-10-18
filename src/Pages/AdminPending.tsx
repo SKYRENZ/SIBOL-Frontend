@@ -87,14 +87,10 @@ const AdminPending: React.FC = () => {
       <div className="auth-right flex-1 flex items-center justify-center p-8">
         <div className="w-full max-w-lg">
           <div className="bg-white rounded-lg shadow-lg p-8">
-            {/* Logo */}
-            <div className="text-center mb-8">
-              <img className="mx-auto w-16 h-16" src={topLogo} alt="SIBOL" />
-            </div>
             
             {/* Pending Icon with Animation */}
             <div className="text-center mb-8">
-              <div className="text-8xl animate-pulse">⏳</div>
+              <div className="text-4xl animate-pulse mb-6">⏳</div>
             </div>
 
             {/* Title */}
@@ -102,38 +98,20 @@ const AdminPending: React.FC = () => {
               Account Pending Approval
             </h1>
             
-            {/* Account Info */}
-            {isSSO ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
-                <div className="flex items-center mb-3">
-                  <span className="text-green-600 font-semibold">Google Account Registration Complete!</span>
-                </div>
-                <div className="bg-white border border-green-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">📧 Email:</span>
-                    <span className="font-semibold text-gray-800">{email}</span>
-                  </div>
-                  <div className="flex items-center justify-center mt-2">
-                    <span className="text-green-600 text-sm">✅ Verified by Google</span>
-                  </div>
+            {/* Account Info - UNIFIED DESIGN */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+              <div className="flex items-center justify-center mb-3">
+                <span className="text-green-600 font-semibold">
+                  {isSSO ? 'Google Registration Complete!' : 'Email Verification Complete!'}
+                </span>
+              </div>
+              <div className="bg-white border border-blue-100 rounded-lg p-4">
+                <div className="flex items-center justify-center gap-4">
+                  <span className="text-gray-600">Email:</span>
+                  <span className="font-semibold text-gray-800 break-words">{email}</span>
                 </div>
               </div>
-            ) : (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
-                <div className="flex items-center mb-3">
-                  <span className="text-blue-600 font-semibold">Email Verification Complete!</span>
-                </div>
-                <div className="bg-white border border-blue-100 rounded-lg p-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-600">📧 Email:</span>
-                    <span className="font-semibold text-gray-800">{email}</span>
-                  </div>
-                  <div className="flex items-center justify-center mt-2">
-                    <span className="text-blue-600 text-sm">✅ Verified</span>
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
             
             {/* Admin Review Message */}
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
@@ -146,26 +124,7 @@ const AdminPending: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="space-y-4 mb-8">
-              <button 
-                className={`w-full py-3 px-4 rounded-lg font-medium transition-colors ${
-                  checkingStatus 
-                    ? 'bg-gray-400 cursor-not-allowed text-white' 
-                    : 'bg-blue-600 hover:bg-blue-700 text-white'
-                }`}
-                onClick={checkAccountStatus}
-                disabled={checkingStatus}
-              >
-                {checkingStatus ? (
-                  <div className="flex items-center justify-center">
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                    Checking...
-                  </div>
-                ) : (
-                  'Check Approval Status'
-                )}
-              </button>
-              
+            <div className="space-y-4 mb-8">         
               <button 
                 className="w-full py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors"
                 onClick={() => navigate('/login')}
