@@ -7,38 +7,48 @@ const Header: React.FC = () => {
     <header className="header">
       <nav className="nav">
         <img
-          src={new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href}
+          src={new URL('../assets/images/collection.png', import.meta.url).href}
           alt="SIBOL"
           style={{ height: 28, width: 'auto' }}
         />
         <ul className="nav-links">
           <li>
-            <NavLink to="/dashboard" className="nav-link">
+            <NavLink 
+              to="/dashboard" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
               Dashboard
             </NavLink>
           </li>
           <li>
-            <NavLink to="/sibol-machines" className="nav-link active">
+            <NavLink 
+              to="/sibol-machines" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
               SIBOL Machines
             </NavLink>
           </li>
           <li>
-            <NavLink to="/admin" className="nav-link">
-              Admin
-            </NavLink>
-          </li>
-          <li>
-            <NavLink to="/maintenance" className="nav-link">
+            <NavLink 
+              to="/maintenance" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
               Maintenance
             </NavLink>
           </li>
           <li>
-            <NavLink to="/household" className="nav-link">
+            <NavLink 
+              to="/household" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
               Household
             </NavLink>
           </li>
           <li>
-            <NavLink to="/chat-support" className="nav-link">
+            <NavLink 
+              to="/chat-support" 
+              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+            >
               Chat Support
             </NavLink>
           </li>
