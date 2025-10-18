@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { login as apiLogin } from '../services/auth'
+import { login as apiLogin } from '../services/authService'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -11,7 +11,7 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false) // added
   const [serverError, setServerError] = useState<string | null>(null) // added
 
-  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
+  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -33,30 +33,26 @@ const Login: React.FC = () => {
   const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setTouched({ username: true, password: true })
-    setServerError(null)
+    e.preventDefault();
+    setTouched({ username: true, password: true });
+    setServerError(null);
 
-    if (!isValid) return
+    if (!isValid) return;
 
     try {
-      setLoading(true)
-      const res = await apiLogin(username.trim(), password)
-      // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
+      setLoading(true);
+      const res = await apiLogin(username.trim(), password);
       if (res && res.user) {
-        // persist simple session (adjust to your auth plan: tokens, context, etc.)
-        localStorage.setItem('user', JSON.stringify(res.user))
-        navigate('/dashboard')
+        navigate('/dashboard');
       } else {
-        setServerError('Invalid response from server')
+        setServerError('Invalid response from server');
       }
     } catch (err: any) {
-      // map known messages from backend (e.g. "Invalid credentials")
-      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed')
+      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // Handle Google Sign-In
   const handleGoogleSignIn = () => {
@@ -74,7 +70,6 @@ const Login: React.FC = () => {
       <div className="auth-left" style={{ backgroundImage: `url(${leftBg})` }}>
         <div className="auth-left-content">
           <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
-          {/* <p className="auth-tagline"></p> */}
         </div>
       </div>
 
@@ -132,7 +127,7 @@ const Login: React.FC = () => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Login
+export default Login;
