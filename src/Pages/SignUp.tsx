@@ -1,14 +1,31 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
   const [role, setRole] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [barangay, setBarangay] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [isSSO, setIsSSO] = useState(false);
+  const [ssoMessage, setSsoMessage] = useState("");
+
+  // Check for SSO redirect parameters
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const ssoParam = searchParams.get('sso');
+    const messageParam = searchParams.get('message');
+
+    if (emailParam && ssoParam) {
+      setEmail(emailParam);
+      setIsSSO(true);
+      setSsoMessage(messageParam || 'Complete your registration to continue with Google Sign-In');
+    }
+  }, [searchParams]);
 
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
@@ -23,12 +40,57 @@ const SignUp: React.FC = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      alert("Sign Up Successful!");
-      navigate("/login");
+      try {
+        // Call your registration API here
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            email,
+            areaId: parseInt(barangay), // Convert barangay to area ID
+            roleId: getRoleId(role), // Convert role string to ID
+            isSSO: isSSO, // Add this flag to indicate SSO registration
+          }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          if (isSSO) {
+            // For SSO users, redirect directly to pending approval since email is already verified
+            alert("Sign Up Successful! Your account is pending admin approval.");
+            navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true`);
+          } else {
+            // For regular users, ask them to verify email
+            alert("Sign Up Successful! Please check your email to verify your account.");
+            navigate("/login");
+          }
+        } else {
+          alert(`Sign Up Failed: ${data.error}`);
+        }
+      } catch (error) {
+        console.error('Registration error:', error);
+        alert("Sign Up Failed: Network error");
+      }
     }
+  };
+
+  const getRoleId = (roleString: string): number => {
+    // Map role strings to IDs based on your database
+    const roleMap: { [key: string]: number } = {
+      'Admin': 1,
+      'Barangay Staff': 2,
+      'Operator': 3,
+      'Household': 4
+    };
+    return roleMap[roleString] || 4; // Default to Household
   };
 
   return (
@@ -36,6 +98,22 @@ const SignUp: React.FC = () => {
       {/* Left Panel (Sign Up Form) */}
       <div className="auth-left signup-left">
         <div className="auth-card">
+          {isSSO && ssoMessage && (
+            <div className="sso-message" style={{ 
+              background: '#e3f2fd', 
+              padding: '10px', 
+              borderRadius: '4px', 
+              marginBottom: '20px',
+              color: '#1976d2',
+              border: '1px solid #bbdefb'
+            }}>
+              <strong>Google Sign-In:</strong> {ssoMessage}
+              <div style={{ fontSize: '0.9em', marginTop: '5px' }}>
+                📧 Email: <strong>{email}</strong> (verified by Google)
+              </div>
+            </div>
+          )}
+          
           <h1 className="auth-title">Create your account with us below</h1>
           <p className="auth-subtitle">
             Already have an account?{" "}
@@ -88,17 +166,20 @@ const SignUp: React.FC = () => {
               </div>
             </div>
 
-            <label className="auth-label">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email address"
-              className="auth-input"
-            />
-            {errors.email && <div className="auth-error">{errors.email}</div>}
-
-            {/* Password field removed as requested */}
+            {/* Only show email field for non-SSO users */}
+            {!isSSO && (
+              <>
+                <label className="auth-label">Email Address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email address"
+                  className="auth-input"
+                />
+                {errors.email && <div className="auth-error">{errors.email}</div>}
+              </>
+            )}
 
             <label className="auth-label">Barangay</label>
             <select
@@ -114,7 +195,7 @@ const SignUp: React.FC = () => {
             {errors.barangay && <div className="auth-error">{errors.barangay}</div>}
 
             <button className="auth-submit signup-submit" type="submit">
-              Create Account
+              {isSSO ? 'Complete Google Sign-Up' : 'Create Account'}
             </button>
           </form>
         </div>
