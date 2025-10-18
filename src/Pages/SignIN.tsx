@@ -1,19 +1,36 @@
-import React, { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { login as apiLogin } from '../services/authService';
+import React, { useMemo, useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { login as apiLogin } from '../services/authService'
 
 const Login: React.FC = () => {
-  const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({});
-  const [loading, setLoading] = useState(false);
-  const [serverError, setServerError] = useState<string | null>(null);
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
+  const [loading, setLoading] = useState(false) // added
+  const [serverError, setServerError] = useState<string | null>(null) // added
 
   const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
 
-  const usernameError = !username.trim() && touched.username ? 'This field is required' : '';
-  const passwordError = !password.trim() && touched.password ? 'This field is required' : '';
+  // Check if user is already logged in
+  useEffect(() => {
+    const userData = localStorage.getItem('user')
+    if (userData) {
+      navigate('/dashboard')
+    }
+  }, [navigate])
+
+  // Handle OAuth errors from URL params
+  useEffect(() => {
+    const error = searchParams.get('error')
+    if (error === 'auth_failed') {
+      setServerError('Google Sign-In failed. Please ensure your account is registered and verified.')
+    }
+  }, [searchParams])
+
+  const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
+  const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,10 +54,16 @@ const Login: React.FC = () => {
     }
   };
 
-  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href;
-  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
-  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
-  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
+  // Handle Google Sign-In
+  const handleGoogleSignIn = () => {
+    // Redirect to your backend Google OAuth endpoint
+    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`
+  }
+
+  const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
+  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
+  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
+  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
 
   return (
     <div className="auth-shell signin-page">
@@ -55,7 +78,7 @@ const Login: React.FC = () => {
           <img className="auth-top-logo" src={topLogo} alt="SIBOL" />
           <h1 className="auth-title">Sign in to your account</h1>
 
-          <button className="auth-google" type="button" onClick={() => console.log('Google Sign In Clicked')}>
+          <button className="auth-google" type="button" onClick={handleGoogleSignIn}>
             <img src={googleIcon} className="auth-google-icon" alt="Google" />
             <span>Sign in with Google</span>
           </button>
