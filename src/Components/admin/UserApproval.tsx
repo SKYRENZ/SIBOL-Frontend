@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Account } from '../../types/Types';
 
 type Props = {
@@ -8,66 +8,105 @@ type Props = {
 };
 
 const UserApproval: React.FC<Props> = ({ accounts, onAccept, onReject }) => {
-  const pending = accounts.filter(
-    (a: any) =>
-      a?.Status === 'Pending' ||
-      a?.status === 'pending' ||
-      a?.IsApproved === false ||
-      a?.IsActive === 0 ||
-      a?.IsActive === false
+  const [query, setQuery] = useState('');
+  const pending = useMemo(
+    () =>
+      accounts.filter(
+        (a: any) =>
+          a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
+      ),
+    [accounts]
   );
-  const list = pending.length > 0 ? pending : accounts;
+
+  const list = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const base = pending.length > 0 ? pending : accounts;
+    if (!q) return base;
+    return base.filter((a) => `${a.Username ?? a.FirstName ?? ''} ${a.Email ?? ''}`.toLowerCase().includes(q));
+  }, [accounts, pending, query]);
 
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', color: '#2E523A' }}>
-      <thead style={{ background: 'rgba(175,200,173,0.6)' }}>
-        <tr>
-          <th style={{ textAlign: 'left', padding: 8 }}>Username</th>
-          <th style={{ textAlign: 'left', padding: 8 }}>Barangay</th>
-          <th style={{ textAlign: 'left', padding: 8 }}>Role</th>
-          <th style={{ textAlign: 'left', padding: 8 }}>Email</th>
-          <th style={{ textAlign: 'left', padding: 8 }}>Status</th>
-          <th style={{ textAlign: 'left', padding: 8 }}>Action</th>
-        </tr>
-      </thead>
-      <tbody>
-        {list.map((account) => (
-          <tr key={account.Account_id} style={{ background: 'rgba(136,171,142,0.04)' }}>
-            <td style={{ padding: 10 }}>
-              {account.FirstName ? `${account.FirstName} ${account.LastName ?? ''}` : account.Username}
-            </td>
-            <td style={{ padding: 10 }}>{account.Area_id ? `Brgy. ${account.Area_id}` : '-'}</td>
-            <td style={{ padding: 10 }}>
-              {account.Roles === 3 ? 'Admin' : account.Roles === 2 ? 'Maintenance' : 'User'}
-            </td>
-            <td style={{ padding: 10 }}>{account.Email ?? '-'}</td>
-            <td style={{ padding: 10 }}>{(account as any).Status ?? (account.IsActive ? 'Active' : 'Pending')}</td>
-            <td style={{ padding: 10 }}>
-              <button
-                onClick={() => onAccept(account)}
-                style={{ background: '#2E523A', color: '#fff', padding: '6px 10px', border: 'none', borderRadius: 6 }}
-              >
-                Accept
-              </button>
-              <button
-                onClick={() => onReject(account)}
-                style={{ marginLeft: 8, background: '#c75', color: '#fff', padding: '6px 10px', border: 'none', borderRadius: 6 }}
-              >
-                Reject
-              </button>
-            </td>
-          </tr>
-        ))}
+    <div className="bg-white rounded-md shadow-sm border border-green-50">
+      <div className="px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="relative w-80">
+            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sibol-green">
+              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                <path
+                  d="M21 21l-4.35-4.35"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search"
+              className="pl-10 pr-3 py-2 rounded-full border border-green-100 text-sm w-full"
+            />
+          </div>
 
-        {list.length === 0 && (
-          <tr>
-            <td colSpan={6} style={{ padding: 20, textAlign: 'center' }}>
-              No users to approve
-            </td>
-          </tr>
-        )}
-      </tbody>
-    </table>
+          <div className="text-sm text-sibol-green">Pending: {pending.length}</div>
+        </div>
+      </div>
+
+      <div className="overflow-hidden">
+        <table className="min-w-full">
+          <thead className="bg-green-100 text-sibol-green">
+            <tr>
+              <th className="text-left px-6 py-3 font-medium">Username</th>
+              <th className="text-left px-6 py-3 font-medium">Barangay</th>
+              <th className="text-left px-6 py-3 font-medium">Role</th>
+              <th className="text-left px-6 py-3 font-medium">Email</th>
+              <th className="text-left px-6 py-3 font-medium">Status</th>
+              <th className="text-left px-6 py-3 font-medium">Action</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {list.map((acct) => (
+              <tr key={acct.Account_id} className="bg-white even:bg-green-50">
+                <td className="px-6 py-4 text-sibol-green">
+                  {acct.FirstName ? `${acct.FirstName} ${acct.LastName ?? ''}` : acct.Username}
+                </td>
+                <td className="px-6 py-4 text-sibol-green">{acct.Area_id ? `Brgy. ${acct.Area_id}` : '-'}</td>
+                <td className="px-6 py-4 text-sibol-green">
+                  {acct.Roles === 3 ? 'Admin' : acct.Roles === 2 ? 'Maintenance' : 'User'}
+                </td>
+                <td className="px-6 py-4 text-sibol-green">{acct.Email ?? '-'}</td>
+                <td className="px-6 py-4 text-sibol-green">
+                  {(acct as any).Status ?? (acct.IsActive ? 'Active' : 'Pending')}
+                </td>
+                <td className="px-6 py-4">
+                  <button
+                    onClick={() => onAccept(acct)}
+                    className="mr-3 px-4 py-2 rounded-md bg-sibol-green text-white"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => onReject(acct)}
+                    className="px-4 py-2 rounded-md bg-red-400 text-white"
+                  >
+                    Reject
+                  </button>
+                </td>
+              </tr>
+            ))}
+
+            {list.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
+                  No users to approve
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 
