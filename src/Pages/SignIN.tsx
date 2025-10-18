@@ -1,63 +1,44 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { login as apiLogin } from '../services/authService'
+import React, { useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { login as apiLogin } from '../services/auth' // changed from '../services/api'
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
   const [loading, setLoading] = useState(false) // added
   const [serverError, setServerError] = useState<string | null>(null) // added
 
-  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
-
-  // Check if user is already logged in
-  useEffect(() => {
-    const userData = localStorage.getItem('user')
-    if (userData) {
-      navigate('/dashboard')
-    }
-  }, [navigate])
-
-  // Handle OAuth errors from URL params
-  useEffect(() => {
-    const error = searchParams.get('error')
-    if (error === 'auth_failed') {
-      setServerError('Google Sign-In failed. Please ensure your account is registered and verified.')
-    }
-  }, [searchParams])
+  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
 
   const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
   const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setTouched({ username: true, password: true });
-    setServerError(null);
+    e.preventDefault()
+    setTouched({ username: true, password: true })
+    setServerError(null)
 
-    if (!isValid) return;
+    if (!isValid) return
 
     try {
-      setLoading(true);
-      const res = await apiLogin(username.trim(), password);
+      setLoading(true)
+      const res = await apiLogin(username.trim(), password)
+      // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
       if (res && res.user) {
-        navigate('/dashboard');
+        // persist simple session (adjust to your auth plan: tokens, context, etc.)
+        localStorage.setItem('user', JSON.stringify(res.user))
+        navigate('/dashboard')
       } else {
-        setServerError('Invalid response from server');
+        setServerError('Invalid response from server')
       }
     } catch (err: any) {
-      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed');
+      // map known messages from backend (e.g. "Invalid credentials")
+      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  // Handle Google Sign-In
-  const handleGoogleSignIn = () => {
-    // Redirect to your backend Google OAuth endpoint
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`
   }
 
   const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
@@ -70,6 +51,7 @@ const Login: React.FC = () => {
       <div className="auth-left" style={{ backgroundImage: `url(${leftBg})` }}>
         <div className="auth-left-content">
           <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
+          {/* <p className="auth-tagline"></p> */}
         </div>
       </div>
 
@@ -78,7 +60,7 @@ const Login: React.FC = () => {
           <img className="auth-top-logo" src={topLogo} alt="SIBOL" />
           <h1 className="auth-title">Sign in to your account</h1>
 
-          <button className="auth-google" type="button" onClick={handleGoogleSignIn}>
+          <button className="auth-google" type="button" onClick={() => console.log('Google Sign In Clicked')}>
             <img src={googleIcon} className="auth-google-icon" alt="Google" />
             <span>Sign in with Google</span>
           </button>
@@ -127,7 +109,7 @@ const Login: React.FC = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Login;
+export default Login
