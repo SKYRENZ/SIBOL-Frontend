@@ -1,5 +1,5 @@
 import api from './apiClient';
-import { Account } from '../types';
+import { Account } from '../types/Types';
 
 export const fetchAccounts = async (): Promise<Account[]> => {
   const res = await api.get<any>('/api/admin/accounts'); // changed path
@@ -20,4 +20,14 @@ export const updateAccount = async (accountId: number, updates: Partial<Account>
 export const toggleAccountActive = async (accountId: number, isActive: boolean): Promise<any> => {
   const response = await api.patch(`/admin/${accountId}/active`, { isActive });
   return response.data;
+};
+
+export const approveAccount = async (accountId: number): Promise<any> => {
+  const res = await api.post(`/api/admin/${accountId}/approve`);
+  return res.data;
+};
+
+export const rejectAccount = async (accountId: number): Promise<any> => {
+  const res = await api.post(`/api/admin/${accountId}/reject`);
+  return res.data;
 };

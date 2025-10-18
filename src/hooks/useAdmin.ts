@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import api from '../services/apiClient';
 import { Account } from '../types/Types';
+import * as adminService from '../services/adminService';
 
 export const useAdmin = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -15,8 +16,8 @@ export const useAdmin = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get<any>('/accounts');
-      setAccounts(res.data?.rows ?? res.data ?? []);
+      const data = await adminService.fetchAccounts();
+      setAccounts(data);
     } catch (err: any) {
       setError(err?.message ?? 'Failed to fetch accounts');
     } finally {
@@ -51,6 +52,24 @@ export const useAdmin = () => {
     }
   };
 
+  const approveAccount = async (accountId: number) => {
+    try {
+      await adminService.approveAccount(accountId);
+      await fetchAccounts();
+    } catch (err: any) {
+      throw new Error(err?.message ?? 'Approve failed');
+    }
+  };
+
+  const rejectAccount = async (accountId: number) => {
+    try {
+      await adminService.rejectAccount(accountId);
+      await fetchAccounts();
+    } catch (err: any) {
+      throw new Error(err?.message ?? 'Reject failed');
+    }
+  };
+
   return {
     accounts,
     loading,
@@ -58,5 +77,8 @@ export const useAdmin = () => {
     createAccount,
     updateAccount,
     toggleAccountActive,
+    approveAccount,
+    rejectAccount,
+    refresh: fetchAccounts,
   };
 };

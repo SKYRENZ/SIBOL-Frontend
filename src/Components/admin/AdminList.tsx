@@ -1,5 +1,5 @@
 import React from 'react';
-import { Account } from '../../types';
+import { Account } from '../../types/Types';
 
 type AdminListProps = {
   accounts: Account[];
@@ -9,7 +9,7 @@ type AdminListProps = {
 
 const AdminList: React.FC<AdminListProps> = ({ accounts, onEdit, onToggleActive }) => {
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', color: '#2E523A' }}>
       <thead style={{ background: 'rgba(175,200,173,0.6)' }}>
         <tr>
           <th style={{ textAlign: 'left', padding: 8 }}>Username</th>

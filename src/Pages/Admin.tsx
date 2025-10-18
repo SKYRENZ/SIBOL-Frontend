@@ -1,39 +1,21 @@
-import { useEffect, useState } from 'react';
-import api from '../services/apiClient';
+import { useState } from 'react';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
-import { Account } from '../types';
+import UserApproval from '../Components/admin/UserApproval';
+import { Account } from '../types/Types';
 import Header from '../Components/Header';
+import { useAdmin } from '../hooks/useAdmin';
+import api from '../services/apiClient';
 
 export default function Admin() {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { accounts, loading, error, createAccount, updateAccount, toggleAccountActive, approveAccount, rejectAccount, refresh } = useAdmin();
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
-
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  async function fetchAccounts() {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await api.get<any>('/api/admin/accounts'); // changed path
-      const data = res.data as any;
-      setAccounts((data?.rows ?? data ?? []) as Account[]);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to fetch accounts');
-    } finally {
-      setLoading(false);
-    }
-  }
+  const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
 
   const handleCreate = async (accountData: Partial<Account>) => {
     try {
-      await api.post('/admin/create', accountData);
-      await fetchAccounts();
+      await createAccount(accountData as any);
       setCreating(false);
     } catch (err: any) {
       alert(err?.message ?? 'Create failed');
@@ -43,8 +25,7 @@ export default function Admin() {
   const handleUpdate = async (accountData: Partial<Account>) => {
     if (!editingAccount || editingAccount.Account_id == null) return;
     try {
-      await api.put(`/admin/${editingAccount.Account_id}`, accountData);
-      await fetchAccounts();
+      await updateAccount(editingAccount.Account_id, accountData);
       setEditingAccount(null);
     } catch (err: any) {
       alert(err?.message ?? 'Update failed');
@@ -54,10 +35,29 @@ export default function Admin() {
   const toggleActive = async (account: Account) => {
     if (!account.Account_id) return;
     try {
-      await api.patch(`/admin/${account.Account_id}/active`, { isActive: !account.IsActive });
-      await fetchAccounts();
+      await toggleAccountActive(account.Account_id, !Boolean(account.IsActive));
     } catch (err: any) {
       alert(err?.message ?? 'Toggle active failed');
+    }
+  };
+
+  const handleAccept = async (account: Account) => {
+    if (!account.Account_id) return;
+    try {
+      await approveAccount(account.Account_id);
+      await refresh();
+    } catch (err: any) {
+      alert(err?.message ?? 'Accept failed');
+    }
+  };
+
+  const handleReject = async (account: Account) => {
+    if (!account.Account_id) return;
+    try {
+      await rejectAccount(account.Account_id);
+      await refresh();
+    } catch (err: any) {
+      alert(err?.message ?? 'Reject failed');
     }
   };
 
@@ -66,10 +66,52 @@ export default function Admin() {
       <Header />
       <div style={{ padding: 24 }}>
         <h2>Admin Panel</h2>
+
+        <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+          <button
+            onClick={() => setActiveTab('list')}
+            style={{
+              padding: '8px 14px',
+              background: activeTab === 'list' ? '#2E523A' : '#f0f0f0',
+              color: activeTab === 'list' ? '#fff' : '#2E523A',
+              border: 'none',
+              borderRadius: 6,
+            }}
+          >
+            Account List
+          </button>
+          <button
+            onClick={() => setActiveTab('approval')}
+            style={{
+              padding: '8px 14px',
+              background: activeTab === 'approval' ? '#2E523A' : '#f0f0f0',
+              color: activeTab === 'approval' ? '#fff' : '#2E523A',
+              border: 'none',
+              borderRadius: 6,
+            }}
+          >
+            User Approval
+          </button>
+        </div>
+
         {loading && <div>Loading...</div>}
         {error && <div style={{ color: 'red' }}>{error}</div>}
-        <AdminList accounts={accounts} onEdit={setEditingAccount} onToggleActive={toggleActive} />
+
+        {activeTab === 'list' && (
+          <>
+            <AdminList accounts={accounts} onEdit={setEditingAccount} onToggleActive={toggleActive} />
+            <div style={{ marginTop: 12 }}>
+              <button onClick={() => setCreating(true)}>Create User</button>
+            </div>
+          </>
+        )}
+
+        {activeTab === 'approval' && (
+          <UserApproval accounts={accounts} onAccept={handleAccept} onReject={handleReject} />
+        )}
+
         {creating && <AdminForm onSubmit={handleCreate} onCancel={() => setCreating(false)} />}
+
         {editingAccount && (
           <AdminForm
             initialData={editingAccount}
@@ -77,7 +119,6 @@ export default function Admin() {
             onCancel={() => setEditingAccount(null)}
           />
         )}
-        <button onClick={() => setCreating(true)}>Create User</button>
       </div>
     </>
   );
