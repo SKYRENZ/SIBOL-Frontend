@@ -19,6 +19,12 @@ export interface Area {
   Area_Name: string;
 }
 
+export interface UpdateMachineRequest {
+  name: string;
+  areaId: number;
+  status?: number;
+}
+
 // Get all machines
 export const getAllMachines = async (): Promise<Machine[]> => {
   try {
@@ -52,6 +58,43 @@ export const createMachine = async (areaId: number, status?: number) => {
     return await response.json();
   } catch (error) {
     console.error('❌ Create machine error:', error);
+    throw error;
+  }
+};
+
+// ✅ Add missing updateMachine function
+export const updateMachine = async (id: number, machineData: UpdateMachineRequest) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/machines/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(machineData),
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error('❌ Update machine error:', error);
+    throw error;
+  }
+};
+
+// ✅ Add missing getMachineStatuses function
+export const getMachineStatuses = async (): Promise<MachineStatus[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/machines/statuses`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    const data = await response.json();
+    return data.data || [];
+  } catch (error) {
+    console.error('❌ Get machine statuses error:', error);
     throw error;
   }
 };
