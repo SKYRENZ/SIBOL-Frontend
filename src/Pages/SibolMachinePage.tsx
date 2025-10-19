@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
+import * as machineService from '../services/machineService';
+import type { Machine, Area } from '../services/machineService';
 
 const SibolMachinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Chemical Additives');
@@ -10,6 +12,37 @@ const SibolMachinePage: React.FC = () => {
     area: '',
     startDate: ''
   });
+
+  // ✅ Add state for real machine data
+  const [machines, setMachines] = useState<Machine[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // ✅ Load data when Machines tab is active
+  useEffect(() => {
+    if (activeTab === 'Machines') {
+      loadMachineData();
+    }
+  }, [activeTab]);
+
+  const loadMachineData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [machinesData, areasData] = await Promise.all([
+        machineService.getAllMachines(),
+        machineService.getAreas()
+      ]);
+      setMachines(machinesData);
+      setAreas(areasData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load machine data');
+      console.error('❌ Load machine data error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Sample data for Chemical Additives
   const chemicalAdditivesData = [
@@ -33,26 +66,6 @@ const SibolMachinePage: React.FC = () => {
     }
   ];
 
-  // Sample data for Machines
-  const machinesData = [
-    {
-      machineNo: '1',
-      area: 'Package 1',
-      status: 'Not - Operational',
-      startProcess: '...',
-      endProcess: '...',
-      personInCharge: 'Justine Bryan Peralta'
-    },
-    {
-      machineNo: '2',
-      area: 'Package 2',
-      status: 'Operational',
-      startProcess: '8/1/2025',
-      endProcess: '...',
-      personInCharge: 'Laurenz Listangco'
-    }
-  ];
-
   // Sample data for Waste Container
   const wasteContainerData = [
     {
@@ -70,7 +83,7 @@ const SibolMachinePage: React.FC = () => {
   ];
 
   const tabs = ['Process Panels', 'Chemical Additives', 'Machines', 'Waste Container', 'Analytics'];
-  const areas = ['Package 1', 'Package 2', 'Package 3', 'Package 4'];
+  const staticAreas = ['Package 1', 'Package 2', 'Package 3', 'Package 4']; // Keep for other tabs
   const sibolMachines = Array.from({ length: 120305 }, (_, i) => `SIBOL Machine ${i + 1}`);
 
   const generateMachineNo = () => {
@@ -82,11 +95,28 @@ const SibolMachinePage: React.FC = () => {
     setShowAddForm(true);
   };
 
-  const handleSubmitForm = (e: React.FormEvent) => {
+  const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', { machineNo: generateMachineNo(), ...formData });
-    setShowAddForm(false);
+    
+    if (activeTab === 'Machines') {
+      // ✅ Handle real machine creation
+      try {
+        setLoading(true);
+        const areaId = parseInt(formData.area);
+        await machineService.createMachine(areaId);
+        await loadMachineData(); // Reload data
+        setShowAddForm(false);
+        alert('Machine created successfully!');
+      } catch (err) {
+        alert(`Failed to create machine: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Handle other tabs (existing logic)
+      console.log('Form submitted:', { machineNo: generateMachineNo(), ...formData });
+      setShowAddForm(false);
+    }
   };
 
   const renderTable = () => {
@@ -150,13 +180,37 @@ const SibolMachinePage: React.FC = () => {
         </div>
       );
     } else if (activeTab === 'Machines') {
+      // ✅ Updated Machines table with real data
       return (
         <div className="overflow-x-auto">
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+              ❌ {error}
+              <button 
+                onClick={() => setError(null)}
+                className="float-right text-red-700 hover:text-red-900"
+              >
+                ×
+              </button>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center py-8 text-gray-500">
+              🔄 Loading machines...
+            </div>
+          )}
+
           <table className="w-full bg-white border border-gray-200 rounded-lg shadow-sm">
             <thead style={{ backgroundColor: 'rgba(175, 200, 173, 0.55)' }}>
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                  Machine no.
+                  Machine ID
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">
+                  Machine Name
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">
                   Area
@@ -165,39 +219,55 @@ const SibolMachinePage: React.FC = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                  Start Process
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                  End Process
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider border-b border-gray-200">
-                  Person in Charge
+                  Actions
                 </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {machinesData.map((row, index) => (
-                <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
-                    {row.machineNo}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
-                    {row.area}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
-                    {row.status}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
-                    {row.startProcess}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
-                    {row.endProcess}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
-                    {row.personInCharge}
+              {!loading && machines.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-gray-500 italic">
+                    No machines found. Click "Add Machine" to create one.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                machines
+                  .filter(machine => 
+                    searchTerm === '' || 
+                    machine.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                    machine.Area_Name?.toLowerCase().includes(searchTerm.toLowerCase())
+                  )
+                  .map((machine, index) => (
+                    <tr key={machine.machine_id} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
+                        #{machine.machine_id}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 border-b border-gray-100">
+                        {machine.Name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
+                        {machine.Area_Name || `Area ${machine.Area_id}`}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
+                        <span className={`px-2 py-1 text-xs rounded-full ${
+                          machine.status_name 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-gray-100 text-gray-800'
+                        }`}>
+                          {machine.status_name || 'No Status'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 border-b border-gray-100">
+                        <button
+                          onClick={() => console.log('Edit machine:', machine.machine_id)}
+                          className="text-blue-600 hover:text-blue-800 mr-3"
+                        >
+                          ✏️ Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+              )}
             </tbody>
           </table>
         </div>
@@ -294,6 +364,19 @@ const SibolMachinePage: React.FC = () => {
                   </div>
                 </div>
               )}
+
+              {/* ✅ Add Refresh button for Machines tab */}
+              {activeTab === 'Machines' && (
+                <button
+                  onClick={loadMachineData}
+                  disabled={loading}
+                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 flex items-center space-x-2"
+                >
+                  <span>{loading ? '🔄' : '🔄'}</span>
+                  <span>Refresh</span>
+                </button>
+              )}
+
               <button className="bg-white border border-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 flex items-center space-x-2 hover:bg-gray-50">
                  <span>Filter by</span>
                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -364,7 +447,7 @@ const SibolMachinePage: React.FC = () => {
         {renderTable()}
       </div>
 
-      {/* Add Machine Form Modal */}
+      {/* ✅ Updated Add Machine Form Modal */}
       {showAddForm && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -373,17 +456,6 @@ const SibolMachinePage: React.FC = () => {
                 Add {activeTab === 'Chemical Additives' ? 'Chemical' : 'Machine'}
               </h3>
               <form onSubmit={handleSubmitForm}>
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Machine No. (Auto-generated)
-                  </label>
-                  <input
-                    type="text"
-                    value={generateMachineNo()}
-                    disabled
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 text-gray-500"
-                  />
-                </div>
                 <div className="mb-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Area
@@ -395,23 +467,28 @@ const SibolMachinePage: React.FC = () => {
                     required
                   >
                     <option value="">Select Area</option>
-                    {areas.map((area) => (
-                      <option key={area} value={area}>{area}</option>
+                    {/* ✅ Use real areas for Machines tab, static for others */}
+                    {(activeTab === 'Machines' ? areas : staticAreas.map((area, index) => ({ Area_id: index + 1, Area_Name: area }))).map((area) => (
+                      <option key={area.Area_id} value={area.Area_id}>
+                        {area.Area_Name}
+                      </option>
                     ))}
                   </select>
                 </div>
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Start Date
-                  </label>
-                  <input
-                    type="date"
-                    value={formData.startDate}
-                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
-                    required
-                  />
-                </div>
+                {activeTab !== 'Machines' && (
+                  <div className="mb-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Start Date
+                    </label>
+                    <input
+                      type="date"
+                      value={formData.startDate}
+                      onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-500 focus:border-green-500"
+                      required
+                    />
+                  </div>
+                )}
                 <div className="flex justify-end space-x-3">
                   <button
                     type="button"
@@ -422,10 +499,11 @@ const SibolMachinePage: React.FC = () => {
                   </button>
                   <button
                     type="submit"
+                    disabled={loading}
                     className="px-4 py-2 text-sm font-medium text-white rounded-md transition-colors duration-200"
                     style={{ backgroundColor: '#2E523A' }}
                   >
-                    Add {activeTab === 'Chemical Additives' ? 'Chemical' : 'Machine'}
+                    {loading ? 'Creating...' : `Add ${activeTab === 'Chemical Additives' ? 'Chemical' : 'Machine'}`}
                   </button>
                 </div>
               </form>
