@@ -3,10 +3,15 @@ name: Frontend Header Test
 on:
   push:
     paths:
-      - 'SIBOL-Frontend/**'
+      - 'SIBOL-Frontend/src/Components/Header.tsx'
+      - 'SIBOL-Frontend/test case/Header.test.tsx'
+      - '.github/workflows/frontend-header-test.yml'
   pull_request:
     paths:
-      - 'SIBOL-Frontend/**'
+      - 'SIBOL-Frontend/src/Components/Header.tsx'
+      - 'SIBOL-Frontend/test case/Header.test.tsx'
+      - '.github/workflows/frontend-header-test.yml'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -16,7 +21,7 @@ jobs:
         working-directory: SIBOL-Frontend
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Use Node.js

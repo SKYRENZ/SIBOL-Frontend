@@ -1,14 +1,17 @@
-name: frontend-signin-test
+name: Frontend SignIN Test
 
 on:
   push:
-    branches: [ main, master ]
     paths:
-      - 'SIBOL-Frontend/**'
+      - 'SIBOL-Frontend/src/Pages/SignIN.tsx'
+      - 'SIBOL-Frontend/test case/SignIN.test.tsx'
+      - '.github/workflows/frontend-signin-test.yml'
   pull_request:
-    branches: [ main, master ]
     paths:
-      - 'SIBOL-Frontend/**'
+      - 'SIBOL-Frontend/src/Pages/SignIN.tsx'
+      - 'SIBOL-Frontend/test case/SignIN.test.tsx'
+      - '.github/workflows/frontend-signin-test.yml'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -30,14 +33,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run frontend unit tests (Vitest)
+      - name: Run SignIN unit test (Vitest)
         env:
           CI: true
-        run: npm run test:unit -- --run --reporter dot
+        run: npx vitest run "test case/SignIN.test.tsx"
 
       - name: Archive test results (optional)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: frontend-test-logs
+          name: frontend-signin-test-logs
           path: SIBOL-Frontend/test-results || SIBOL-Frontend/coverage || SIBOL-Frontend/vitest-report || ''

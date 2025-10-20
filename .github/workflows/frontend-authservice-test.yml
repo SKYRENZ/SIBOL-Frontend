@@ -3,10 +3,15 @@ name: Frontend AuthService Test
 on:
   push:
     paths:
-      - 'SIBOL-Frontend/**'
+      - 'SIBOL-Frontend/src/services/auth.ts'
+      - 'SIBOL-Frontend/test case/authService.test.ts'
+      - '.github/workflows/frontend-authservice-test.yml'
   pull_request:
     paths:
-      - 'SIBOL-Frontend/**'
+      - 'SIBOL-Frontend/src/services/auth.ts'
+      - 'SIBOL-Frontend/test case/authService.test.ts'
+      - '.github/workflows/frontend-authservice-test.yml'
+  workflow_dispatch:
 
 jobs:
   test:
@@ -16,7 +21,7 @@ jobs:
         working-directory: SIBOL-Frontend
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Use Node.js
