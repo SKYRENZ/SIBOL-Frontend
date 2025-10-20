@@ -39,5 +39,5 @@ jobs:
       - name: Run authService unit test (Vitest)
         env:
           CI: true
-        run: npx vitest run "test case/authService.test.ts"
+        run: npm run test:unit
         working-directory: ./

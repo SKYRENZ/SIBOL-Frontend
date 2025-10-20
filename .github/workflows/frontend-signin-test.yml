@@ -29,17 +29,17 @@ jobs:
 
       - name: Clean install dependencies
         run: |
-          # remove possibly-corrupt artifacts
+          # remove possibly-corrupt artifacts so native bindings get rebuilt
           [ -d node_modules ] && rm -rf node_modules
           [ -f package-lock.json ] && rm -f package-lock.json
-          # upgrade npm to avoid known optional-deps bug
+          # upgrade npm to avoid optional-deps install bug
           npm install -g npm@9
           npm cache clean --force
           npm install
         working-directory: ./
 
-      - name: Run SignIN unit test (Vitest)
+      - name: Run unit tests
         env:
           CI: true
-        run: npx vitest run "test case/SignIN.test.tsx"
+        run: npm run test:unit
         working-directory: ./

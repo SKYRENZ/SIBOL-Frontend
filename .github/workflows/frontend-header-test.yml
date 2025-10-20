@@ -39,5 +39,5 @@ jobs:
       - name: Run Header unit test (Vitest)
         env:
           CI: true
-        run: npx vitest run "test case/Header.test.tsx"
+        run: npm run test:unit
         working-directory: ./
