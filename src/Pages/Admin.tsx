@@ -1,11 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import useAdmin from '../hooks/useAdmin';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
 import AdminControls from '../Components/admin/AdminControls';
 import { Account } from '../types/Types';
 import Header from '../Components/Header';
-import { useAdmin } from '../hooks/useAdmin';
 
 export default function Admin() {
   const {
@@ -77,7 +77,7 @@ export default function Admin() {
       alert(err?.message ?? 'Approve failed');
     }
   };
-  const onReject = async (a: Account) => {
+  const onReject = async (_reason: string) => {
     if (!a.Account_id) return;
     const reason = prompt('Reason for rejection (optional)', '') ?? undefined;
     if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
@@ -103,17 +103,17 @@ export default function Admin() {
       <div className="w-full bg-white">
         <div style={{ height: 'var(--header-h,96px)' }} aria-hidden />
         {/* subheader with more visible separator (tabs centered vertically, slightly shifted left) */}
-        <div className="subheader sticky top-[var(--header-h,96px)] z-30 w-full border-b-2 border-sibol-green/20 bg-white">
-          {/* reduced vertical padding to make subheader shorter */}
-          <div className="max-w-screen-2xl mx-auto flex items-center justify-between py-2 px-6">
-            {/* tabs vertically centered, moved slightly left */}
-            <nav className="flex items-center gap-8 -ml-10 -mt-3" role="tablist" aria-label="Admin tabs">
+        <div className="subheader sticky top-[var(--header-h,96px)] z-30 w-full border-b border-sibol-green/10 bg-white">
+          {/* tighter subheader */}
+          <div className="max-w-screen-2xl mx-auto flex items-center justify-between py-0.5 px-3">
+            {/* tabs slightly more compact (moved up slightly) */}
+            <nav className="flex items-center gap-5 -ml-2 -mt-1" role="tablist" aria-label="Admin tabs">
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}
-                className={`text-2xl px-6 py-3 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform hover:scale-105 hover:-translate-y-1
+                className={`text-xl px-4 py-2 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform -translate-y-4 hover:scale-105
                   ${activeTab === 'list'
                     ? 'text-sibol-green font-semibold underline underline-offset-4'
                     : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'}`}
@@ -126,20 +126,20 @@ export default function Admin() {
                 role="tab"
                 aria-selected={activeTab === 'approval'}
                 onClick={() => setActiveTab('approval')}
-                className={`flex items-center gap-2 text-2xl px-6 py-3 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform hover:scale-105 hover:-translate-y-1
+                className={`flex items-center gap-2 text-xl px-4 py-2 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform -translate-y-4 hover:scale-105
                   ${activeTab === 'approval'
                     ? 'text-sibol-green font-semibold underline underline-offset-4'
                     : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'}`}
               >
                 User Approval
-                <span className="chip chip-rose ml-2">{pendingCount}</span>
+                <span className="chip chip-rose ml-1 text-xs">{pendingCount}</span>
               </button>
             </nav>
             <div aria-hidden />
           </div>
         </div>
 
-        <div className="w-full bg-white mt-0">
+        <div className="w-full bg-white mt-3">
           <div className="max-w-screen-2xl mx-auto px-6">
             {/* controls (search + role filter) placed below subheader and above lists */}
             <AdminControls
@@ -161,14 +161,30 @@ export default function Admin() {
               <UserApproval onAccept={onAccept} onReject={onReject} />
             )}
 
-            {creating && <AdminForm onSubmit={onCreate} onCancel={() => setCreating(false)} />}
+            {/* Modal popup for Create / Edit */}
+            {(creating || editingAccount) && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center">
+                {/* backdrop: click to close */}
+                <div
+                  className="absolute inset-0 bg-black/40"
+                  onClick={() => {
+                    if (creating) setCreating(false);
+                    if (editingAccount) setEditingAccount(null);
+                  }}
+                />
 
-            {editingAccount && (
-              <AdminForm
-                initialData={editingAccount}
-                onSubmit={onUpdate}
-                onCancel={() => setEditingAccount(null)}
-              />
+                {/* modal panel */}
+                <div className="relative w-full max-w-3xl mx-4 bg-white rounded-lg shadow-lg p-6 text-sm text-[#3D5341]">
+                  <AdminForm
+                    initialData={editingAccount ?? undefined}
+                    onSubmit={creating ? onCreate : onUpdate}
+                    onCancel={() => {
+                      if (creating) setCreating(false);
+                      else setEditingAccount(null);
+                    }}
+                  />
+                </div>
+              </div>
             )}
           </div>
         </div>

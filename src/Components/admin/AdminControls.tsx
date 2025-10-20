@@ -38,11 +38,11 @@ export default function AdminControls({ globalQuery, setGlobalQuery, roleFilter,
   }, []);
 
   return (
-    <div className="py-4 flex items-center justify-between">
+    <div className="py-5 flex items-center justify-between">
       {/* left: search (green border always + green icon) */}
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-2xl">
         <div className="relative">
-          <div className="absolute left-4 top-1/2 -translate-y-1/2 text-sibol-green">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sibol-green">
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden>
               <path d="M21 21l-4.35-4.35" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
             </svg>
@@ -52,17 +52,24 @@ export default function AdminControls({ globalQuery, setGlobalQuery, roleFilter,
             value={globalQuery}
             onChange={(e) => setGlobalQuery(e.target.value)}
             placeholder="Search"
-            className="w-full pl-12 pr-4 py-3 rounded-full bg-transparent text-sibol-green placeholder:text-sibol-green/60 border border-grey-300 focus:border-green-600 focus:ring-0"
+            className="w-full pl-10 pr-1 py-2 rounded-full bg-transparent text-sibol-green placeholder:text-sibol-green/60 text-sm border border-grey-300 focus:border-green-600 focus:ring-0"
           />
         </div>
       </div>
 
       {/* right: Filter-by dropdown + Create user button (Reset removed) */}
       <div className="relative flex items-center gap-3" ref={menuRef}>
+           {/* Create User button moved here */}
+        {onCreate && (
+          <button type="button" onClick={onCreate} className="btn btn-primary ml-2 px-3 py-1 text-sm">
+            Create User
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => setShowRoles((s) => !s)}
-          className="flex items-center gap-2 bg-white border border-green-100 rounded px-3 py-2 text-sm text-sibol-green"
+          className="flex items-center gap-2 bg-white border border-green-100 rounded px-2 py-1 text-sm text-sibol-green"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M10 18h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -72,17 +79,7 @@ export default function AdminControls({ globalQuery, setGlobalQuery, roleFilter,
           Filter by
         </button>
 
-        {/* Create User button moved here */}
-        {onCreate && (
-          <button
-            type="button"
-            onClick={onCreate}
-            className="btn btn-primary ml-2"
-          >
-            Create User
-          </button>
-        )}
-
+   
         {showRoles && (
           <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-green-100 rounded shadow-md z-50">
             <button

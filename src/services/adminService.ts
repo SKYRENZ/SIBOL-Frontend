@@ -2,47 +2,51 @@ import api from './apiClient';
 import { Account } from '../types/Types';
 
 export const fetchAccounts = async (): Promise<Account[]> => {
-  const res = await api.get<any>('/api/admin/accounts'); // <-- uses apiClient with JWT
+  const res = await api.get('/api/admin/accounts');
   const data = res.data as any;
-  return (data?.rows ?? data ?? []) as Account[];
+  return data.rows ?? data;
 };
 
-// NEW: fetch pending accounts for UserApproval component
-export const fetchPendingAccounts = async (): Promise<Account[]> => {
-  const res = await api.get<any>('/api/admin/pending-accounts');
+export const fetchPendingAccounts = async (): Promise<any[]> => {
+  const res = await api.get('/api/admin/pending-accounts');
   const data = res.data as any;
-  return (data?.pendingAccounts ?? data?.rows ?? data ?? []) as Account[];
+  return data.pendingAccounts ?? data;
 };
 
-// fetch user roles from backend (reads user_roles_tbl)
+export const fetchPendingById = async (pendingId: number) => {
+  const res = await api.get(`/api/admin/pending-accounts/${pendingId}`);
+  return (res.data as any);
+};
+
+export const approvePending = async (pendingId: number) => {
+  const res = await api.post(`/api/admin/pending-accounts/${pendingId}/approve`);
+  return (res.data as any);
+};
+
+export const rejectPending = async (pendingId: number, reason?: string) => {
+  const res = await api.post(`/api/admin/pending-accounts/${pendingId}/reject`, { reason });
+  return (res.data as any);
+};
+
+export const createAccount = async (accountData: Partial<Account>) => {
+  const res = await api.post('/api/admin/create', accountData);
+  return (res.data as any);
+};
+
+export const updateAccount = async (accountId: number, updates: Partial<Account>) => {
+  const res = await api.put(`/api/admin/${accountId}`, updates);
+  return (res.data as any);
+};
+
+export const toggleAccountActive = async (accountId: number, isActive: boolean) => {
+  const res = await api.patch(`/api/admin/${accountId}/active`, { isActive });
+  return (res.data as any);
+};
+
+// new: fetch roles used by AdminControls
 export const fetchUserRoles = async (): Promise<{ Roles_id: number; Roles: string }[]> => {
-  const res = await api.get<any>('/api/admin/roles');
+  const res = await api.get('/api/admin/roles');
   const data = res.data as any;
-  // backend might return rows or roles array
-  return (data?.rows ?? data?.roles ?? data ?? []) as { Roles_id: number; Roles: string }[];
-};
-
-export const createAccount = async (accountData: Partial<Account>): Promise<any> => {
-  const response = await api.post('/admin/create', accountData);
-  return response.data;
-};
-
-export const updateAccount = async (accountId: number, updates: Partial<Account>): Promise<any> => {
-  const response = await api.put(`/admin/${accountId}`, updates);
-  return response.data;
-};
-
-export const toggleAccountActive = async (accountId: number, isActive: boolean): Promise<any> => {
-  const response = await api.patch(`/admin/${accountId}/active`, { isActive });
-  return response.data;
-};
-
-export const approveAccount = async (accountId: number): Promise<any> => {
-  const res = await api.post(`/api/admin/${accountId}/approve`);
-  return res.data;
-};
-
-export const rejectAccount = async (accountId: number): Promise<any> => {
-  const res = await api.post(`/api/admin/${accountId}/reject`);
-  return res.data;
+  // backend may return rows or an array directly
+  return data.rows ?? data;
 };
