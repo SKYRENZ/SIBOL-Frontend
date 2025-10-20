@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { login as apiLogin } from '../services/auth' // changed from '../services/api'
+import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -9,6 +10,7 @@ const Login: React.FC = () => {
   const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
   const [loading, setLoading] = useState(false) // added
   const [serverError, setServerError] = useState<string | null>(null) // added
+  const [fpOpen, setFpOpen] = useState(false);
 
   const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
 
@@ -101,7 +103,7 @@ const Login: React.FC = () => {
             {passwordError ? <div className="auth-error">{passwordError}</div> : null}
 
             <div className="auth-forgot">
-              <button type="button" className="auth-link" onClick={() => {}}>Forgot Password?</button>
+              <button type="button" className="auth-link" onClick={() => setFpOpen(true)}>Forgot Password?</button>
             </div>
 
             {serverError && <div className="auth-error" style={{ marginBottom: 8 }}>{serverError}</div>}
@@ -114,6 +116,8 @@ const Login: React.FC = () => {
           <p className="auth-bottom-text">
             Don't have an account? <button className="auth-link" type="button" onClick={() => navigate('/signup')}>Sign up</button>
           </p>
+
+          <ForgotPasswordModal open={fpOpen} onClose={() => setFpOpen(false)} />
         </div>
       </div>
     </div>
