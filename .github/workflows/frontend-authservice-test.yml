@@ -3,14 +3,14 @@ name: Frontend AuthService Test
 on:
   push:
     paths:
-      - 'SIBOL-Frontend/src/services/auth.ts'
-      - 'SIBOL-Frontend/test case/authService.test.ts'
-      - 'SIBOL-Frontend/.github/workflows/frontend-authservice-test.yml'
+      - 'src/services/auth.ts'
+      - 'test case/authService.test.ts'
+      - '.github/workflows/frontend-authservice-test.yml'
   pull_request:
     paths:
-      - 'SIBOL-Frontend/src/services/auth.ts'
-      - 'SIBOL-Frontend/test case/authService.test.ts'
-      - 'SIBOL-Frontend/.github/workflows/frontend-authservice-test.yml'
+      - 'src/services/auth.ts'
+      - 'test case/authService.test.ts'
+      - '.github/workflows/frontend-authservice-test.yml'
   workflow_dispatch:
 
 jobs:
@@ -29,10 +29,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: ./SIBOL-Frontend
+        working-directory: ./
 
       - name: Run authService unit test (Vitest)
         env:
           CI: true
         run: npx vitest run "test case/authService.test.ts"
-        working-directory: ./SIBOL-Frontend
+        working-directory: ./

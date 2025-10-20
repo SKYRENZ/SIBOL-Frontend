@@ -3,23 +3,22 @@ name: Frontend SignIN Test
 on:
   push:
     paths:
-      - 'SIBOL-Frontend/src/Pages/SignIN.tsx'
-      - 'SIBOL-Frontend/test case/SignIN.test.tsx'
-      - 'SIBOL-Frontend/.github/workflows/frontend-signin-test.yml'
+      - 'src/Pages/SignIN.tsx'
+      - 'test case/SignIN.test.tsx'
+      - '.github/workflows/frontend-signin-test.yml'
   pull_request:
     paths:
-      - 'SIBOL-Frontend/src/Pages/SignIN.tsx'
-      - 'SIBOL-Frontend/test case/SignIN.test.tsx'
-      - 'SIBOL-Frontend/.github/workflows/frontend-signin-test.yml'
+      - 'src/Pages/SignIN.tsx'
+      - 'test case/SignIN.test.tsx'
+      - '.github/workflows/frontend-signin-test.yml'
   workflow_dispatch:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    # Do not set a job-level defaults run. Set working-directory per step.
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Use Node.js
@@ -30,17 +29,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-        working-directory: ./SIBOL-Frontend
+        working-directory: ./
 
       - name: Run SignIN unit test (Vitest)
         env:
           CI: true
         run: npx vitest run "test case/SignIN.test.tsx"
-        working-directory: ./SIBOL-Frontend
-
-      - name: Archive test results (optional)
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-signin-test-logs
-          path: SIBOL-Frontend/test-results || SIBOL-Frontend/coverage || SIBOL-Frontend/vitest-report || ''
+        working-directory: ./
