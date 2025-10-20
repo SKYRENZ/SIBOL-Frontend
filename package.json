@@ -8,7 +8,7 @@
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test:unit": "vitest --environment jsdom --globals"
+    "test:unit": "vitest --environment happy-dom --globals"
   },
   "dependencies": {
     "axios": "^1.12.2",
