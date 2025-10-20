@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Account } from '../../types/Types';
-import { fetchPendingAccounts } from '../../services/adminService';
+import { fetchPendingAccounts, approvePendingAccount, rejectPendingAccount } from '../../services/adminService';
 
-type Props = {
-  onAccept: (a: Account) => Promise<any>;
-  onReject: (a: Account) => Promise<any>;
-};
+type Props = {};
 
-export default function UserApproval({ onAccept, onReject }: Props) {
+export default function UserApproval({}: Props) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,18 +26,21 @@ export default function UserApproval({ onAccept, onReject }: Props) {
     load();
   }, []);
 
-  const handleAccept = async (a: Account) => {
+  const handleAccept = async (pendingAccount: any) => {
     try {
-      await onAccept(a);
+      await approvePendingAccount(pendingAccount.Pending_id);
+      alert('Account approved successfully!');
       await load(); // refresh list after action
     } catch (err: any) {
       alert(err?.message ?? 'Approve failed');
     }
   };
 
-  const handleReject = async (a: Account) => {
+  const handleReject = async (pendingAccount: any) => {
+    const reason = prompt('Reason for rejection (optional):');
     try {
-      await onReject(a);
+      await rejectPendingAccount(pendingAccount.Pending_id, reason);
+      alert('Account rejected successfully!');
       await load(); // refresh list after action
     } catch (err: any) {
       alert(err?.message ?? 'Reject failed');
@@ -57,7 +57,7 @@ export default function UserApproval({ onAccept, onReject }: Props) {
   return (
     <div className="py-4 space-y-3">
       {accounts.map((a) => (
-        <div key={a.Account_id ?? a.Email} className="flex items-center justify-between bg-white border rounded-md p-3">
+        <div key={a.Pending_id ?? a.Email} className="flex items-center justify-between bg-white border rounded-md p-3">
           <div>
             <div className="font-medium text-sibol-green">{a.Username ?? `${a.FirstName ?? ''} ${a.LastName ?? ''}`}</div>
             <div className="text-sm text-gray-500">{a.Email}</div>

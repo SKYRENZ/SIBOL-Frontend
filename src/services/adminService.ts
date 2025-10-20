@@ -58,3 +58,34 @@ export const fetchModules = async (): Promise<{ Module_id: number; Module_name: 
   // Assume backend returns an array directly or in a 'rows' key
   return data.rows ?? data;
 };
+
+export async function approvePendingAccount(pendingId: number): Promise<any> {
+  const response = await fetch(`/api/admin/pending-accounts/${pendingId}/approve`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Add auth headers if required (e.g., Authorization: `Bearer ${token}`)
+    },
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to approve account');
+  }
+  return response.json();
+}
+
+export async function rejectPendingAccount(pendingId: number, reason?: string): Promise<any> {
+  const response = await fetch(`/api/admin/pending-accounts/${pendingId}/reject`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      // Add auth headers if required
+    },
+    body: JSON.stringify({ reason }),
+  });
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to reject account');
+  }
+  return response.json();
+}
