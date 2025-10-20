@@ -27,8 +27,15 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Clean install dependencies
+        run: |
+          # remove possibly-corrupt install artifacts
+          if [ -d node_modules ]; then rm -rf node_modules; fi
+          if [ -f package-lock.json ]; then rm -f package-lock.json; fi
+          # upgrade npm to avoid known optional-deps install bug
+          npm install -g npm@9
+          npm cache clean --force
+          npm install
         working-directory: ./
 
       - name: Run SignIN unit test (Vitest)
