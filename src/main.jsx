@@ -16,6 +16,7 @@ import TestPage from './Pages/TestPage.tsx'; // <-- add this import
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 import Household from './Pages/Household.tsx';
 
+import MaintenancePage from './Pages/MaintenancePage.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -28,7 +29,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/email-verification" element={<EmailVerification />} />
-        <Route path="/pending-approval" element={<AdminPending />} />
+        <Route path="/admin-pending" element={<AdminPending />} />
         
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
@@ -36,6 +37,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/test" element={<TestPage />} /> {/* <-- add this route */}
         <Route path="/sibol-machines" element={<SibolMachinePage />} />
         <Route path="/household" element={<Household/>} />
+        <Route path="/maintenance" element={<MaintenancePage />} />
         
         {/* 
           HOW TO ADD MORE ROUTES IN THE FUTURE:
