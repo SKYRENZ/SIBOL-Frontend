@@ -1,16 +1,16 @@
-name: Frontend SignIN Test
+name: Frontend Header Test
 
 on:
   push:
     paths:
-      - 'src/Pages/SignIN.tsx'
-      - 'test case/SignIN.test.tsx'
-      - '.github/workflows/frontend-signin-test.yml'
+      - 'src/Components/Header.tsx'
+      - 'test case/Header.test.tsx'
+      - '.github/workflows/frontend-header-test.yml'
   pull_request:
     paths:
-      - 'src/Pages/SignIN.tsx'
-      - 'test case/SignIN.test.tsx'
-      - '.github/workflows/frontend-signin-test.yml'
+      - 'src/Components/Header.tsx'
+      - 'test case/Header.test.tsx'
+      - '.github/workflows/frontend-header-test.yml'
   workflow_dispatch:
 
 jobs:
@@ -24,35 +24,28 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          # removed `cache: 'npm'` to avoid restoring bad node_modules cache
+          node-version: '18'   # keep consistent with local dev
 
       - name: Clean install dependencies (robust)
         run: |
           set -e
           echo "Removing node_modules & lockfile"
           rm -rf node_modules package-lock.json || true
-
-          echo "Upgrade npm to avoid optional-deps bug"
+          echo "Upgrade npm to avoid optional-deps install bug"
           npm install -g npm@9
-
           echo "Clean npm cache"
           npm cache verify || true
           npm cache clean --force || true
-
-          echo "Fresh install"
+          echo "Fresh install (no-audit, no-fund)"
           npm install --no-audit --no-fund --force
-
-          echo "Try install rolldown platform binding explicitly (no-fail)"
+          echo "Try to explicitly install rolldown binding (no-fail)"
           npm install --no-save --no-audit @rolldown/binding-linux-x64-gnu || true
-
-          echo "Force rebuild native modules"
+          echo "Rebuild native modules"
           npm rebuild --update-binary || true
-
-          echo "Debug: list relevant files"
+          echo "Debug listing"
           ls -la node_modules || true
           ls -la node_modules/rolldown || true
-          node -e "try{require('@rolldown/binding-linux-x64-gnu'); console.log('rolldown binding present')}catch(e){console.error('rolldown binding missing:', e.message); process.exit(0)}"
+          node -e "try{require('@rolldown/binding-linux-x64-gnu'); console.log('rolldown binding present')}catch(e){console.error('rolldown binding missing:', e.message)}"
         working-directory: ./
 
       - name: Run unit tests
