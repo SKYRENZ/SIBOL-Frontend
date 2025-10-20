@@ -1,59 +1,66 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import "../types/Header.css";
 import { NavLink } from "react-router-dom";
+import api from '../services/apiClient';
+
+const allLinks = [
+  { id: 1, to: "/dashboard", label: "Dashboard" },
+  { id: 2, to: "/sibol-machines", label: "SIBOL Machines" },
+  { id: 3, to: "/maintenance", label: "Maintenance" },
+  { id: 4, to: "/household", label: "Household" },
+  { id: 5, to: "/chat-support", label: "Chat Support" },
+  { id: 6, to: "/admin", label: "Admin" },
+];
 
 const Header: React.FC = () => {
-  const links = [
-    { to: "/dashboard", label: "Dashboard" },
-    { to: "/sibol-machines", label: "SIBOL Machines" },
-    // Maintenance intentionally omitted per request
-    { to: "/household", label: "Household" },
-    { to: "/chat-support", label: "Chat Support" },
-  ];
+  const [allowedPaths, setAllowedPaths] = useState<string[] | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        // use axios api client so Authorization header (Bearer token) is attached automatically
+        const res = await api.get('/api/modules/allowed');
+        const modules = res.data;
+        setAllowedPaths(Array.isArray(modules) ? modules.map((m: any) => m.Path) : []);
+      } catch (err: any) {
+        // if 401 or other error, hide protected links
+        setAllowedPaths([]);
+        console.debug('modules/allowed error:', err?.response?.status ?? err);
+      }
+    })();
+  }, []);
+
+  const links =
+    allowedPaths === null
+      ? allLinks.filter((l) => l.id !== 6) // while loading hide admin to avoid flash
+      : allLinks.filter((l) => allowedPaths.includes(l.to));
 
   return (
     <header className="header">
       <nav className="nav">
         <img
-          src={new URL('../assets/images/collection.png', import.meta.url).href}
+          src={new URL(
+            "../assets/images/collection.png",
+            import.meta.url
+          ).href}
           alt="SIBOL"
           style={{ height: 28, width: "auto" }}
         />
 
         {/* Navigation Links */}
         <ul className="nav-links">
-          <li>
-            <NavLink 
-              to="/dashboard" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              Dashboard
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
-              to="/sibol-machines" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              SIBOL Machines
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
-              to="/household" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              Household
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
-              to="/chat-support" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              Chat Support
-            </NavLink>
-          </li>
+          {links.map((link) => (
+            <li key={link.to}>
+              <NavLink
+                to={link.to}
+                className={({ isActive }) =>
+                  `nav-link ${isActive ? "active" : ""}`
+                }
+              >
+                {link.label}
+              </NavLink>
+            </li>
+          ))}
         </ul>
 
         {/* Right-side Icons */}

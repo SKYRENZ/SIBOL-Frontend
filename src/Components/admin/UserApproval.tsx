@@ -1,113 +1,85 @@
-import React, { useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Account } from '../../types/Types';
+import { fetchPendingAccounts, approvePendingAccount, rejectPendingAccount } from '../../services/adminService';
 
-type Props = {
-  accounts: Account[];
-  onAccept: (a: Account) => void;
-  onReject: (a: Account) => void;
-};
+type Props = {};
 
-const UserApproval: React.FC<Props> = ({ accounts, onAccept, onReject }) => {
-  const [query, setQuery] = useState('');
-  const pending = useMemo(
-    () =>
-      accounts.filter(
-        (a: any) =>
-          a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
-      ),
-    [accounts]
-  );
+export default function UserApproval({}: Props) {
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const list = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const base = pending.length > 0 ? pending : accounts;
-    if (!q) return base;
-    return base.filter((a) => `${a.Username ?? a.FirstName ?? ''} ${a.Email ?? ''}`.toLowerCase().includes(q));
-  }, [accounts, pending, query]);
+  const load = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const rows = await fetchPendingAccounts();
+      setAccounts(rows);
+    } catch (err: any) {
+      setError(err?.message ?? 'Failed to load pending accounts');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const handleAccept = async (pendingAccount: any) => {
+    try {
+      await approvePendingAccount(pendingAccount.Pending_id);
+      alert('Account approved successfully!');
+      await load(); // refresh list after action
+    } catch (err: any) {
+      alert(err?.message ?? 'Approve failed');
+    }
+  };
+
+  const handleReject = async (pendingAccount: any) => {
+    const reason = prompt('Reason for rejection (optional):');
+    try {
+      // Fix: Convert null to undefined to match the expected type
+      await rejectPendingAccount(pendingAccount.Pending_id, reason || undefined);
+      alert('Account rejected successfully!');
+      await load(); // refresh list after action
+    } catch (err: any) {
+      alert(err?.message ?? 'Reject failed');
+    }
+  };
+
+  if (loading) return <div className="py-6 text-sm text-gray-600">Loading pending accounts...</div>;
+  if (error) return <div className="py-6 text-sm text-rose-600">{error}</div>;
+
+  if (!accounts.length) {
+    return <div className="py-6 text-sm text-gray-600">No pending accounts.</div>;
+  }
 
   return (
-    <div className="bg-white rounded-md shadow-sm border border-green-50">
-      <div className="px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="relative w-80">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-sibol-green">
-              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <path
-                  d="M21 21l-4.35-4.35"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
-            </div>
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search"
-              className="pl-10 pr-3 py-2 rounded-full border border-green-100 text-sm w-full"
-            />
+    <div className="py-4 space-y-3">
+      {accounts.map((a) => (
+        <div key={a.Pending_id ?? a.Email} className="flex items-center justify-between bg-white border rounded-md p-3">
+          <div>
+            <div className="font-medium text-sibol-green">{a.Username ?? `${a.FirstName ?? ''} ${a.LastName ?? ''}`}</div>
+            <div className="text-sm text-gray-500">{a.Email}</div>
           </div>
 
-          <div className="text-sm text-sibol-green">Pending: {pending.length}</div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => handleAccept(a)}
+              className="btn btn-primary"
+            >
+              Accept
+            </button>
+            <button
+              onClick={() => handleReject(a)}
+              className="btn btn-outline"
+            >
+              Reject
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="overflow-hidden">
-        <table className="min-w-full">
-          <thead className="bg-green-100 text-sibol-green">
-            <tr>
-              <th className="text-left px-6 py-3 font-medium">Username</th>
-              <th className="text-left px-6 py-3 font-medium">Barangay</th>
-              <th className="text-left px-6 py-3 font-medium">Role</th>
-              <th className="text-left px-6 py-3 font-medium">Email</th>
-              <th className="text-left px-6 py-3 font-medium">Status</th>
-              <th className="text-left px-6 py-3 font-medium">Action</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {list.map((acct) => (
-              <tr key={acct.Account_id} className="bg-white even:bg-green-50">
-                <td className="px-6 py-4 text-sibol-green">
-                  {acct.FirstName ? `${acct.FirstName} ${acct.LastName ?? ''}` : acct.Username}
-                </td>
-                <td className="px-6 py-4 text-sibol-green">{acct.Area_id ? `Brgy. ${acct.Area_id}` : '-'}</td>
-                <td className="px-6 py-4 text-sibol-green">
-                  {acct.Roles === 3 ? 'Admin' : acct.Roles === 2 ? 'Maintenance' : 'User'}
-                </td>
-                <td className="px-6 py-4 text-sibol-green">{acct.Email ?? '-'}</td>
-                <td className="px-6 py-4 text-sibol-green">
-                  {(acct as any).Status ?? (acct.IsActive ? 'Active' : 'Pending')}
-                </td>
-                <td className="px-6 py-4">
-                  <button
-                    onClick={() => onAccept(acct)}
-                    className="mr-3 px-4 py-2 rounded-md bg-sibol-green text-white"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => onReject(acct)}
-                    className="px-4 py-2 rounded-md bg-red-400 text-white"
-                  >
-                    Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-
-            {list.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-sm text-gray-500">
-                  No users to approve
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      ))}
     </div>
   );
-};
-
-export default UserApproval;
+}

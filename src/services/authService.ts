@@ -6,9 +6,8 @@ export type AuthResponse = { token?: string; accessToken?: string; user?: User; 
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const res = await api.post<AuthResponse>('/api/auth/login', { username, password });
   const data = res.data as AuthResponse;
-  // backend may return `token` or `accessToken` — handle both
   const token = data.token ?? data.accessToken;
-  if (token) localStorage.setItem('token', token);
+  if (token) localStorage.setItem('token', token); // <-- stores JWT
   if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
   return data;
 }
