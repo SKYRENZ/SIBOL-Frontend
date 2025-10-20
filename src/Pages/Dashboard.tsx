@@ -4,7 +4,7 @@ import TotalWastePanel from '../Components/TotalWastePanel';
 import ProcessPanel from '../Components/ProcessPanel';
 import CollectionSchedule from '../Components/CollectionSchedule';
 import EnergyChart from '../Components/EnergyChart';
-import '../types/dashboard.css';
+import '../types/Dashboard.css';
 
 const Dashboard: React.FC = () => {
   const [barangay] = useState('Barangay 176 - E');
