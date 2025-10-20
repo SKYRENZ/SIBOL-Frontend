@@ -26,7 +26,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/email-verification" element={<EmailVerification />} />
-        <Route path="/pending-approval" element={<AdminPending />} />
+        <Route path="/admin-pending" element={<AdminPending />} />
         
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
