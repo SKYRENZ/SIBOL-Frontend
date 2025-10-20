@@ -24,24 +24,25 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
-          cache: 'npm'
+          node-version: '18'   # keep consistent with local dev
 
       - name: Clean install dependencies (robust)
         run: |
           set -e
-          echo "Removing lockfile and node_modules (if any)"
+          echo "Removing node_modules & lockfile"
           rm -rf node_modules package-lock.json || true
           echo "Upgrade npm to avoid optional-deps install bug"
           npm install -g npm@9
-          echo "Verify/clean npm cache"
+          echo "Clean npm cache"
           npm cache verify || true
           npm cache clean --force || true
-          echo "Install dependencies fresh"
-          npm install --no-audit --no-fund
-          echo "Force rebuild native modules / binaries"
+          echo "Fresh install (no-audit, no-fund)"
+          npm install --no-audit --no-fund --force
+          echo "Try to explicitly install rolldown binding (no-fail)"
+          npm install --no-save --no-audit @rolldown/binding-linux-x64-gnu || true
+          echo "Rebuild native modules"
           npm rebuild --update-binary || true
-          echo "Debug: list rolldown and binding files (if present)"
+          echo "Debug listing"
           ls -la node_modules || true
           ls -la node_modules/rolldown || true
           node -e "try{require('@rolldown/binding-linux-x64-gnu'); console.log('rolldown binding present')}catch(e){console.error('rolldown binding missing:', e.message)}"

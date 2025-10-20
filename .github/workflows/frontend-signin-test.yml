@@ -25,26 +25,34 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '18'
-          cache: 'npm'
+          # removed `cache: 'npm'` to avoid restoring bad node_modules cache
 
       - name: Clean install dependencies (robust)
         run: |
           set -e
-          echo "Removing lockfile and node_modules (if any)"
+          echo "Removing node_modules & lockfile"
           rm -rf node_modules package-lock.json || true
-          echo "Upgrade npm to avoid optional-deps install bug"
+
+          echo "Upgrade npm to avoid optional-deps bug"
           npm install -g npm@9
-          echo "Verify/clean npm cache"
+
+          echo "Clean npm cache"
           npm cache verify || true
           npm cache clean --force || true
-          echo "Install dependencies fresh"
-          npm install --no-audit --no-fund
-          echo "Force rebuild native modules / binaries"
+
+          echo "Fresh install"
+          npm install --no-audit --no-fund --force
+
+          echo "Try install rolldown platform binding explicitly (no-fail)"
+          npm install --no-save --no-audit @rolldown/binding-linux-x64-gnu || true
+
+          echo "Force rebuild native modules"
           npm rebuild --update-binary || true
-          echo "Debug: list rolldown and binding files (if present)"
+
+          echo "Debug: list relevant files"
           ls -la node_modules || true
           ls -la node_modules/rolldown || true
-          node -e "try{require('@rolldown/binding-linux-x64-gnu'); console.log('rolldown binding present')}catch(e){console.error('rolldown binding missing:', e.message)}"
+          node -e "try{require('@rolldown/binding-linux-x64-gnu'); console.log('rolldown binding present')}catch(e){console.error('rolldown binding missing:', e.message); process.exit(0)}"
         working-directory: ./
 
       - name: Run unit tests
