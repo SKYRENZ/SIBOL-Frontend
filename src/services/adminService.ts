@@ -50,3 +50,11 @@ export const fetchUserRoles = async (): Promise<{ Roles_id: number; Roles: strin
   // backend may return rows or an array directly
   return data.rows ?? data;
 };
+
+// NEW: Fetch all modules for access checklist
+export const fetchModules = async (): Promise<{ Module_id: number; Module_name: string }[]> => {
+  const res = await api.get('/api/modules');
+  const data = res.data as any;
+  // Assume backend returns an array directly or in a 'rows' key
+  return data.rows ?? data;
+};

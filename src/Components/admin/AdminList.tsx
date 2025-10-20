@@ -29,7 +29,7 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, onEdit, onToggleActive 
             {accounts.map((acct) => (
               <tr key={acct.Account_id} style={{ backgroundColor: 'rgba(136,171,142,0.1)' }}>
                 <td className="px-4 py-1.5 text-sibol-green align-middle">
-                  {acct.FirstName ? `${acct.FirstName} ${acct.LastName ?? ''}` : acct.Username}
+                  {acct.Username || (acct.FirstName ? `${acct.FirstName} ${acct.LastName ?? ''}` : '-')}
                 </td>
 
                 <td className="px-4 py-1.5 text-sibol-green align-middle">
@@ -37,7 +37,7 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, onEdit, onToggleActive 
                 </td>
 
                 <td className="px-4 py-1.5 text-sibol-green align-middle">
-                  {acct.Roles === 3 ? 'Admin' : acct.Roles === 2 ? 'Maintenance' : 'User'}
+                  {acct.Roles === 1 ? 'Admin' : acct.Roles === 2 ? 'Barangay_staff' : acct.Roles === 3 ? 'Operator' : 'Household'}
                 </td>
 
                 {/* actions: icon (flaticon-like) above small label, vertically centered and right-aligned */}
@@ -57,14 +57,22 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, onEdit, onToggleActive 
 
                     <button
                       onClick={() => onToggleActive(acct)}
-                      className="flex flex-col items-center text-rose-600 hover:text-rose-700 focus:outline-none bg-transparent border border-transparent appearance-none"
-                      aria-label="Disable user"
+                      className={`flex flex-col items-center ${acct.IsActive === 1 ? 'text-rose-600 hover:text-rose-700' : 'text-green-600 hover:text-green-700'} focus:outline-none bg-transparent border border-transparent appearance-none`}
+                      aria-label={acct.IsActive === 1 ? "Disable user" : "Enable user"}
                     >
                       <svg className="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                        <circle cx="12" cy="12" r="9" />
-                        <path d="M15 9L9 15M9 9l6 6" />
+                        {acct.IsActive === 1 ? (
+                          // Disable icon: circle with X
+                          <>
+                            <circle cx="12" cy="12" r="9" />
+                            <path d="M15 9L9 15M9 9l6 6" />
+                          </>
+                        ) : (
+                          // Enable icon: circle with checkmark
+                          <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        )}
                       </svg>
-                      <span className="text-xs">Disable</span>
+                      <span className="text-xs">{acct.IsActive === 1 ? 'Disable' : 'Enable'}</span>
                     </button>
                   </div>
                 </td>

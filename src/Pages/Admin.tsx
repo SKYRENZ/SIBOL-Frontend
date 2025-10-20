@@ -48,43 +48,47 @@ export default function Admin() {
       alert(err?.message ?? 'Create failed');
     }
   };
+
+  // Pass payload object with Account_id (useAdmin.updateAccount expects a payload)
   const onUpdate = async (p: Partial<Account>) => {
     if (!editingAccount?.Account_id) return;
     try {
-      await updateAccount(editingAccount.Account_id, p);
+      await updateAccount({ ...p, Account_id: editingAccount.Account_id });
       setEditingAccount(null);
     } catch (err: any) {
       alert(err?.message ?? 'Update failed');
     }
   };
+
+  // use the hook's toggleAccountActive(account) signature (pass whole account)
   const onToggleActive = async (a: Account) => {
     if (!a.Account_id) return;
     try {
-      await toggleAccountActive(a.Account_id, !Boolean(a.IsActive));
+      await toggleAccountActive(a);
     } catch (err: any) {
       alert(err?.message ?? 'Toggle active failed');
     }
   };
 
-  // Confirmation wrappers for approval flows
+  // Accept/Approve expects an Account (or id) — keep similar but use hook properly
   const onAccept = async (a: Account) => {
     if (!a.Account_id) return;
     if (!confirm(`Approve account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     try {
-      await approveAccount(a.Account_id);
+      await approveAccount(Number(a.Account_id));
       alert('Account approved');
     } catch (err: any) {
       alert(err?.message ?? 'Approve failed');
     }
   };
-  const onReject = async (_reason: string) => {
+
+  // onReject must accept the Account object (not a reason string)
+  const onReject = async (a: Account) => {
     if (!a.Account_id) return;
     const reason = prompt('Reason for rejection (optional)', '') ?? undefined;
     if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     try {
-      // use the hook's rejectAccount (which calls backend)
-      await rejectAccount(a.Account_id);
-      // optionally send reason to backend if your hook supports it in future
+      await rejectAccount(Number(a.Account_id), reason);
       alert('Account rejected');
     } catch (err: any) {
       alert(err?.message ?? 'Reject failed');
@@ -94,6 +98,9 @@ export default function Admin() {
   const pendingCount = accounts.filter(
     (a: any) => a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
   ).length;
+
+  // In the Admin component
+  const initialData = useMemo(() => (editingAccount ? editingAccount : {}), [editingAccount]); // Stable for create mode
 
   return (
     <>
@@ -176,7 +183,8 @@ export default function Admin() {
                 {/* modal panel */}
                 <div className="relative w-full max-w-3xl mx-4 bg-white rounded-lg shadow-lg p-6 text-sm text-[#3D5341]">
                   <AdminForm
-                    initialData={editingAccount ?? undefined}
+                    initialData={initialData}
+                    mode={creating ? 'create' : 'edit'}  // Fixed: Now based on creating vs. editingAccount
                     onSubmit={creating ? onCreate : onUpdate}
                     onCancel={() => {
                       if (creating) setCreating(false);
