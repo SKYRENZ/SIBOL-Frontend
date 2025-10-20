@@ -1,73 +1,70 @@
 import { useEffect, useState } from 'react';
-import api from '../services/apiClient';
-import { Account } from '../types/Types';
 import * as adminService from '../services/adminService';
+import { Account } from '../types/Types';
 
-export const useAdmin = () => {
+export default function useAdmin() {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
+  const load = async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await adminService.fetchAccounts();
-      setAccounts(data);
+      const rows = await adminService.fetchAccounts();
+      setAccounts(rows || []);
     } catch (err: any) {
-      setError(err?.message ?? 'Failed to fetch accounts');
+      setError(err?.message ?? 'Failed to load accounts');
     } finally {
       setLoading(false);
     }
   };
 
-  const createAccount = async (payload: Omit<Account, 'Account_id'>) => {
+  useEffect(() => {
+    load();
+  }, []);
+
+  const createAccount = async (payload: Partial<Account>) => {
+    setLoading(true);
     try {
-      await api.post('/admin/create', payload);
-      await fetchAccounts();
-    } catch (err: any) {
-      throw new Error(err?.message ?? 'Create failed');
+      const res = await adminService.createAccount(payload);
+      await load();
+      return res;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const updateAccount = async (accountId: number, updates: Partial<Account>) => {
+  const updateAccount = async (payload: Partial<Account>) => {
+    if (!payload.Account_id) throw new Error('Account_id required');
+    setLoading(true);
     try {
-      await api.put(`/admin/${accountId}`, updates);
-      await fetchAccounts();
-    } catch (err: any) {
-      throw new Error(err?.message ?? 'Update failed');
+      const res = await adminService.updateAccount(Number(payload.Account_id), payload);
+      await load();
+      return res;
+    } finally {
+      setLoading(false);
     }
   };
 
-  const toggleAccountActive = async (accountId: number, isActive: boolean) => {
-    try {
-      await api.patch(`/admin/${accountId}/active`, { isActive });
-      await fetchAccounts();
-    } catch (err: any) {
-      throw new Error(err?.message ?? 'Toggle active failed');
-    }
+  const toggleAccountActive = async (account: Account) => {
+    if (!account.Account_id) throw new Error('Account_id required');
+    const newActive = !(account.IsActive === 1 || account.IsActive === true);
+    await adminService.toggleAccountActive(Number(account.Account_id), newActive);
+    // update local state immediately
+    setAccounts((prev) => prev.map((a) => (a.Account_id === account.Account_id ? { ...a, IsActive: newActive ? 1 : 0 } : a)));
   };
 
-  const approveAccount = async (accountId: number) => {
-    try {
-      await adminService.approveAccount(accountId);
-      await fetchAccounts();
-    } catch (err: any) {
-      throw new Error(err?.message ?? 'Approve failed');
-    }
+  const approveAccount = async (pendingId: number) => {
+    const res = await adminService.approvePending(pendingId);
+    await load();
+    return res;
   };
 
-  const rejectAccount = async (accountId: number) => {
-    try {
-      await adminService.rejectAccount(accountId);
-      await fetchAccounts();
-    } catch (err: any) {
-      throw new Error(err?.message ?? 'Reject failed');
-    }
+  const rejectAccount = async (pendingId: number, reason?: string) => {
+    const res = await adminService.rejectPending(pendingId, reason);
+    await load();
+    return res;
   };
 
   return {
@@ -79,6 +76,6 @@ export const useAdmin = () => {
     toggleAccountActive,
     approveAccount,
     rejectAccount,
-    refresh: fetchAccounts,
+    reload: load,
   };
-};
+}

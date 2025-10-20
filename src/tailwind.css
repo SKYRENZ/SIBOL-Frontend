@@ -6,3 +6,71 @@
 :root {
   --sibol-green: #2E523A;
 }
+
+button:focus { outline: none; box-shadow: none; }
+
+@layer components {
+  /* Shared button primitives (copy these to match your Header buttons) */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  }
+  .btn-primary {
+    @apply bg-sibol-green text-white hover:bg-green-700 focus-visible:ring-sibol-green;
+  }
+  .btn-outline {
+    @apply border border-green-100 bg-white text-sibol-green hover:bg-green-50 focus-visible:ring-sibol-green;
+  }
+  .btn-ghost {
+    @apply bg-transparent text-sibol-green hover:bg-green-50 focus-visible:ring-sibol-green;
+  }
+  .chip {
+    @apply inline-flex items-center justify-center text-[11px] font-medium px-2 py-0.5 rounded-full;
+  }
+  .chip-rose {
+    @apply bg-rose-100 text-rose-700;
+  }
+
+  /* Tabs that visually mimic your header button style but behave like tabs */
+  .tab {
+    @apply bg-sibol-green text-white font-medium text-base px-6 py-2 rounded-none border-none shadow-none hover:opacity-100 opacity-90 transition-colors;
+  }
+  .tab-active {
+    @apply underline underline-offset-4 font-semibold;
+  }
+
+  /* Sub-header wrapper that sits right under the main header */
+  .subheader {
+    @apply bg-white/90 backdrop-blur border-b border-green-50;
+  }
+
+  /* Remove browser focus/hover outline on the tab buttons (keep focus-visible for keyboard) */
+  nav[role="tablist"] button {
+    -webkit-tap-highlight-color: transparent;
+    outline: none;            /* some browsers */
+    border: none;
+    box-shadow: none;
+    @apply bg-transparent shadow-none;
+  }
+
+  nav[role="tablist"] button:hover,
+  nav[role="tablist"] button:active,
+  nav[role="tablist"] button:focus {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+  }
+
+  /* Keep an accessible visible state for keyboard users only */
+  nav[role="tablist"] button:focus-visible {
+    outline: none;
+    box-shadow: none;
+    @apply underline font-semibold;
+  }
+}
+
+html, body, #root {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+}
