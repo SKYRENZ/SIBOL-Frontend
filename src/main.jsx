@@ -14,6 +14,7 @@ import Dashboard from './Pages/Dashboard.tsx'
 import Admin from './Pages/Admin.tsx';
 import TestPage from './Pages/TestPage.tsx'; // <-- add this import
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
+import MaintenancePage from './Pages/MaintenancePage.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -33,6 +34,7 @@ createRoot(document.getElementById('root')).render(
         <Route path="/admin" element={<Admin />} />
         <Route path="/test" element={<TestPage />} /> {/* <-- add this route */}
         <Route path="/sibol-machines" element={<SibolMachinePage />} />
+        <Route path="/maintenance" element={<MaintenancePage />} />
         
         {/* 
           HOW TO ADD MORE ROUTES IN THE FUTURE:
