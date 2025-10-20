@@ -6,7 +6,7 @@ const Header: React.FC = () => {
   const links = [
     { to: "/dashboard", label: "Dashboard" },
     { to: "/sibol-machines", label: "SIBOL Machines" },
-    { to: "/maintenance", label: "Maintenance" },
+    // Maintenance intentionally omitted per request
     { to: "/household", label: "Household" },
     { to: "/chat-support", label: "Chat Support" },
   ];
@@ -36,14 +36,6 @@ const Header: React.FC = () => {
               className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
             >
               SIBOL Machines
-            </NavLink>
-          </li>
-          <li>
-            <NavLink 
-              to="/maintenance" 
-              className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-            >
-              Maintenance
             </NavLink>
           </li>
           <li>
