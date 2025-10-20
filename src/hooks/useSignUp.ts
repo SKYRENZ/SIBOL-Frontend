@@ -53,12 +53,15 @@ export const useSignUp = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!role) newErrors.role = "Role is required";
-    if (!firstName) newErrors.firstName = "First name is required";
-    if (!lastName) newErrors.lastName = "Last name is required";
-    if (!email) newErrors.email = "Email is required";
+    if (!firstName.trim()) newErrors.firstName = "First name is required";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    if (!email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       newErrors.email = "Enter a valid email";
-    if (!barangay) newErrors.barangay = "Barangay is required";
+    if (!barangay.trim()) newErrors.barangay = "Barangay is required";
+    else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) {
+      newErrors.barangay = "Barangay must be a valid number";
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -80,16 +83,17 @@ export const useSignUp = () => {
     e.preventDefault();
     if (validateForm()) {
       try {
+        const areaId = parseInt(barangay);
         const requestData = {
-          firstName,
-          lastName,
-          email,
-          areaId: parseInt(barangay),
+          firstName: firstName.trim(),
+          lastName: lastName.trim(),
+          email: email.trim(),
+          areaId,  // Now guaranteed to be a valid number
           roleId: getRoleId(role),
-          isSSO: isSSO,
+          isSSO,
         };
 
-        console.log('🚀 Submitting registration:', requestData);
+        console.log('🚀 Submitting registration:', requestData);  // Now logs actual values
 
         const response = await fetch('/api/auth/register', {
           method: 'POST',
@@ -108,11 +112,9 @@ export const useSignUp = () => {
 
         if (data.success) {
           if (isSSO) {
-            // For SSO users, redirect directly to admin pending (email already verified)
             console.log('✅ SSO Registration successful, redirecting to admin pending');
             navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
           } else {
-            // For regular users, redirect to email verification page
             console.log('✅ Regular registration successful, redirecting to email verification');
             navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
           }
