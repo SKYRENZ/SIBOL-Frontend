@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useForgotPassword } from '../../hooks/useForgotPassword';
+import { Eye, EyeOff } from 'lucide-react';
 
 type Props = {
   open: boolean;
@@ -121,24 +122,10 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute inset-y-0 right-2 flex items-center px-2 text-gray-600 bg-transparent"
+                  className="absolute inset-y-0 right-2 flex items-center justify-center px-2 text-gray-600 bg-transparent border-0 focus:outline-none focus:ring-0 hover:outline-none hover:ring-0 transform -translate-y-1"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
-                  {showPassword ? (
-                    // eye-off icon
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.94 10.94A3 3 0 0113.06 13.06" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.522 5 12 5c1.196 0 2.34.21 3.396.588" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.122 14.122C13.42 14.69 12.73 15 12 15c-4.478 0-8.268-2.943-9.542-7 .52-1.657 1.38-3.123 2.49-4.31" />
-                    </svg>
-                  ) : (
-                    // eye icon
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.522 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
+                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
 
@@ -154,24 +141,10 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowConfirm((s) => !s)}
-                  className="absolute inset-y-0 right-2 flex items-center px-2 text-gray-600 bg-transparent"
+                  className="absolute inset-y-0 right-2 flex items-center justify-center px-2 text-gray-600 bg-transparent border-0 focus:outline-none focus:ring-0 hover:outline-none hover:ring-0 transform -translate-y-1"
                   aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
                 >
-                  {showConfirm ? (
-                    // eye-off icon
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3l18 18" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.94 10.94A3 3 0 0113.06 13.06" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.522 5 12 5c1.196 0 2.34.21 3.396.588" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.122 14.122C13.42 14.69 12.73 15 12 15c-4.478 0-8.268-2.943-9.542-7 .52-1.657 1.38-3.123 2.49-4.31" />
-                    </svg>
-                  ) : (
-                    // eye icon
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.522 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.478 0-8.268-2.943-9.542-7z" />
-                    </svg>
-                  )}
+                  {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
 
