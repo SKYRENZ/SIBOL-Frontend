@@ -27,16 +27,27 @@ jobs:
           node-version: '18'
           cache: 'npm'
 
-      - name: Clean install dependencies
+      - name: Clean install dependencies (robust)
         run: |
-          [ -d node_modules ] && rm -rf node_modules
-          [ -f package-lock.json ] && rm -f package-lock.json
+          set -e
+          echo "Removing lockfile and node_modules (if any)"
+          rm -rf node_modules package-lock.json || true
+          echo "Upgrade npm to avoid optional-deps install bug"
           npm install -g npm@9
-          npm cache clean --force
-          npm install
+          echo "Verify/clean npm cache"
+          npm cache verify || true
+          npm cache clean --force || true
+          echo "Install dependencies fresh"
+          npm install --no-audit --no-fund
+          echo "Force rebuild native modules / binaries"
+          npm rebuild --update-binary || true
+          echo "Debug: list rolldown and binding files (if present)"
+          ls -la node_modules || true
+          ls -la node_modules/rolldown || true
+          node -e "try{require('@rolldown/binding-linux-x64-gnu'); console.log('rolldown binding present')}catch(e){console.error('rolldown binding missing:', e.message)}"
         working-directory: ./
 
-      - name: Run Header unit test (Vitest)
+      - name: Run unit tests
         env:
           CI: true
         run: npm run test:unit
