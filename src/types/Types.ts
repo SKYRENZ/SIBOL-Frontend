@@ -9,4 +9,5 @@ export interface Account {
   Area_id?: number;
   Email?: string;
   Contact?: string | number;
+  Pending_id?: number; // Add this for pending accounts
 }

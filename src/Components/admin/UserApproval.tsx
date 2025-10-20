@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Account } from '../../types/Types';
 import { fetchPendingAccounts, approvePendingAccount, rejectPendingAccount } from '../../services/adminService';
 
@@ -39,7 +39,8 @@ export default function UserApproval({}: Props) {
   const handleReject = async (pendingAccount: any) => {
     const reason = prompt('Reason for rejection (optional):');
     try {
-      await rejectPendingAccount(pendingAccount.Pending_id, reason);
+      // Fix: Convert null to undefined to match the expected type
+      await rejectPendingAccount(pendingAccount.Pending_id, reason || undefined);
       alert('Account rejected successfully!');
       await load(); // refresh list after action
     } catch (err: any) {
