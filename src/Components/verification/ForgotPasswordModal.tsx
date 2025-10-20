@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForgotPassword } from '../../hooks/useForgotPassword';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
 
 type Props = {
   open: boolean;
@@ -30,6 +30,15 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+
+  // Reset local states when modal opens
+  useEffect(() => {
+    if (open) {
+      setConfirmPassword('');
+      setShowPassword(false);
+      setShowConfirm(false);
+    }
+  }, [open]);
 
   if (!open) return null;
 
@@ -147,10 +156,78 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                   {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
               </div>
+              {/* Confirm password match checker */}
+              {confirmPassword.length > 0 && (
+                <div className="flex items-center gap-2 mb-2 text-sm">
+                  {newPassword === confirmPassword ? (
+                    <>
+                      <Check className="h-4 w-4 text-emerald-500" />
+                      <span className="text-emerald-700">Passwords match</span>
+                    </>
+                  ) : (
+                    <>
+                      <X className="h-4 w-4 text-rose-500" />
+                      <span className="text-rose-700">Passwords do not match</span>
+                    </>
+                  )}
+                </div>
+              )}
 
-              <div className="text-xs text-gray-500 mb-3">
-                Password must be at least 8 characters and include uppercase, lowercase, number and symbol.
-              </div>
+              {/* Password validations + strength */}
+              {(() => {
+                const hasUpper = /[A-Z]/.test(newPassword || '');
+                const hasLower = /[a-z]/.test(newPassword || '');
+                const hasNumber = /\d/.test(newPassword || '');
+                const hasSymbol = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?~`]/.test(newPassword || '');
+                const hasLength = (newPassword || '').length >= 8;
+                const score = [hasUpper, hasLower, hasNumber, hasSymbol, hasLength].filter(Boolean).length;
+
+                const strengthLabel = score <= 1 ? 'Very weak' : score === 2 ? 'Weak' : score === 3 ? 'Medium' : score === 4 ? 'Strong' : 'Very strong';
+                const strengthColor =
+                  score <= 1 ? 'bg-red-500' : score === 2 ? 'bg-rose-500' : score === 3 ? 'bg-yellow-400' : score === 4 ? 'bg-emerald-400' : 'bg-emerald-600';
+
+                return (
+                  <>
+                    <div className="mb-2">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden flex gap-1">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <div
+                              key={i}
+                              className={`flex-1 transition-colors duration-150 ${i < score ? strengthColor : 'bg-gray-200'}`}
+                            />
+                          ))}
+                        </div>
+                        <div className="text-xs font-medium text-gray-700 ml-2">{strengthLabel}</div>
+                      </div>
+
+                      <ul className="space-y-1 text-sm">
+                        <li className="flex items-center gap-2 text-gray-700">
+                          {hasLength ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-rose-500" />}
+                          <span className={`${hasLength ? 'text-gray-800' : 'text-gray-500'}`}>At least 8 characters</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-700">
+                          {hasUpper ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-rose-500" />}
+                          <span className={`${hasUpper ? 'text-gray-800' : 'text-gray-500'}`}>At least 1 uppercase</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-700">
+                          {hasLower ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-rose-500" />}
+                          <span className={`${hasLower ? 'text-gray-800' : 'text-gray-500'}`}>At least 1 lowercase</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-700">
+                          {hasNumber ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-rose-500" />}
+                          <span className={`${hasNumber ? 'text-gray-800' : 'text-gray-500'}`}>At least 1 number</span>
+                        </li>
+                        <li className="flex items-center gap-2 text-gray-700">
+                          {hasSymbol ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-rose-500" />}
+                          <span className={`${hasSymbol ? 'text-gray-800' : 'text-gray-500'}`}>At least 1 symbol</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </>
+                );
+              })()}
+
               <div className="flex justify-end gap-2">
                 <button onClick={() => setStep('verify')} className="px-4 py-2 rounded-md bg-gray-100 text-gray-800">Back</button>
                 <button
