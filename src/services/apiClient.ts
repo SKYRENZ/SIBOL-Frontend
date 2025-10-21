@@ -15,26 +15,28 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url, {
-    credentials: 'include', // allow cookies if backend uses them
+    credentials: 'include',
     headers,
     ...opts,
   });
   return res;
 }
 
+const axiosBase = API_URL; // use same resolved URL
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  baseURL: axiosBase,
   headers: { 'Content-Type': 'application/json' },
 });
 
-// attach token automatically
+// attach token automatically for axios requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
-  if (token) {
-    config.headers = config.headers ?? {};
+  if (token && config && config.headers) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 }, (err) => Promise.reject(err));
 
-export default apiFetch;
+export default api;
+export { api as axiosApi };

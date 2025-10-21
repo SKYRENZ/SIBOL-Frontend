@@ -31,23 +31,22 @@ const Header: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
-  // Safe helper: checks by key or path
   const hasModule = (key: string | number) => {
     if (!modules) return false;
     if (typeof modules.has === 'function') return modules.has(key);
-    // fallback: search list for property match
-    return modules.list?.some((m: any) =>
+    return !!modules.list?.some((m: any) =>
       m.key === key || m.path === key || String(m.id) === String(key)
     );
   };
 
-  // Example: show Admin link if admin module exists
+  // show admin link when user actually has admin module
   const showAdmin = hasModule('admin') || hasModule('/admin') || hasModule(1);
 
-  const links =
-    modules === null
-      ? allLinks.filter((l) => l.id !== 6) // while loading hide admin to avoid flash
-      : allLinks.filter((l) => modules.has(l.to));
+  // build nav links using hasModule
+  const links = allLinks.filter((l) => {
+    if (l.to === '/admin') return showAdmin; // admin only if allowed
+    return hasModule(l.to) || modules === null; // show other links if allowed or while loading
+  });
 
   return (
     <header className="header">

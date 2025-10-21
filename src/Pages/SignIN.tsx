@@ -37,7 +37,9 @@ const Login: React.FC = () => {
       // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
       if (res && res.user) {
         // persist simple session (adjust to your auth plan: tokens, context, etc.)
-        localStorage.setItem('user', JSON.stringify(res.user))
+        const token = res.token ?? res.accessToken;
+        if (token) localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(res.user));
         navigate('/dashboard')
       } else {
         setServerError('Invalid response from server')
