@@ -108,7 +108,8 @@ export const useEmailVerification = () => {
       setIsResending(true);
       console.log('📤 Resending verification email to:', email);
       
-      const response = await fetch('/api/auth/resend-verification', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+      const response = await fetch(`${apiUrl}/api/auth/resend-verification`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

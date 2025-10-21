@@ -45,9 +45,8 @@ const Login: React.FC = () => {
 
   // ✅ Add Google Sign In handler
   const handleGoogleSignIn = () => {
-    console.log('🔍 Google Sign In clicked')
-    // Redirect to Google OAuth endpoint
-    window.location.href = 'http://localhost:5000/api/auth/google'
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+    window.location.href = `${apiUrl}/api/auth/google`;
   }
 
   const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href

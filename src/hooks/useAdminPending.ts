@@ -65,7 +65,8 @@ export const useAdminPending = () => {
         console.log('📧 Extracted username from email:', usernameToCheck);
       }
 
-      const response = await fetch(`/api/auth/check-status/${usernameToCheck}`);
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+      const response = await fetch(`${apiUrl}/api/auth/check-status/${usernameToCheck}`);
       const data = await response.json();
       console.log('📋 Status check response:', data);
 
