@@ -14,6 +14,8 @@ export const useSignUp = () => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   // Assets
   const signupImage = new URL("../assets/images/lilisignup.png", import.meta.url).href;
@@ -79,54 +81,44 @@ export const useSignUp = () => {
   };
 
   // Handle sign up submission
-  const handleSignUp = async (e: React.FormEvent) => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+
+  async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
-    if (validateForm()) {
-      try {
-        const areaId = parseInt(barangay);
-        const requestData = {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim(),
-          areaId,  // Now guaranteed to be a valid number
-          roleId: getRoleId(role),
-          isSSO,
-        };
+    setLoading(true);
+    try {
+      const res = await fetch(`${apiUrl}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ role, firstName, lastName, email, barangay }),
+      });
 
-        console.log('🚀 Submitting registration:', requestData);  // Now logs actual values
-
-        const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-        const response = await fetch(`${apiUrl}/api/auth/signup`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        console.log('📋 Registration response:', data);
-
-        if (data.success) {
-          if (isSSO) {
-            console.log('✅ SSO Registration successful, redirecting to admin pending');
-            navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
-          } else {
-            console.log('✅ Regular registration successful, redirecting to email verification');
-            navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
-          }
-        } else {
-          console.error('❌ Registration failed:', data.error);
-          alert(`Sign Up Failed: ${data.error}`);
-        }
-      } catch (error) {
-        console.error('❌ Registration error:', error);
-        alert(`Sign Up Failed: ${error instanceof Error ? error.message : 'Network error'}`);
+      const text = await res.text();
+      if (!res.ok) {
+        console.error('❌ Registration error:', res.status, text);
+        setServerError(text || `HTTP ${res.status}`);
+        return;
       }
+
+      const data = JSON.parse(text);
+
+      if (data.success) {
+        if (isSSO) {
+          console.log('✅ SSO Registration successful, redirecting to admin pending');
+          navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
+        } else {
+          console.log('✅ Regular registration successful, redirecting to email verification');
+          navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
+        }
+      } else {
+        console.error('❌ Registration failed:', data.error);
+        alert(`Sign Up Failed: ${data.error}`);
+      }
+    } catch (err) {
+      console.error('❌ Signup request failed:', err);
+      setServerError('Network error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -150,6 +142,8 @@ export const useSignUp = () => {
     errors,
     isSSO,
     ssoMessage,
+    loading,
+    serverError,
     
     // Assets
     signupImage,
