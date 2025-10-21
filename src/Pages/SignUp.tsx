@@ -6,6 +6,15 @@ const SignUp: React.FC = () => {
   const [serverError, setServerError] = useState<string | null>(null);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+  // role label -> numeric id expected by backend
+  const roleMap: Record<string, number> = {
+    Admin: 1,
+    'Barangay Staff': 2,
+    Operator: 3,
+    Household: 4,
+  };
+
   const {
     // State
     role,
@@ -75,10 +84,10 @@ const SignUp: React.FC = () => {
               className="auth-input"
             >
               <option value="">Select Role</option>
-              <option value="Admin">Admin</option>
-              <option value="Barangay Staff">Barangay Staff</option>
-              <option value="Operator">Operator</option>
-              <option value="Household">Household</option>
+              <option value="1">Admin</option>
+              <option value="2">Barangay Staff</option>
+              <option value="3">Operator</option>
+              <option value="4">Household</option>
             </select>
             {errors.role && <div className="auth-error">{errors.role}</div>}
 
@@ -202,7 +211,7 @@ const SignUp: React.FC = () => {
       lastName,
       areaId: Number(barangay) || 0,
       email,
-      roleId: typeof role === 'string' ? (roleMap[role] ?? (Number(role) || 2)) : role,
+      roleId: Number(role) || 2,
       isSSO: !!isSSO
     };
 
