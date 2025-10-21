@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { fetchJson } from '../services/apiClient';
 
 export const useAdminPending = () => {
   const [searchParams] = useSearchParams();
@@ -55,19 +56,15 @@ export const useAdminPending = () => {
     try {
       setCheckingStatus(true);
       console.log('🔍 Checking account status for:', { username, email });
-      
-      // Extract username from email if username is not available
+
       let usernameToCheck = username;
       if (!usernameToCheck && email) {
-        // Assume username format is firstname.lastname
         const emailPrefix = email.split('@')[0];
         usernameToCheck = emailPrefix.replace(/[^a-zA-Z.]/g, '').toLowerCase();
         console.log('📧 Extracted username from email:', usernameToCheck);
       }
 
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-      const response = await fetch(`${apiUrl}/api/auth/check-status/${usernameToCheck}`);
-      const data = await response.json();
+      const data = await fetchJson(`/api/auth/check-status/${usernameToCheck}`);
       console.log('📋 Status check response:', data);
 
       if (data.status === 'active') {
@@ -77,11 +74,11 @@ export const useAdminPending = () => {
         alert('Please verify your email first before admin approval.');
         navigate(`/email-verification?email=${encodeURIComponent(email)}`);
       } else {
-        alert(`Status: ${data.message}`);
+        alert(`Status: ${data.message || data.status}`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error checking account status:', error);
-      alert('Error checking account status. Please try again later.');
+      alert(error?.message ?? 'Error checking account status. Please try again later.');
     } finally {
       setCheckingStatus(false);
     }

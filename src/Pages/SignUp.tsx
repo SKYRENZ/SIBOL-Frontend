@@ -1,20 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSignUp } from '../hooks/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { fetchJson } from '../services/apiClient';
 
 const SignUp: React.FC = () => {
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [resendMessage, setResendMessage] = useState<string | null>(null);
-
-  // role label -> numeric id expected by backend
-  const roleMap: Record<string, number> = {
-    Admin: 1,
-    'Barangay Staff': 2,
-    Operator: 3,
-    Household: 4,
-  };
-
+  // NOTE: serverError now comes from the useSignUp hook (returned as serverError)
   const {
     // State
     role,
@@ -36,6 +27,8 @@ const SignUp: React.FC = () => {
     // Actions
     handleSignUp,
     goToLogin,
+    serverError,
+    pendingEmail,
   } = useSignUp();
 
   const navigate = useNavigate();
@@ -76,7 +69,7 @@ const SignUp: React.FC = () => {
             {isSSO ? 'Complete Your Google Registration' : 'Create your account with us below'}
           </h1>
 
-          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+          <form className="auth-form" onSubmit={handleSignUp} noValidate>
             <label className="auth-label">You're creating an account as?</label>
             <select
               value={role}
@@ -158,6 +151,7 @@ const SignUp: React.FC = () => {
             </select>
             {errors.barangay && <div className="auth-error">{errors.barangay}</div>}
 
+            {/* show backend/hook error */}
             {serverError && <div className="auth-error">{serverError}</div>}
             <button className="auth-submit signup-submit" type="submit">
               {isSSO ? 'Complete Google Registration' : 'Create Account'}
@@ -178,12 +172,12 @@ const SignUp: React.FC = () => {
 
           {/* Show pending section in the form area: */}
           {pendingEmail && (
-            <div className="pending-box">
+             <div className="pending-box">
               <p>Account for <strong>{pendingEmail}</strong> is pending verification.</p>
-              <button type="button" onClick={handleResendVerification}>Resend verification email</button>
-              {resendMessage && <p className="muted">{resendMessage}</p>}
-            </div>
-          )}
+               <button type="button" onClick={handleResendVerification}>Resend verification email</button>
+               {resendMessage && <p className="muted">{resendMessage}</p>}
+             </div>
+           )}
         </div>
       </div>
 
@@ -200,91 +194,22 @@ const SignUp: React.FC = () => {
     </div>
   );
   
-  // Local submit handler mapped to backend's expectations
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setServerError(null);
-    setResendMessage(null);
-
-    const payload = {
-      firstName,
-      lastName,
-      areaId: Number(barangay) || 0,
-      email,
-      roleId: Number(role) || 2,
-      isSSO: !!isSSO
-    };
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-      const res = await fetch(`${apiUrl}/api/auth/signup`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-
-      const text = await res.text();
-      let data: any = null;
-      try { data = JSON.parse(text); } catch { data = { raw: text }; }
-
-      if (!res.ok) {
-        // backend should return a clear message; detect "pending" case
-        const msg = data?.message || data?.error || text || `HTTP ${res.status}`;
-        setServerError(msg);
-
-        // If server indicates account pending, show resend UI
-        if (/pending/i.test(String(msg)) || String(msg).includes('pending')) {
-          setPendingEmail(email);
-        }
-        return;
-      }
-
-      // success path: server may return token or instruct next step
-      if (data?.token) {
-        // redirect to email verification page with token (or dashboard if auth)
-        const userStr = data.user ? encodeURIComponent(JSON.stringify(data.user)) : '';
-        navigate(`/email-verification?token=${encodeURIComponent(data.token)}&user=${userStr}`, { replace: true });
-        return;
-      }
-
-      // fallback: navigate to dashboard or verification page as appropriate
-      if (data?.next === 'verify' || data?.status === 'pending') {
-        setPendingEmail(email);
-        setServerError('Account created but needs admin/email verification. Check your inbox.');
-        return;
-      }
-
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('Signup error', err);
-      setServerError('Network error');
-    }
-  }
-
   async function handleResendVerification() {
     if (!pendingEmail) return;
     setResendMessage(null);
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-      const res = await fetch(`${apiUrl}/api/auth/resend-verification`, {
+      const data = await fetchJson('/api/auth/resend-verification', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: pendingEmail }),
       });
-      const data = await res.json().catch(() => ({ ok: res.ok, raw: '' }));
-      if (!res.ok) {
-        setResendMessage(data?.message || data?.error || `Failed: ${res.status}`);
-        return;
-      }
-      // success - server may return a token or confirmation
       setResendMessage(data?.message || 'Verification email resent. Check your inbox.');
       if (data?.token) {
         const userStr = data.user ? encodeURIComponent(JSON.stringify(data.user)) : '';
         navigate(`/email-verification?token=${encodeURIComponent(data.token)}&user=${userStr}`, { replace: true });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Resend verification error', err);
-      setResendMessage('Network error');
+      setResendMessage(err?.message ?? 'Network error');
     }
   }
 };

@@ -1,4 +1,4 @@
-import api from './apiClient';
+import api, { fetchJson } from './apiClient';
 import { Account } from '../types/Types';
 
 export const fetchAccounts = async (): Promise<Account[]> => {
@@ -60,32 +60,15 @@ export const fetchModules = async (): Promise<{ Module_id: number; Module_name: 
 };
 
 export async function approvePendingAccount(pendingId: number): Promise<any> {
-  const response = await fetch(`/api/admin/pending-accounts/${pendingId}/approve`, {
+  // use centralized fetchJson (will include auth header if token is present)
+  return fetchJson(`/api/admin/pending-accounts/${pendingId}/approve`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Add auth headers if required (e.g., Authorization: `Bearer ${token}`)
-    },
   });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to approve account');
-  }
-  return response.json();
 }
 
 export async function rejectPendingAccount(pendingId: number, reason?: string): Promise<any> {
-  const response = await fetch(`/api/admin/pending-accounts/${pendingId}/reject`, {
+  return fetchJson(`/api/admin/pending-accounts/${pendingId}/reject`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      // Add auth headers if required
-    },
     body: JSON.stringify({ reason }),
   });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to reject account');
-  }
-  return response.json();
 }

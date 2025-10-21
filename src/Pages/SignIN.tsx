@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
-import { API_URL } from '../services/apiClient';
+import { login as apiLogin } from '../services/authService'; // added
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -26,30 +26,16 @@ const Login: React.FC = () => {
 
     try {
       setLoading(true)
-      const res = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
-        credentials: 'include',
-      });
-      const text = await res.text();
-      if (!res.ok) {
-        setServerError(text || `HTTP ${res.status}`);
-        return;
-      }
-      const data = JSON.parse(text);
-      // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
-      if (data && data.user) {
-        // persist simple session (adjust to your auth plan: tokens, context, etc.)
+      const data = await apiLogin(username.trim(), password);
+      if (data?.user) {
         if (data?.token) localStorage.setItem('token', data.token);
         if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/dashboard');
       } else {
-        setServerError('Invalid response from server')
+        setServerError(data?.message || 'Invalid response from server');
       }
     } catch (err: any) {
-      // map known messages from backend (e.g. "Invalid credentials")
-      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed')
+      setServerError(err?.message ?? 'Login failed')
     } finally {
       setLoading(false)
     }

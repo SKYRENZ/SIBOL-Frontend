@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { fetchJson } from '../services/apiClient';
 
 type Step = 'email' | 'verify' | 'reset' | 'done';
 
@@ -30,17 +31,14 @@ export function useForgotPassword(initialEmail = '') {
     if (!emailValid) return setError('Please enter a valid email.');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/forgot-password', {
+      const data = await fetchJson('/api/auth/forgot-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || data?.message || 'Failed to request reset');
       setInfo(data?.debugCode ? `Debug code: ${data.debugCode}` : 'Reset code sent. Check your email.');
       setStep('verify');
     } catch (err: any) {
-      setError(err.message || 'Server error');
+      setError(err?.message ?? 'Failed to request reset');
     } finally {
       setLoading(false);
     }
@@ -51,17 +49,14 @@ export function useForgotPassword(initialEmail = '') {
     if (!codeValid) return setError('Code must be a 6-digit number.');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/verify-reset-code', {
+      await fetchJson('/api/auth/verify-reset-code', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || data?.message || 'Invalid code');
       setInfo('Code verified. Enter your new password.');
       setStep('reset');
     } catch (err: any) {
-      setError(err.message || 'Server error');
+      setError(err?.message ?? 'Invalid code');
     } finally {
       setLoading(false);
     }
@@ -72,17 +67,14 @@ export function useForgotPassword(initialEmail = '') {
     if (!passwordValid) return setError('Password must be at least 8 chars and include upper, lower, number, and symbol.');
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/reset-password', {
+      await fetchJson('/api/auth/reset-password', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code, newPassword })
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || data?.message || 'Failed to reset password');
       setInfo('Password reset successfully. You can now sign in with your new password.');
       setStep('done');
     } catch (err: any) {
-      setError(err.message || 'Server error');
+      setError(err?.message ?? 'Failed to reset password');
     } finally {
       setLoading(false);
     }
