@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useSignUp } from "../hooks/useSignUp";
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const SignUp: React.FC = () => {
   const {
@@ -24,6 +25,34 @@ const SignUp: React.FC = () => {
     handleSignUp,
     goToLogin,
   } = useSignUp();
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token') || params.get('access_token');
+    const user = params.get('user');
+    const auth = params.get('auth');
+
+    if (token) localStorage.setItem('token', token);
+    if (user) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem('user', JSON.stringify(parsed));
+      } catch (e) {
+        console.warn('Failed to parse SSO user on SignUp', e);
+      }
+    }
+
+    if (token) {
+      window.history.replaceState({}, '', location.pathname);
+      // Optionally redirect after storing token
+      navigate('/dashboard', { replace: true });
+    } else if (auth === 'fail') {
+      navigate('/login', { replace: true });
+    }
+  }, [location, navigate]);
 
   return (
     <div className="auth-shell signup-page">

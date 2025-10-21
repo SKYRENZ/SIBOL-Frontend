@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEmailVerification } from '../hooks/useEmailVerification';
 import AuthLayout from '../Components/verification/AuthLayout';
 import LoadingSpinner from '../Components/verification/LoadingSpinner';
@@ -7,6 +8,33 @@ import ActionButton from '../Components/verification/ActionButton';
 import CountdownProgress from '../Components/verification/CountdownProgress';
 
 const EmailVerification: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token') || params.get('access_token');
+    const user = params.get('user');
+    const auth = params.get('auth');
+
+    if (token) localStorage.setItem('token', token);
+    if (user) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem('user', JSON.stringify(parsed));
+      } catch (e) {
+        console.warn('Failed to parse SSO user on EmailVerification', e);
+      }
+    }
+
+    if (token) {
+      window.history.replaceState({}, '', location.pathname);
+      navigate('/dashboard', { replace: true });
+    } else if (auth === 'fail') {
+      navigate('/login', { replace: true });
+    }
+  }, [location, navigate]);
+
   const {
     // State
     status,
