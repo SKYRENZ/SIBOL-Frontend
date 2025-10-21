@@ -17,7 +17,12 @@ const EmailVerification: React.FC = () => {
     const user = params.get('user');
     const auth = params.get('auth');
 
-    if (token) localStorage.setItem('token', token);
+    console.log('EmailVerification: raw params', { token, user, auth });
+
+    if (token) {
+      // persist token so verification hook / API can use it
+      localStorage.setItem('token', token);
+    }
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
@@ -28,8 +33,10 @@ const EmailVerification: React.FC = () => {
     }
 
     if (token) {
-      window.history.replaceState({}, '', location.pathname);
-      navigate('/dashboard', { replace: true });
+      // only clean URL here — DO NOT navigate away immediately.
+      // let useEmailVerification() perform the verification and redirect on success.
+      window.history.replaceState({}, '', location.pathname + (location.hash || ''));
+      console.log('EmailVerification: token stored, awaiting verification hook');
     } else if (auth === 'fail') {
       navigate('/login', { replace: true });
     }

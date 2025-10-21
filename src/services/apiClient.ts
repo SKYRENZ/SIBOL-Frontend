@@ -1,9 +1,7 @@
 import axios from 'axios';
 
 export const API_URL =
-  import.meta.env.VITE_API_URL ??
-  import.meta.env.VITE_API_BASE_URL ??
-  'https://sibol-backend-i0i6.onrender.com';
+  import.meta.env.VITE_API_URL ?? 'https://sibol-backend-i0i6.onrender.com';
 
 export async function apiFetch(path: string, opts: RequestInit = {}) {
   const url = path.startsWith('/') ? `${API_URL}${path}` : `${API_URL}/${path}`;
@@ -15,7 +13,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url, {
-    credentials: 'include', // keep cookies if backend uses sessions
+    credentials: 'include', // keep if backend uses session cookies
     headers,
     ...opts,
   });
