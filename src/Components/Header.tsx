@@ -25,7 +25,7 @@ const Header: React.FC = () => {
         setModules(normalized);
       } catch (err) {
         console.error('modules/allowed error:', err);
-        // leave modules as empty to avoid crashes and hide restricted links
+        // leave modules empty so UI doesn't crash
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
@@ -40,14 +40,18 @@ const Header: React.FC = () => {
     );
   };
 
-  // show admin link when user actually has admin module
-  const showAdmin = hasModule('admin') || hasModule('/admin') || hasModule(1);
+  // fallback: check localStorage user for role/modules
+  const localUser = (() => {
+    try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+  })();
+  const isAdminRole = localUser && (localUser.Roles === 1 || localUser.roleId === 1 || localUser.role === 'Admin');
+  const hasModule6 = localUser && Array.isArray(localUser.user_modules) && localUser.user_modules.includes(6);
 
-  // build nav links using hasModule
+  const showAdmin = isAdminRole || hasModule6 || hasModule('admin') || hasModule(1);
+
   const links = allLinks.filter((l) => {
-    if (l.to === '/admin') return showAdmin; // admin only if allowed
-    // show other links by checking module or while modules are loading
-    return modules === null || hasModule(l.to) || true; // adjust logic if needed
+    if (l.to === '/admin') return showAdmin;
+    return true;
   });
 
   return (

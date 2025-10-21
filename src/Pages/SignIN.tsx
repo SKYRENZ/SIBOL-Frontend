@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
+import { API_URL } from '../services/apiClient';
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -25,15 +26,18 @@ const Login: React.FC = () => {
 
     try {
       setLoading(true)
-      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
+      const res = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username.trim(), password }),
+        credentials: 'include',
       });
-
-      const data = await response.json();
-
+      const text = await res.text();
+      if (!res.ok) {
+        setServerError(text || `HTTP ${res.status}`);
+        return;
+      }
+      const data = JSON.parse(text);
       // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
       if (data && data.user) {
         // persist simple session (adjust to your auth plan: tokens, context, etc.)
