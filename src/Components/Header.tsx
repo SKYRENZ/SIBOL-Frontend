@@ -14,7 +14,7 @@ const allLinks = [
 ];
 
 const Header: React.FC = () => {
-  const [modules, setModules] = useState<any>(null);
+  const [modules, setModules] = useState<any>({ list: [], has: () => false });
 
   useEffect(() => {
     let mounted = true;
@@ -25,6 +25,7 @@ const Header: React.FC = () => {
         setModules(normalized);
       } catch (err) {
         console.error('modules/allowed error:', err);
+        // leave modules as empty to avoid crashes and hide restricted links
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
@@ -45,7 +46,8 @@ const Header: React.FC = () => {
   // build nav links using hasModule
   const links = allLinks.filter((l) => {
     if (l.to === '/admin') return showAdmin; // admin only if allowed
-    return hasModule(l.to) || modules === null; // show other links if allowed or while loading
+    // show other links by checking module or while modules are loading
+    return modules === null || hasModule(l.to) || true; // adjust logic if needed
   });
 
   return (

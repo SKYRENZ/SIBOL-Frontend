@@ -1,8 +1,9 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSignUp } from "../hooks/useSignUp";
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const SignUp: React.FC = () => {
+  const [serverError, setServerError] = useState<string | null>(null);
   const {
     // State
     role,
@@ -64,7 +65,7 @@ const SignUp: React.FC = () => {
             {isSSO ? 'Complete Your Google Registration' : 'Create your account with us below'}
           </h1>
 
-          <form className="auth-form" onSubmit={handleSignUp} noValidate>
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
             <label className="auth-label">You're creating an account as?</label>
             <select
               value={role}
@@ -146,11 +147,12 @@ const SignUp: React.FC = () => {
             </select>
             {errors.barangay && <div className="auth-error">{errors.barangay}</div>}
 
+            {serverError && <div className="auth-error">{serverError}</div>}
             <button className="auth-submit signup-submit" type="submit">
               {isSSO ? 'Complete Google Registration' : 'Create Account'}
             </button>
           </form>
-
+  
           {/* Moved "Already have an account?" to the bottom with spacing */}
           <p className="auth-subtitle" style={{ marginTop: '25px' }}>
             Already have an account?{" "}
@@ -177,6 +179,54 @@ const SignUp: React.FC = () => {
       />
     </div>
   );
+  
+  // Local submit handler mapped to backend's expectations
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setServerError(null);
+    if (!firstName || !lastName || !email || !barangay) {
+      setServerError('Please fill all required fields.');
+      return;
+    }
+
+    const roleMap: Record<string, number> = {
+      Admin: 1,
+      'Barangay Staff': 2,
+      Operator: 3,
+      Household: 4
+    };
+    const roleId = typeof role === 'string' ? (roleMap[role] ?? (Number(role) || 2)) : role;
+    const areaId = Number(barangay) || 0;
+
+    const payload = {
+      firstName,
+      lastName,
+      areaId,
+      email,
+      roleId,
+      isSSO: !!isSSO
+    };
+
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+      const res = await fetch(`${apiUrl}/api/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const text = await res.text();
+      if (!res.ok) {
+        console.error('Signup failed:', res.status, text);
+        setServerError(text || `HTTP ${res.status}`);
+        return;
+      }
+      // Success - backend handles pending/admin flow
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      setServerError('Network error');
+    }
+  }
 };
 
 export default SignUp;

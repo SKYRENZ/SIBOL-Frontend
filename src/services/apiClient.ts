@@ -15,25 +15,25 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const res = await fetch(url, {
-    credentials: 'include',
+    credentials: 'include', // keep cookies if backend uses sessions
     headers,
     ...opts,
   });
   return res;
 }
 
-const axiosBase = API_URL; // use same resolved URL
+const axiosBase = API_URL;
 
 const api = axios.create({
   baseURL: axiosBase,
   headers: { 'Content-Type': 'application/json' },
+  withCredentials: true, // include cookies when backend uses sessions
 });
 
-// attach token automatically for axios requests
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
   if (token && config && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 }, (err) => Promise.reject(err));
