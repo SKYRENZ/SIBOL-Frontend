@@ -35,11 +35,33 @@ export default function useAdmin() {
     }
   };
 
-  const updateAccount = async (payload: Partial<Account>) => {
-    if (!payload.Account_id) throw new Error('Account_id required');
+  const updateAccount = async (...args: any[]) => {
+    // support two call styles: (id, updates) or (payload with Account_id)
+    let accountId: number | undefined;
+    let updates: Partial<Account> | undefined;
+
+    if (args.length === 2) {
+      accountId = Number(args[0]);
+      updates = args[1];
+    } else {
+      const payload = args[0] as Partial<Account>;
+      if (!payload || !payload.Account_id) throw new Error('Account_id required');
+      accountId = Number(payload.Account_id);
+      updates = payload;
+    }
+
     setLoading(true);
     try {
-      const res = await adminService.updateAccount(Number(payload.Account_id), payload);
+      const res = await adminService.updateAccount(accountId, updates as any);
+      // try to extract updated row from response
+      const updated = (res && (res.user ?? (res.rows && res.rows[0]) ?? res.data ?? null)) as any;
+
+      if (updated && updated.Account_id) {
+        setAccounts((prev) => prev.map((a) => (a.Account_id === Number(updated.Account_id) ? { ...a, ...updated } : a)));
+        return res;
+      }
+
+      // fallback: reload full list
       await load();
       return res;
     } finally {

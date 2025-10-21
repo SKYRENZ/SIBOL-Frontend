@@ -61,8 +61,10 @@ const AdminForm: React.FC<AdminFormProps> = ({ initialData = {}, mode: modeProp,
   useEffect(() => {
     const loadRoles = async () => {
       try {
-        const fetched = await fetchUserRoles();
-        setRoles(fetched);
+        const resp: any = await fetchUserRoles();
+        // normalize possible shapes: Array, { data: [...] }, { roles: [...] }
+        const list = Array.isArray(resp) ? resp : resp?.data ?? resp?.roles ?? [];
+        setRoles(Array.isArray(list) ? list : []);
       } catch (err) {
         console.error('Failed to load roles:', err);
       }

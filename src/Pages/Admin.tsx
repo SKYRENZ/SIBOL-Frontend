@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import useAdmin from '../hooks/useAdmin';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
@@ -53,8 +53,19 @@ export default function Admin() {
   const onUpdate = async (p: Partial<Account>) => {
     if (!editingAccount?.Account_id) return;
     try {
-      await updateAccount({ ...p, Account_id: editingAccount.Account_id });
-      setEditingAccount(null);
+      // prefer updateAccount(id, updates) if the hook uses that signature
+      if ((updateAccount as any).length === 2) {
+        await updateAccount(editingAccount.Account_id, p);
+      } else {
+        // fallback: pass payload object if hook expects that
+        await updateAccount({ ...p, Account_id: editingAccount.Account_id } as any);
+      }
+
+      // temporary: ensure UI reflects backend by reloading accounts — replace with proper refetch in the hook
+      // quick-and-dirty: reload the page so list shows DB state immediately
+      window.location.reload();
+
+      // setEditingAccount(null); // not needed because we reload
     } catch (err: any) {
       alert(err?.message ?? 'Update failed');
     }

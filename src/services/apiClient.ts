@@ -5,21 +5,56 @@ const API_URL =
 
 export { API_URL };
 
+type HeadersLike = HeadersInit;
+
+function headersToObject(h?: HeadersLike): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!h) return out;
+  if (h instanceof Headers) {
+    h.forEach((v, k) => { out[k] = v; });
+    return out;
+  }
+  if (Array.isArray(h)) {
+    for (const [k, v] of h) out[k] = v;
+    return out;
+  }
+  return { ...(h as Record<string, string>) };
+}
+
+function mergeHeaders(defaults: Record<string,string>, provided?: HeadersLike) {
+  return { ...defaults, ...headersToObject(provided) };
+}
+
+function normalizeUrl(path: string) {
+  if (path.startsWith('http')) return path;
+  const base = API_URL.replace(/\/+$/, '');
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${base}${p}`;
+}
+
 // low-level fetch wrapper that applies credentials and headers
 export async function apiFetch(path: string, opts: RequestInit = {}) {
-  const url = path.startsWith('http') ? path : (path.startsWith('/') ? `${API_URL}${path}` : `${API_URL}/${path}`);
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(opts.headers as Record<string, string> || {}),
-  };
-
+  const url = normalizeUrl(path);
+  const defaultHeaders: Record<string,string> = {};
   // attach token from localStorage if present
   try {
     const token = localStorage.getItem('token');
-    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
   } catch {
-    // in SSR or non-browser env localStorage may be unavailable — ignore safely
+    // ignore in non-browser env
   }
+
+  // Only set Content-Type default if a JSON body will be sent
+  const method = (opts.method || 'GET').toUpperCase();
+  const hasBody = !!(opts as any).body;
+  if (hasBody && method !== 'GET' && method !== 'HEAD') {
+    defaultHeaders['Content-Type'] = 'application/json';
+  }
+
+  const headers = mergeHeaders(defaultHeaders, opts.headers);
+
+  // debug (kept for development)
+  // eslint-disable-next-line no-console
 
   const merged: RequestInit = {
     credentials: 'include',
@@ -31,7 +66,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
 }
 
 // Robust JSON fetch with timeout + unified error handling
-export async function fetchJson(path: string, opts: RequestInit = {}, timeoutMs = 15000) {
+export async function fetchJson<T = any>(path: string, opts: RequestInit = {}, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController();
   const signal = opts.signal ?? controller.signal;
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -54,7 +89,7 @@ export async function fetchJson(path: string, opts: RequestInit = {}, timeoutMs 
       throw error;
     }
 
-    return payload;
+    return payload as T;
   } catch (err: any) {
     if (err?.name === 'AbortError') throw new Error('Request timed out');
     throw err;
@@ -63,32 +98,32 @@ export async function fetchJson(path: string, opts: RequestInit = {}, timeoutMs 
   }
 }
 
-// Add axios-like convenience helpers so existing callers (api.get/post/put/patch/delete) continue to work
-export async function get(path: string, opts: RequestInit = {}) {
-  const payload = await fetchJson(path, { ...opts, method: 'GET' });
+// Add axios-like convenience helpers
+export async function get<T = any>(path: string, opts: RequestInit = {}) {
+  const payload = await fetchJson<T>(path, { ...opts, method: 'GET' });
   return { data: payload };
 }
 
-export async function post(path: string, data?: any, opts: RequestInit = {}) {
+export async function post<T = any>(path: string, data?: any, opts: RequestInit = {}) {
   const body = data == null ? undefined : (typeof data === 'string' ? data : JSON.stringify(data));
-  const payload = await fetchJson(path, { ...opts, method: 'POST', body });
+  const payload = await fetchJson<T>(path, { ...opts, method: 'POST', body });
   return { data: payload };
 }
 
-export async function put(path: string, data?: any, opts: RequestInit = {}) {
+export async function put<T = any>(path: string, data?: any, opts: RequestInit = {}) {
   const body = data == null ? undefined : (typeof data === 'string' ? data : JSON.stringify(data));
-  const payload = await fetchJson(path, { ...opts, method: 'PUT', body });
+  const payload = await fetchJson<T>(path, { ...opts, method: 'PUT', body });
   return { data: payload };
 }
 
-export async function patch(path: string, data?: any, opts: RequestInit = {}) {
+export async function patch<T = any>(path: string, data?: any, opts: RequestInit = {}) {
   const body = data == null ? undefined : (typeof data === 'string' ? data : JSON.stringify(data));
-  const payload = await fetchJson(path, { ...opts, method: 'PATCH', body });
+  const payload = await fetchJson<T>(path, { ...opts, method: 'PATCH', body });
   return { data: payload };
 }
 
-export async function del(path: string, opts: RequestInit = {}) {
-  const payload = await fetchJson(path, { ...opts, method: 'DELETE' });
+export async function del<T = any>(path: string, opts: RequestInit = {}) {
+  const payload = await fetchJson<T>(path, { ...opts, method: 'DELETE' });
   return { data: payload };
 }
 
