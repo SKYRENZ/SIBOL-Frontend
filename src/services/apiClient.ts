@@ -63,8 +63,43 @@ export async function fetchJson(path: string, opts: RequestInit = {}, timeoutMs 
   }
 }
 
+// Add axios-like convenience helpers so existing callers (api.get/post/put/patch/delete) continue to work
+export async function get(path: string, opts: RequestInit = {}) {
+  const payload = await fetchJson(path, { ...opts, method: 'GET' });
+  return { data: payload };
+}
+
+export async function post(path: string, data?: any, opts: RequestInit = {}) {
+  const body = data == null ? undefined : (typeof data === 'string' ? data : JSON.stringify(data));
+  const payload = await fetchJson(path, { ...opts, method: 'POST', body });
+  return { data: payload };
+}
+
+export async function put(path: string, data?: any, opts: RequestInit = {}) {
+  const body = data == null ? undefined : (typeof data === 'string' ? data : JSON.stringify(data));
+  const payload = await fetchJson(path, { ...opts, method: 'PUT', body });
+  return { data: payload };
+}
+
+export async function patch(path: string, data?: any, opts: RequestInit = {}) {
+  const body = data == null ? undefined : (typeof data === 'string' ? data : JSON.stringify(data));
+  const payload = await fetchJson(path, { ...opts, method: 'PATCH', body });
+  return { data: payload };
+}
+
+export async function del(path: string, opts: RequestInit = {}) {
+  const payload = await fetchJson(path, { ...opts, method: 'DELETE' });
+  return { data: payload };
+}
+
+// keep default export but include the helpers for existing imports
 export default {
   apiFetch,
   fetchJson,
   API_URL,
+  get,
+  post,
+  put,
+  patch,
+  delete: del,
 };
