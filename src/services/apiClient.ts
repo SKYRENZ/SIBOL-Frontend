@@ -1,19 +1,29 @@
 import axios from 'axios';
 
-export const API_URL = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+export const API_URL =
+  import.meta.env.VITE_API_URL ??
+  import.meta.env.VITE_API_BASE_URL ??
+  'https://sibol-backend-i0i6.onrender.com';
 
 export async function apiFetch(path: string, opts: RequestInit = {}) {
-  const url = `${API_URL}${path.startsWith('/') ? path : '/' + path}`;
+  const url = path.startsWith('/') ? `${API_URL}${path}` : `${API_URL}/${path}`;
+  const token = localStorage.getItem('token');
+  const headers: Record<string,string> = {
+    'Content-Type': 'application/json',
+    ...(opts.headers as Record<string,string> || {}),
+  };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
+    credentials: 'include', // allow cookies if backend uses them
+    headers,
     ...opts,
   });
   return res;
 }
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000',
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -27,4 +37,4 @@ api.interceptors.request.use((config) => {
   return config;
 }, (err) => Promise.reject(err));
 
-export default api;
+export default apiFetch;

@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import apiFetch, { API_URL } from './apiClient';
 
 export interface Machine {
   machine_id: number;
@@ -113,3 +114,9 @@ export const getAreas = async (): Promise<Area[]> => {
     throw error;
   }
 };
+
+export async function fetchMachines() {
+  const res = await apiFetch('/api/machines');
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+  return res.json();
+}
