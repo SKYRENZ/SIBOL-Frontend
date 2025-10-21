@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login as apiLogin } from '../services/auth' // changed from '../services/api'
 import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
+import { login as apiLogin } from '../services/authService'; // added
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -26,18 +26,16 @@ const Login: React.FC = () => {
 
     try {
       setLoading(true)
-      const res = await apiLogin(username.trim(), password)
-      // backend returns { user } on success per [`authController.login`](SIBOL-Backend/src/controllers/authController.ts)
-      if (res && res.user) {
-        // persist simple session (adjust to your auth plan: tokens, context, etc.)
-        localStorage.setItem('user', JSON.stringify(res.user))
-        navigate('/dashboard')
+      const data = await apiLogin(username.trim(), password);
+      if (data?.user) {
+        if (data?.token) localStorage.setItem('token', data.token);
+        if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
+        navigate('/dashboard');
       } else {
-        setServerError('Invalid response from server')
+        setServerError(data?.message || 'Invalid response from server');
       }
     } catch (err: any) {
-      // map known messages from backend (e.g. "Invalid credentials")
-      setServerError(err?.response?.data?.message ?? err?.message ?? 'Login failed')
+      setServerError(err?.message ?? 'Login failed')
     } finally {
       setLoading(false)
     }
@@ -45,9 +43,8 @@ const Login: React.FC = () => {
 
   // ✅ Add Google Sign In handler
   const handleGoogleSignIn = () => {
-    console.log('🔍 Google Sign In clicked')
-    // Redirect to Google OAuth endpoint
-    window.location.href = 'http://localhost:5000/api/auth/google'
+    const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+    window.location.href = `${apiUrl}/api/auth/google`;
   }
 
   const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href

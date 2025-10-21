@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useEmailVerification } from '../hooks/useEmailVerification';
 import AuthLayout from '../Components/verification/AuthLayout';
 import LoadingSpinner from '../Components/verification/LoadingSpinner';
@@ -7,6 +8,40 @@ import ActionButton from '../Components/verification/ActionButton';
 import CountdownProgress from '../Components/verification/CountdownProgress';
 
 const EmailVerification: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token') || params.get('access_token');
+    const user = params.get('user');
+    const auth = params.get('auth');
+
+    console.log('EmailVerification: raw params', { token, user, auth });
+
+    if (token) {
+      // persist token so verification hook / API can use it
+      localStorage.setItem('token', token);
+    }
+    if (user) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem('user', JSON.stringify(parsed));
+      } catch (e) {
+        console.warn('Failed to parse SSO user on EmailVerification', e);
+      }
+    }
+
+    if (token) {
+      // only clean URL here — DO NOT navigate away immediately.
+      // let useEmailVerification() perform the verification and redirect on success.
+      window.history.replaceState({}, '', location.pathname + (location.hash || ''));
+      console.log('EmailVerification: token stored, awaiting verification hook');
+    } else if (auth === 'fail') {
+      navigate('/login', { replace: true });
+    }
+  }, [location, navigate]);
+
   const {
     // State
     status,

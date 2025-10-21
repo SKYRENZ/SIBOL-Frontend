@@ -1,7 +1,35 @@
-import React from 'react';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAdminPending } from '../hooks/useAdminPending';
 
 const AdminPending: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const token = params.get('token') || params.get('access_token');
+    const user = params.get('user');
+    const auth = params.get('auth');
+
+    if (token) localStorage.setItem('token', token);
+    if (user) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem('user', JSON.stringify(parsed));
+      } catch (e) {
+        console.warn('Failed to parse SSO user on AdminPending', e);
+      }
+    }
+
+    if (token) {
+      window.history.replaceState({}, '', location.pathname);
+      navigate('/dashboard', { replace: true });
+    } else if (auth === 'fail') {
+      navigate('/login', { replace: true });
+    }
+  }, [location, navigate]);
+
   const {
     // State
     email,

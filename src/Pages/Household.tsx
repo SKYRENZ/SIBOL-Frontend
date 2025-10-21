@@ -7,7 +7,7 @@ import ScheduleTab from "../Components/Household/schedule";
 import RewardTab from "../Components/Household/reward";
 import AddScheduleModal from "../Components/Household/addSchedule";
 import AddRewardModal from "../Components/Household/addReward";
-import LeaderboardTab from "../Components/Household/Leaderboard";
+import LeaderboardTab from "../Components/Household/leaderboard";
 import "../types/Household.css";
 
 const Household: React.FC = () => {
