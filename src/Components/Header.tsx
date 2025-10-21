@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import "../types/Header.css";
 import { NavLink } from "react-router-dom";
+import { fetchAllowedModules } from '../services/moduleService';
 import api from '../services/apiClient';
+import "../types/Header.css";
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -13,27 +14,40 @@ const allLinks = [
 ];
 
 const Header: React.FC = () => {
-  const [allowedPaths, setAllowedPaths] = useState<string[] | null>(null);
+  const [modules, setModules] = useState<any>(null);
 
   useEffect(() => {
+    let mounted = true;
     (async () => {
       try {
-        // use axios api client so Authorization header (Bearer token) is attached automatically
-        const res = await api.get('/api/modules/allowed');
-        const modules = res.data;
-        setAllowedPaths(Array.isArray(modules) ? modules.map((m: any) => m.Path) : []);
-      } catch (err: any) {
-        // if 401 or other error, hide protected links
-        setAllowedPaths([]);
-        console.debug('modules/allowed error:', err?.response?.status ?? err);
+        const normalized = await fetchAllowedModules(); // { list, get, has }
+        if (!mounted) return;
+        setModules(normalized);
+      } catch (err) {
+        console.error('modules/allowed error:', err);
+        setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
+    return () => { mounted = false; };
   }, []);
 
+  // Safe helper: checks by key or path
+  const hasModule = (key: string | number) => {
+    if (!modules) return false;
+    if (typeof modules.has === 'function') return modules.has(key);
+    // fallback: search list for property match
+    return modules.list?.some((m: any) =>
+      m.key === key || m.path === key || String(m.id) === String(key)
+    );
+  };
+
+  // Example: show Admin link if admin module exists
+  const showAdmin = hasModule('admin') || hasModule('/admin') || hasModule(1);
+
   const links =
-    allowedPaths === null
+    modules === null
       ? allLinks.filter((l) => l.id !== 6) // while loading hide admin to avoid flash
-      : allLinks.filter((l) => allowedPaths.includes(l.to));
+      : allLinks.filter((l) => modules.has(l.to));
 
   return (
     <header className="header">

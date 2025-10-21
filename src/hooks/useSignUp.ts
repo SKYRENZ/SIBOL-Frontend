@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { API_URL, apiFetch } from '../services/apiClient';
 
 export const useSignUp = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ export const useSignUp = () => {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [barangay, setBarangay] = useState("");
+  const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
@@ -68,29 +70,41 @@ export const useSignUp = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Get role ID mapping
-  const getRoleId = (roleString: string): number => {
-    // Map role strings to IDs based on your database
-    const roleMap: { [key: string]: number } = {
-      'Admin': 1,
-      'Barangay Staff': 2,
-      'Operator': 3,
-      'Household': 4
-    };
-    return roleMap[roleString] || 4; // Default to Household
-  };
-
   // Handle sign up submission
-  const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setServerError('');
+
     try {
-      const res = await fetch(`${apiUrl}/api/auth/signup`, {
+      // Map role label -> id expected by backend (adjust numbers to match your DB)
+      const roleMap: Record<string, number> = {
+        Admin: 1,
+        User: 2,
+        // add others if needed
+      };
+      const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
+
+      // Ensure password is provided (backend expects it)
+      if (!password) {
+        setServerError('Password is required');
+        setLoading(false);
+        return;
+      }
+
+      const payload = {
+        role: roleId,
+        firstName,
+        lastName,
+        email,
+        barangay,
+        password,
+      };
+
+      const res = await fetch(`${API_URL}/api/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ role, firstName, lastName, email, barangay }),
+        body: JSON.stringify(payload),
       });
 
       const text = await res.text();
@@ -139,6 +153,8 @@ export const useSignUp = () => {
     setEmail,
     barangay,
     setBarangay,
+    password,
+    setPassword,
     errors,
     isSSO,
     ssoMessage,
