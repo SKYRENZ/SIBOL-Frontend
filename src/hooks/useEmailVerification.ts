@@ -91,7 +91,7 @@ export const useEmailVerification = () => {
       return () => clearTimeout(timer);
     } else if (status === 'success' && countdown === 0) {
       // Redirect when countdown reaches 0
-      const redirectUrl = `/admin-pending?email=${encodeURIComponent(email)}${usernameParam ? `&username=${encodeURIComponent(usernameParam)}` : ''}`;
+      const redirectUrl = `/pending-approval?email=${encodeURIComponent(email)}${usernameParam ? `&username=${encodeURIComponent(usernameParam)}` : ''}`;
       console.log('🔄 Redirecting to:', redirectUrl);
       navigate(redirectUrl);
     }

@@ -113,7 +113,7 @@ export const useSignUp = () => {
         if (data.success) {
           if (isSSO) {
             console.log('✅ SSO Registration successful, redirecting to admin pending');
-            navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
+            navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
           } else {
             console.log('✅ Regular registration successful, redirecting to email verification');
             navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
