@@ -1,18 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchJson } from '../services/apiClient'; // removed unused API_URL/apiFetch
+import { fetchJson } from '../services/apiClient';
 
 export const useSignUp = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // State
   const [role, setRole] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [barangay, setBarangay] = useState("");
-  // password is handled by backend default; don't collect on frontend
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
@@ -43,14 +42,8 @@ export const useSignUp = () => {
       setEmail(emailParam);
       setIsSSO(true);
       setSsoMessage(messageParam || 'Complete your registration to continue with Google Sign-In');
-      
-      // Pre-fill names if available from Google
-      if (firstNameParam) {
-        setFirstName(firstNameParam);
-      }
-      if (lastNameParam) {
-        setLastName(lastNameParam);
-      }
+      if (firstNameParam) setFirstName(firstNameParam);
+      if (lastNameParam) setLastName(lastNameParam);
     }
   }, [searchParams]);
 
@@ -67,7 +60,6 @@ export const useSignUp = () => {
     else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) {
       newErrors.barangay = "Barangay must be a valid number";
     }
-    // password handled by backend; do not validate here
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -77,30 +69,28 @@ export const useSignUp = () => {
     e.preventDefault();
     setLoading(true);
     setServerError('');
- 
-    // validate before sending
+
     if (!validateForm()) {
       setLoading(false);
       return;
     }
- 
+
     try {
-      // Map role label -> id expected by backend (adjust numbers to match your DB)
+      // Map role label -> id expected by backend
       const roleMap: Record<string, number> = {
         Admin: 1,
         User: 2,
-        // add others if needed
       };
       const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
- 
-      // derive a simple username (backend may require it)
+
+      // derive a simple username
       const usernameCandidate = email
         ? email.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 30)
         : `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 30);
- 
-      // build payload with both naming variants (backend may accept either)
+
+      // build payload with both naming variants
       const payload = {
-        // camel / lowercase variants
+        // camelCase
         firstName,
         lastName,
         areaId: Number(barangay),
@@ -109,8 +99,7 @@ export const useSignUp = () => {
         roleId: Number(roleId),
         username: usernameCandidate,
         isSSO: Boolean(isSSO),
-
-        // backend / admin-style variants
+        // snake_case/DB style
         FirstName: firstName,
         LastName: lastName,
         Area_id: Number(barangay),
@@ -119,27 +108,26 @@ export const useSignUp = () => {
         Username: usernameCandidate,
         // omit Password so backend will apply DEFAULT_PASSWORD when appropriate
       };
- 
+
       console.log('🔁 signup payload', payload);
- 
+
       const data = await fetchJson('/api/auth/signup', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       console.log('⬅️ signup response', data);
- 
+
       if (data.success) {
-        // clear any previous pending state
         setPendingEmail(null);
         if (isSSO) {
-          navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
+          // Always redirect SSO to /pending-approval
+          navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
         } else {
           navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
         }
       } else {
         const msg = data?.message || data?.error || 'Registration failed';
         setServerError(msg);
-        // backend may return email or pending flag for pending accounts — surface it
         if (data?.email) setPendingEmail(data.email);
         else if (data?.pendingEmail) setPendingEmail(data.pendingEmail);
       }
@@ -168,17 +156,16 @@ export const useSignUp = () => {
     setEmail,
     barangay,
     setBarangay,
-    // removed password and setPassword (backend provides default)
     errors,
     isSSO,
     ssoMessage,
     loading,
     serverError,
     pendingEmail,
-    
+
     // Assets
     signupImage,
-    
+
     // Actions
     handleSignUp,
     goToLogin,
