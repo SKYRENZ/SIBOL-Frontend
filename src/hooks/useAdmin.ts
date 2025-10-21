@@ -1,81 +1,118 @@
-import { useEffect, useState } from 'react';
-import * as adminService from '../services/adminService';
-import { Account } from '../types/Types';
+import { useCallback, useEffect, useState } from 'react';
+import {
+  fetchAccounts,
+  createAccount as svcCreateAccount,
+  updateAccount as svcUpdateAccount,
+  toggleAccountActive as svcToggleAccountActive,
+  approvePending as svcApprovePending,
+  rejectPending as svcRejectPending,
+} from '../services/adminService';
+import type { Account } from '../types/Types';
 
 export default function useAdmin() {
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = async () => {
+  const refresh = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const rows = await adminService.fetchAccounts();
-      setAccounts(rows || []);
+      const rows = await fetchAccounts();
+      setAccounts(rows);
     } catch (err: any) {
+      console.error('useAdmin refresh error:', err);
       setError(err?.message ?? 'Failed to load accounts');
     } finally {
       setLoading(false);
     }
-  };
-
-  useEffect(() => {
-    load();
   }, []);
 
-  const createAccount = async (payload: Partial<Account>) => {
-    setLoading(true);
-    try {
-      const res = await adminService.createAccount(payload);
-      await load();
-      return res;
-    } finally {
-      setLoading(false);
-    }
-  };
+  // auto refresh on mount
+  useEffect(() => {
+    refresh();
+  }, [refresh]);
 
-  const updateAccount = async (payload: Partial<Account>) => {
-    if (!payload.Account_id) throw new Error('Account_id required');
-    setLoading(true);
-    try {
-      const res = await adminService.updateAccount(Number(payload.Account_id), payload);
-      await load();
-      return res;
-    } finally {
-      setLoading(false);
-    }
-  };
+  const createAccount = useCallback(
+    async (payload: Partial<Account>) => {
+      setLoading(true);
+      try {
+        const res = await svcCreateAccount(payload);
+        // refresh to pick up new account
+        await refresh();
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh]
+  );
 
-  const toggleAccountActive = async (account: Account) => {
-    if (!account.Account_id) throw new Error('Account_id required');
-    const newActive = !(account.IsActive === 1 || account.IsActive === true);
-    await adminService.toggleAccountActive(Number(account.Account_id), newActive);
-    // update local state immediately
-    setAccounts((prev) => prev.map((a) => (a.Account_id === account.Account_id ? { ...a, IsActive: newActive ? 1 : 0 } : a)));
-  };
+  const updateAccount = useCallback(
+    async (accountId: number, updates: Partial<Account>) => {
+      setLoading(true);
+      try {
+        const res = await svcUpdateAccount(accountId, updates);
+        await refresh();
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh]
+  );
 
-  const approveAccount = async (pendingId: number) => {
-    const res = await adminService.approvePending(pendingId);
-    await load();
-    return res;
-  };
+  const toggleAccountActive = useCallback(
+    async (accountId: number, isActive: boolean) => {
+      setLoading(true);
+      try {
+        const res = await svcToggleAccountActive(accountId, isActive);
+        await refresh();
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh]
+  );
 
-  const rejectAccount = async (pendingId: number, reason?: string) => {
-    const res = await adminService.rejectPending(pendingId, reason);
-    await load();
-    return res;
-  };
+  const approveAccount = useCallback(
+    async (pendingId: number) => {
+      setLoading(true);
+      try {
+        const res = await svcApprovePending(pendingId);
+        await refresh();
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh]
+  );
+
+  const rejectAccount = useCallback(
+    async (pendingId: number, reason?: string) => {
+      setLoading(true);
+      try {
+        const res = await svcRejectPending(pendingId, reason);
+        await refresh();
+        return res;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [refresh]
+  );
 
   return {
     accounts,
     loading,
     error,
+    refresh,
     createAccount,
     updateAccount,
     toggleAccountActive,
     approveAccount,
     rejectAccount,
-    reload: load,
   };
 }

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { fetchJson } from '../services/apiClient';
 
 export const useSignUp = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  
+
   // State
   const [role, setRole] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -14,6 +15,9 @@ export const useSignUp = () => {
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [serverError, setServerError] = useState("");
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Assets
   const signupImage = new URL("../assets/images/lilisignup.png", import.meta.url).href;
@@ -38,14 +42,8 @@ export const useSignUp = () => {
       setEmail(emailParam);
       setIsSSO(true);
       setSsoMessage(messageParam || 'Complete your registration to continue with Google Sign-In');
-      
-      // Pre-fill names if available from Google
-      if (firstNameParam) {
-        setFirstName(firstNameParam);
-      }
-      if (lastNameParam) {
-        setLastName(lastNameParam);
-      }
+      if (firstNameParam) setFirstName(firstNameParam);
+      if (lastNameParam) setLastName(lastNameParam);
     }
   }, [searchParams]);
 
@@ -66,66 +64,78 @@ export const useSignUp = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Get role ID mapping
-  const getRoleId = (roleString: string): number => {
-    // Map role strings to IDs based on your database
-    const roleMap: { [key: string]: number } = {
-      'Admin': 1,
-      'Barangay Staff': 2,
-      'Operator': 3,
-      'Household': 4
-    };
-    return roleMap[roleString] || 4; // Default to Household
-  };
-
   // Handle sign up submission
-  const handleSignUp = async (e: React.FormEvent) => {
+  async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
-    if (validateForm()) {
-      try {
-        const areaId = parseInt(barangay);
-        const requestData = {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          email: email.trim(),
-          areaId,  // Now guaranteed to be a valid number
-          roleId: getRoleId(role),
-          isSSO,
-        };
+    setLoading(true);
+    setServerError('');
 
-        console.log('🚀 Submitting registration:', requestData);  // Now logs actual values
+    if (!validateForm()) {
+      setLoading(false);
+      return;
+    }
 
-        const response = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData),
-        });
+    try {
+      // Map role label -> id expected by backend
+      const roleMap: Record<string, number> = {
+        Admin: 1,
+        User: 2,
+      };
+      const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
+      // derive a simple username
+      const usernameCandidate = email
+        ? email.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 30)
+        : `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 30);
 
-        const data = await response.json();
-        console.log('📋 Registration response:', data);
+      // build payload with both naming variants
+      const payload = {
+        // camelCase
+        firstName,
+        lastName,
+        areaId: Number(barangay),
+        email,
+        role: Number(roleId),
+        roleId: Number(roleId),
+        username: usernameCandidate,
+        isSSO: Boolean(isSSO),
+        // snake_case/DB style
+        FirstName: firstName,
+        LastName: lastName,
+        Area_id: Number(barangay),
+        Email: email,
+        Roles: Number(roleId),
+        Username: usernameCandidate,
+        // omit Password so backend will apply DEFAULT_PASSWORD when appropriate
+      };
 
-        if (data.success) {
-          if (isSSO) {
-            console.log('✅ SSO Registration successful, redirecting to admin pending');
-            navigate(`/admin-pending?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
-          } else {
-            console.log('✅ Regular registration successful, redirecting to email verification');
-            navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
-          }
+      console.log('🔁 signup payload', payload);
+
+      const data = await fetchJson('/api/auth/signup', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      console.log('⬅️ signup response', data);
+
+      if (data.success) {
+        setPendingEmail(null);
+        if (isSSO) {
+          // Always redirect SSO to /pending-approval
+          navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
         } else {
-          console.error('❌ Registration failed:', data.error);
-          alert(`Sign Up Failed: ${data.error}`);
+          navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
         }
-      } catch (error) {
-        console.error('❌ Registration error:', error);
-        alert(`Sign Up Failed: ${error instanceof Error ? error.message : 'Network error'}`);
+      } else {
+        const msg = data?.message || data?.error || 'Registration failed';
+        setServerError(msg);
+        if (data?.email) setPendingEmail(data.email);
+        else if (data?.pendingEmail) setPendingEmail(data.pendingEmail);
       }
+    } catch (err) {
+      console.error('❌ Signup request failed:', err);
+      setServerError('Network error');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -149,10 +159,13 @@ export const useSignUp = () => {
     errors,
     isSSO,
     ssoMessage,
-    
+    loading,
+    serverError,
+    pendingEmail,
+
     // Assets
     signupImage,
-    
+
     // Actions
     handleSignUp,
     goToLogin,

@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { fetchJson } from './apiClient';
 
 export interface Machine {
   machine_id: number;
@@ -27,89 +28,37 @@ export interface UpdateMachineRequest {
 
 // Get all machines
 export const getAllMachines = async (): Promise<Machine[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/machines`);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('❌ Get all machines error:', error);
-    throw error;
-  }
+  const data = await fetchJson('/api/machines');
+  // backend sometimes returns { data: [...] } or array directly; normalize:
+  return data?.data ?? data ?? [];
 };
 
 // Create new machine  
 export const createMachine = async (areaId: number, status?: number) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/machines`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ areaId, status }),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('❌ Create machine error:', error);
-    throw error;
-  }
+  const data = await fetchJson('/api/machines', {
+    method: 'POST',
+    body: JSON.stringify({ areaId, status }),
+  });
+  return data;
 };
 
 // ✅ Add missing updateMachine function
 export const updateMachine = async (id: number, machineData: UpdateMachineRequest) => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/machines/${id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(machineData),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    
-    return await response.json();
-  } catch (error) {
-    console.error('❌ Update machine error:', error);
-    throw error;
-  }
+  const data = await fetchJson(`/api/machines/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(machineData),
+  });
+  return data;
 };
 
 // ✅ Add missing getMachineStatuses function
 export const getMachineStatuses = async (): Promise<MachineStatus[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/machines/statuses`);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('❌ Get machine statuses error:', error);
-    throw error;
-  }
+  const data = await fetchJson('/api/machines/statuses');
+  return data?.data ?? data ?? [];
 };
 
 // Get areas
 export const getAreas = async (): Promise<Area[]> => {
-  try {
-    const response = await fetch(`${API_BASE_URL}/api/machines/areas`);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data.data || [];
-  } catch (error) {
-    console.error('❌ Get areas error:', error);
-    throw error;
-  }
+  const data = await fetchJson('/api/machines/areas');
+  return data?.data ?? data ?? [];
 };

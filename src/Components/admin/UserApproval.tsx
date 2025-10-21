@@ -2,9 +2,12 @@ import { useEffect, useState } from 'react';
 import { Account } from '../../types/Types';
 import { fetchPendingAccounts, approvePendingAccount, rejectPendingAccount } from '../../services/adminService';
 
-type Props = {};
+type Props = {
+  onAccept: (a: Account) => Promise<void> | void;
+  onReject: (a: Account) => Promise<void> | void;
+};
 
-export default function UserApproval({}: Props) {
+export default function UserApproval({ onAccept, onReject }: Props) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,25 +30,12 @@ export default function UserApproval({}: Props) {
   }, []);
 
   const handleAccept = async (pendingAccount: any) => {
-    try {
-      await approvePendingAccount(pendingAccount.Pending_id);
-      alert('Account approved successfully!');
-      await load(); // refresh list after action
-    } catch (err: any) {
-      alert(err?.message ?? 'Approve failed');
-    }
+    // delegate to parent handler
+    await onAccept(pendingAccount);
   };
 
   const handleReject = async (pendingAccount: any) => {
-    const reason = prompt('Reason for rejection (optional):');
-    try {
-      // Fix: Convert null to undefined to match the expected type
-      await rejectPendingAccount(pendingAccount.Pending_id, reason || undefined);
-      alert('Account rejected successfully!');
-      await load(); // refresh list after action
-    } catch (err: any) {
-      alert(err?.message ?? 'Reject failed');
-    }
+    await onReject(pendingAccount);
   };
 
   if (loading) return <div className="py-6 text-sm text-gray-600">Loading pending accounts...</div>;

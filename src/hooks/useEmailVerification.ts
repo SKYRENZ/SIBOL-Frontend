@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { fetchJson } from '../services/apiClient';
 
 export const useEmailVerification = () => {
   const [searchParams] = useSearchParams();
@@ -26,27 +27,21 @@ export const useEmailVerification = () => {
   const verifyEmailToken = useCallback(async (token: string) => {
     try {
       console.log('🚀 Verifying token:', token);
-      
-      const response = await fetch(`/api/auth/verify-email/${token}`);
-      console.log('📡 Verification response status:', response.status);
-      
-      const data = await response.json();
+      const data = await fetchJson(`/api/auth/verify-email/${token}`);
       console.log('📋 Verification response data:', data);
 
       if (data.success) {
         setStatus('success');
         setEmail(data.email);
         setMessage('Email verified successfully! Redirecting to admin approval...');
-        // Countdown will start automatically via useEffect
       } else {
-        console.log('❌ Verification failed:', data.error);
         setStatus('error');
         setMessage(data.error || 'Email verification failed');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Verification error:', error);
       setStatus('error');
-      setMessage('Network error occurred while verifying email');
+      setMessage(error?.message ?? 'Network error occurred while verifying email');
     }
   }, []);
 
@@ -91,7 +86,7 @@ export const useEmailVerification = () => {
       return () => clearTimeout(timer);
     } else if (status === 'success' && countdown === 0) {
       // Redirect when countdown reaches 0
-      const redirectUrl = `/admin-pending?email=${encodeURIComponent(email)}${usernameParam ? `&username=${encodeURIComponent(usernameParam)}` : ''}`;
+      const redirectUrl = `/pending-approval?email=${encodeURIComponent(email)}${usernameParam ? `&username=${encodeURIComponent(usernameParam)}` : ''}`;
       console.log('🔄 Redirecting to:', redirectUrl);
       navigate(redirectUrl);
     }
@@ -103,33 +98,17 @@ export const useEmailVerification = () => {
       alert('Email address is required to resend verification');
       return;
     }
-
     try {
       setIsResending(true);
       console.log('📤 Resending verification email to:', email);
-      
-      const response = await fetch('/api/auth/resend-verification', {
+      const data = await fetchJson('/api/auth/resend-verification', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({ email }),
       });
-
-      console.log('📡 Resend response status:', response.status);
-      const data = await response.json();
-      console.log('📋 Resend response data:', data);
-
-      if (response.ok && data.success) {
-        alert('Verification email resent! Please check your inbox.');
-        console.log('✅ Email resent successfully');
-      } else {
-        console.error('❌ Resend failed:', data);
-        alert(`Failed to resend email: ${data.error || 'Unknown error'}`);
-      }
-    } catch (error) {
+      alert(data?.message || 'Verification email resent! Please check your inbox.');
+    } catch (error: any) {
       console.error('❌ Resend error:', error);
-      alert('Network error occurred while resending email');
+      alert(error?.message ?? 'Network error occurred while resending email');
     } finally {
       setIsResending(false);
     }

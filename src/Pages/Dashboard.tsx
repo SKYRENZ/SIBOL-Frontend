@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Header from '../Components/Header';
 import TotalWastePanel from '../Components/TotalWastePanel';
 import ProcessPanel from '../Components/ProcessPanel';
@@ -9,6 +10,8 @@ import '../types/Dashboard.css';
 const Dashboard: React.FC = () => {
   const [barangay] = useState('Barangay 176 - E');
   const [currentDate, setCurrentDate] = useState<string>('');
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const updateDate = () => {
@@ -29,6 +32,48 @@ const Dashboard: React.FC = () => {
 
     return () => clearInterval(timer);
   }, []);
+
+  // Handle SSO token/user returned via query string or hash fragment
+  useEffect(() => {
+    // helper to parse hash like #token=...&user=...
+    const parseHashParams = (hash: string) => {
+      if (!hash) return new URLSearchParams();
+      const trimmed = hash.startsWith('#') ? hash.slice(1) : hash;
+      return new URLSearchParams(trimmed);
+    };
+
+    const queryParams = new URLSearchParams(location.search);
+    const hashParams = parseHashParams(window.location.hash);
+
+    const get = (key: string) => queryParams.get(key) || hashParams.get(key);
+
+    const token = get('token') || get('access_token') || get('auth_token');
+    const user = get('user');
+    const auth = get('auth');
+
+    if (token) {
+      localStorage.setItem('token', token);
+    }
+
+    if (user) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(user));
+        localStorage.setItem('user', JSON.stringify(parsed));
+      } catch (e) {
+        console.warn('Failed to parse user from SSO redirect', e);
+      }
+    }
+
+    if (token) {
+      // remove query and hash to clean URL
+      const cleanUrl = location.pathname;
+      window.history.replaceState({}, '', cleanUrl);
+      // optionally navigate to a specific dashboard sub-route
+      // navigate('/dashboard/home', { replace: true });
+    } else if (auth === 'fail') {
+      navigate('/login');
+    }
+  }, [location, navigate]);
 
   return (
     <div className="dashboardContainer">
