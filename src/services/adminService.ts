@@ -51,11 +51,10 @@ export const fetchUserRoles = async (): Promise<{ Roles_id: number; Roles: strin
   return data.rows ?? data;
 };
 
-// NEW: Fetch all modules for access checklist
+// UPDATED: Change path to match backend route
 export const fetchModules = async (): Promise<{ Module_id: number; Module_name: string }[]> => {
-  const res = await api.get('/api/modules');
+  const res = await api.get('/api/admin/modules');  // FIXED: Add /admin to path
   const data = res.data as any;
-  // Assume backend returns an array directly or in a 'rows' key
   return data.rows ?? data;
 };
 
