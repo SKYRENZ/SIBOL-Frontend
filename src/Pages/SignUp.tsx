@@ -1,9 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { useSignUp } from "../hooks/useSignUp";
+import React, { useEffect, useState } from 'react';
+import { useSignUp } from '../hooks/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const SignUp: React.FC = () => {
   const [serverError, setServerError] = useState<string | null>(null);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
   const {
     // State
     role,
@@ -164,6 +166,15 @@ const SignUp: React.FC = () => {
               Sign In
             </button>
           </p>
+
+          {/* Show pending section in the form area: */}
+          {pendingEmail && (
+            <div className="pending-box">
+              <p>Account for <strong>{pendingEmail}</strong> is pending verification.</p>
+              <button type="button" onClick={handleResendVerification}>Resend verification email</button>
+              {resendMessage && <p className="muted">{resendMessage}</p>}
+            </div>
+          )}
         </div>
       </div>
 
@@ -184,26 +195,14 @@ const SignUp: React.FC = () => {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setServerError(null);
-    if (!firstName || !lastName || !email || !barangay) {
-      setServerError('Please fill all required fields.');
-      return;
-    }
-
-    const roleMap: Record<string, number> = {
-      Admin: 1,
-      'Barangay Staff': 2,
-      Operator: 3,
-      Household: 4
-    };
-    const roleId = typeof role === 'string' ? (roleMap[role] ?? (Number(role) || 2)) : role;
-    const areaId = Number(barangay) || 0;
+    setResendMessage(null);
 
     const payload = {
       firstName,
       lastName,
-      areaId,
+      areaId: Number(barangay) || 0,
       email,
-      roleId,
+      roleId: typeof role === 'string' ? (roleMap[role] ?? (Number(role) || 2)) : role,
       isSSO: !!isSSO
     };
 
@@ -214,17 +213,69 @@ const SignUp: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+
       const text = await res.text();
+      let data: any = null;
+      try { data = JSON.parse(text); } catch { data = { raw: text }; }
+
       if (!res.ok) {
-        console.error('Signup failed:', res.status, text);
-        setServerError(text || `HTTP ${res.status}`);
+        // backend should return a clear message; detect "pending" case
+        const msg = data?.message || data?.error || text || `HTTP ${res.status}`;
+        setServerError(msg);
+
+        // If server indicates account pending, show resend UI
+        if (/pending/i.test(String(msg)) || String(msg).includes('pending')) {
+          setPendingEmail(email);
+        }
         return;
       }
-      // Success - backend handles pending/admin flow
+
+      // success path: server may return token or instruct next step
+      if (data?.token) {
+        // redirect to email verification page with token (or dashboard if auth)
+        const userStr = data.user ? encodeURIComponent(JSON.stringify(data.user)) : '';
+        navigate(`/email-verification?token=${encodeURIComponent(data.token)}&user=${userStr}`, { replace: true });
+        return;
+      }
+
+      // fallback: navigate to dashboard or verification page as appropriate
+      if (data?.next === 'verify' || data?.status === 'pending') {
+        setPendingEmail(email);
+        setServerError('Account created but needs admin/email verification. Check your inbox.');
+        return;
+      }
+
       navigate('/dashboard');
     } catch (err) {
-      console.error(err);
+      console.error('Signup error', err);
       setServerError('Network error');
+    }
+  }
+
+  async function handleResendVerification() {
+    if (!pendingEmail) return;
+    setResendMessage(null);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+      const res = await fetch(`${apiUrl}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: pendingEmail }),
+      });
+      const data = await res.json().catch(() => ({ ok: res.ok, raw: '' }));
+      if (!res.ok) {
+        setResendMessage(data?.message || data?.error || `Failed: ${res.status}`);
+        return;
+      }
+      // success - server may return a token or confirmation
+      setResendMessage(data?.message || 'Verification email resent. Check your inbox.');
+      if (data?.token) {
+        const userStr = data.user ? encodeURIComponent(JSON.stringify(data.user)) : '';
+        navigate(`/email-verification?token=${encodeURIComponent(data.token)}&user=${userStr}`, { replace: true });
+      }
+    } catch (err) {
+      console.error('Resend verification error', err);
+      setResendMessage('Network error');
     }
   }
 };
