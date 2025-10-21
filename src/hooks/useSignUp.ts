@@ -95,7 +95,8 @@ export const useSignUp = () => {
 
         console.log('🚀 Submitting registration:', requestData);  // Now logs actual values
 
-        const response = await fetch('/api/auth/register', {
+        const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
+        const response = await fetch(`${apiUrl}/api/auth/signup`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
