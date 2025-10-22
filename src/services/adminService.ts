@@ -14,13 +14,15 @@ function asArray(payload: any): any[] {
 
 export const fetchAccounts = async (): Promise<Account[]> => {
   const res = await api.get('/api/admin/accounts');  // Added /api
-  if (!res.data.success) throw new Error(res.data.error || 'Failed to fetch accounts');
-  return res.data.users || [];
+  if (!res.data?.success) throw new Error(res.data?.error || 'Failed to fetch accounts');
+  // normalize various shapes (res.data.users | res.data.data | res.data)
+  return asArray(res.data.users ?? res.data);
 };
 
 export const fetchPendingAccounts = async (): Promise<any[]> => {
-  const res = await api.get('/api/admin/pending-accounts');  // Added /api
-  return res.data || [];
+  const res = await api.get('/api/admin/pending-accounts');
+  // backend returns { success: true, pendingAccounts: [...], count } or other shapes
+  return asArray(res.data.pendingAccounts ?? res.data);
 };
 
 export const fetchPendingById = async (pendingId: number) => {
@@ -56,13 +58,13 @@ export const toggleAccountActive = async (accountId: number, isActive: boolean) 
 // new: fetch roles used by AdminControls
 export const fetchUserRoles = async (): Promise<{ Roles_id: number; Roles: string }[]> => {
   const res = await api.get('/api/admin/roles');  // Added /api
-  return res.data || [];
+  return asArray(res.data.roles ?? res.data) as { Roles_id: number; Roles: string }[];
 };
 
 // Fetch modules and normalize shape (handles modules_tbl.Name or Module_name)
 export const fetchModules = async (): Promise<any[]> => {
   const res = await api.get('/api/admin/modules');  // Added /api
-  return res.data || [];
+  return asArray(res.data.modules ?? res.data);
 };
 
 export async function approvePendingAccount(pendingId: number): Promise<any> {
@@ -80,5 +82,5 @@ export async function rejectPendingAccount(pendingId: number, reason?: string): 
 // NEW: Add fetchBarangays
 export const fetchBarangays = async () => {
   const res = await api.get('/api/admin/barangays');  // Added /api
-  return res.data;
+  return asArray(res.data.barangays ?? res.data);
 };

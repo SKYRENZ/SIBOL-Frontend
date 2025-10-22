@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import useAdmin from '../hooks/admin/useAdmin';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
@@ -6,6 +6,7 @@ import UserApproval from '../Components/admin/UserApproval';
 import AdminControls from '../Components/admin/AdminControls';
 import { Account } from '../types/Types';
 import Header from '../Components/Header';
+import { fetchPendingAccounts } from '../services/adminService'; // adjust path if needed
 
 export default function Admin() {
   const {
@@ -108,9 +109,22 @@ export default function Admin() {
     }
   };
 
-  const pendingCount = accounts.filter(
-    (a: any) => a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
-  ).length;
+  const [pendingCount, setPendingCount] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const pending = await fetchPendingAccounts();
+        if (!mounted) return;
+        setPendingCount(Array.isArray(pending) ? pending.length : 0);
+      } catch {
+        if (!mounted) return;
+        setPendingCount(0);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // In the Admin component
   const initialData = useMemo(() => (editingAccount ? editingAccount : {}), [editingAccount]); // Stable for create mode
