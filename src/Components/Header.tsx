@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink } from "react-router-dom";
+import { NavLink, useNavigate } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
 import api from '../services/apiClient';
 import "../types/Header.css";
@@ -15,7 +15,21 @@ const allLinks = [
 
 const Header: React.FC = () => {
   const [modules, setModules] = useState<any>({ list: [], has: () => false });
-
+  const navigate = useNavigate();
+  
+  async function handleLogout() {
+    try {
+      // Attempt to notify backend (if session-based logout exists)
+      await api.post('/api/auth/logout');
+    } catch (err) {
+      // ignore network errors, still clear local state
+      console.warn('logout request failed', err);
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    navigate('/login', { replace: true });
+  }
+  
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -113,6 +127,26 @@ const Header: React.FC = () => {
               fill="currentColor"
             />
           </svg>
+
+          {/* Logout button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Logout"
+            aria-label="Logout"
+            className="logout-btn"
+            style={{
+              background: 'transparent',
+              border: 'none',
+              padding: '4px 8px',
+              marginLeft: 8,
+              cursor: 'pointer',
+              color: 'inherit',
+              fontSize: 14,
+            }}
+          >
+            Logout
+          </button>
         </div>
       </nav>
     </header>

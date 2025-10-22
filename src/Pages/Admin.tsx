@@ -1,11 +1,12 @@
-import { useMemo, useState } from 'react';
-import useAdmin from '../hooks/useAdmin';
+import { useEffect, useMemo, useState } from 'react';
+import useAdmin from '../hooks/admin/useAdmin';
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
 import AdminControls from '../Components/admin/AdminControls';
 import { Account } from '../types/Types';
 import Header from '../Components/Header';
+import { fetchPendingAccounts } from '../services/adminService'; // adjust path if needed
 
 export default function Admin() {
   const {
@@ -17,6 +18,10 @@ export default function Admin() {
     toggleAccountActive,
     approveAccount,
     rejectAccount,
+    // pass hook data to components
+    roles,
+    modules,
+    barangays,
   } = useAdmin();
 
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -53,13 +58,8 @@ export default function Admin() {
   const onUpdate = async (p: Partial<Account>) => {
     if (!editingAccount?.Account_id) return;
     try {
-      // prefer updateAccount(id, updates) if the hook uses that signature
-      if ((updateAccount as any).length === 2) {
-        await updateAccount(editingAccount.Account_id, p);
-      } else {
-        // fallback: pass payload object if hook expects that
-        await updateAccount({ ...p, Account_id: editingAccount.Account_id } as any);
-      }
+      // The hook's updateAccount expects (accountId: number, updates: Partial<Account>)
+      await updateAccount(editingAccount.Account_id, p);
 
       // temporary: ensure UI reflects backend by reloading accounts — replace with proper refetch in the hook
       // quick-and-dirty: reload the page so list shows DB state immediately
@@ -71,11 +71,12 @@ export default function Admin() {
     }
   };
 
-  // use the hook's toggleAccountActive(account) signature (pass whole account)
+  // use the hook's toggleAccountActive(accountId, isActive) signature
   const onToggleActive = async (a: Account) => {
     if (!a.Account_id) return;
     try {
-      await toggleAccountActive(a);
+      // Pass accountId and the new isActive state (toggle from current) as boolean
+      await toggleAccountActive(a.Account_id, a.IsActive === 1 ? false : true);
     } catch (err: any) {
       alert(err?.message ?? 'Toggle active failed');
     }
@@ -83,32 +84,50 @@ export default function Admin() {
 
   // Accept/Approve expects an Account (or id) — keep similar but use hook properly
   const onAccept = async (a: Account) => {
-    if (!a.Account_id) return;
+    const pendingId = (a as any).Pending_id;
+    if (!pendingId) return;
     if (!confirm(`Approve account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     try {
-      await approveAccount(Number(a.Account_id));
+      await approveAccount(Number(pendingId));
+      // keep badge in sync immediately (pessimistic update)
+      setPendingCount((c) => Math.max(0, c - 1));
       alert('Account approved');
     } catch (err: any) {
       alert(err?.message ?? 'Approve failed');
     }
   };
 
-  // onReject must accept the Account object (not a reason string)
   const onReject = async (a: Account) => {
-    if (!a.Account_id) return;
+    const pendingId = (a as any).Pending_id;
+    if (!pendingId) return;
     const reason = prompt('Reason for rejection (optional)', '') ?? undefined;
     if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     try {
-      await rejectAccount(Number(a.Account_id), reason);
+      await rejectAccount(Number(pendingId), reason);
+      // decrement badge locally
+      setPendingCount((c) => Math.max(0, c - 1));
       alert('Account rejected');
     } catch (err: any) {
       alert(err?.message ?? 'Reject failed');
     }
   };
 
-  const pendingCount = accounts.filter(
-    (a: any) => a?.Status === 'Pending' || a?.IsActive === 0 || a?.IsApproved === false
-  ).length;
+  const [pendingCount, setPendingCount] = useState<number>(0);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      try {
+        const pending = await fetchPendingAccounts();
+        if (!mounted) return;
+        setPendingCount(Array.isArray(pending) ? pending.length : 0);
+      } catch {
+        if (!mounted) return;
+        setPendingCount(0);
+      }
+    })();
+    return () => { mounted = false; };
+  }, []);
 
   // In the Admin component
   const initialData = useMemo(() => (editingAccount ? editingAccount : {}), [editingAccount]); // Stable for create mode
@@ -195,12 +214,15 @@ export default function Admin() {
                 <div className="relative w-full max-w-3xl mx-4 bg-white rounded-lg shadow-lg p-6 text-sm text-[#3D5341]">
                   <AdminForm
                     initialData={initialData}
-                    mode={creating ? 'create' : 'edit'}  // Fixed: Now based on creating vs. editingAccount
+                    mode={creating ? 'create' : 'edit'}
                     onSubmit={creating ? onCreate : onUpdate}
                     onCancel={() => {
                       if (creating) setCreating(false);
                       else setEditingAccount(null);
                     }}
+                    roles={roles}
+                    modules={modules}
+                    barangays={barangays}
                   />
                 </div>
               </div>
