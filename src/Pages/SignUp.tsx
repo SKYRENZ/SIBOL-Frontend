@@ -18,6 +18,7 @@ const SignUp: React.FC = () => {
     setEmail,
     barangay,
     setBarangay,
+    barangays, // NEW
     errors,
     isSSO,
     
@@ -145,9 +146,9 @@ const SignUp: React.FC = () => {
               className="auth-input"
             >
               <option value="">Select Barangay</option>
-              <option value="1">Barangay 1</option>
-              <option value="2">Barangay 2</option>
-              <option value="3">Barangay 3</option>
+              {barangays && barangays.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
             </select>
             {errors.barangay && <div className="auth-error">{errors.barangay}</div>}
 
