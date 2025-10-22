@@ -1,4 +1,5 @@
 import React from "react";
+import Tabs from "../common/Tabs";
 
 interface HouseholdTabsProps {
   activeTab: string;
@@ -14,19 +15,7 @@ const HouseholdTabs: React.FC<HouseholdTabsProps> = ({ activeTab, onTabChange })
     { id: "points", label: "Point System" },
   ];
 
-  return (
-    <div className="household-tabs">
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          className={`tab-button ${activeTab === tab.id ? "active" : ""}`}
-          onClick={() => onTabChange(tab.id)}
-        >
-          {tab.label}
-        </button>
-      ))}
-    </div>
-  );
+  return <Tabs tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />;
 };
 
 export default HouseholdTabs;

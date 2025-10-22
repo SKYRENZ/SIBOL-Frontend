@@ -1,40 +1,32 @@
-import { Search } from "lucide-react";
-import FilterDropdown from "../filterDropdown";
+import React, { useState } from "react";
+import { Filter } from "lucide-react";
+import SearchBar from "../common/SearchBar";
 
 interface SearchFilterBarProps {
   onAddSchedule: () => void;
 }
 
 const SearchFilterBar: React.FC<SearchFilterBarProps> = ({ onAddSchedule }) => {
-  const handleFilterSelect = (value: string): void => {
-    console.log("Selected Filter:", value);
-  };
+  const [searchTerm, setSearchTerm] = useState("");
 
   return (
-    <div className="w-full px-6 mb-4">
-      <div className="flex justify-between items-center">
-        {/* 🔍 Search Box */}
-        <div className="relative">
-          <input
-            type="text"
-            placeholder="Search"
-            className="w-[250px] border border-[#7B9B7B] rounded-md pl-10 pr-4 py-2 text-sm text-[#355842] placeholder-gray-400 bg-transparent focus:outline-none focus:ring-2 focus:ring-[#7B9B7B]"
-          />
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#355842]" />
-        </div>
+    <div className="flex items-center justify-between gap-6 mb-6">
+      <div className="w-3/5">
+        <SearchBar value={searchTerm} onChange={setSearchTerm} />
+      </div>
 
-        <div className="flex items-center gap-3">
-          {/* Add Schedule */}
-          <button
-            onClick={onAddSchedule}
-            className="bg-[#355842] text-white text-sm font-medium px-4 py-2 rounded-md hover:bg-[#2e4a36] transition"
-          >
-            Add Schedule
-          </button>
+      <div className="flex items-center gap-3">
+        <button 
+          className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40" 
+          onClick={onAddSchedule}
+        >
+          Add Schedule
+        </button>
 
-          {/* Filter Dropdown */}
-          <FilterDropdown onSelect={handleFilterSelect} />
-        </div>
+        <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none">
+          <Filter size={16} />
+          <span>Filter by</span>
+        </button>
       </div>
     </div>
   );
