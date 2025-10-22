@@ -6,13 +6,19 @@ import {
   toggleAccountActive as svcToggleAccountActive,
   approvePending as svcApprovePending,
   rejectPending as svcRejectPending,
-} from '../services/adminService';
-import type { Account } from '../types/Types';
+  fetchUserRoles,
+  fetchModules,
+  fetchBarangays,
+} from '../../services/adminService';
+import type { Account } from '../../types/Types';
 
 export default function useAdmin() {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [roles, setRoles] = useState<{ Roles_id: number; Roles: string }[]>([]);
+  const [modules, setModules] = useState<{ Module_id: number; Module_name: string; Path?: string }[]>([]);
+  const [barangays, setBarangays] = useState<{ Barangay_id: number; Barangay_Name: string }[]>([]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -104,6 +110,56 @@ export default function useAdmin() {
     [refresh]
   );
 
+  // Fetch roles on mount
+  useEffect(() => {
+    const loadRoles = async () => {
+      try {
+        const resp: any = await fetchUserRoles();
+        const list = Array.isArray(resp) ? resp : resp?.data ?? resp?.roles ?? [];
+        setRoles(Array.isArray(list) ? list : []);
+      } catch (err) {
+        console.error('Failed to load roles:', err);
+      }
+    };
+    loadRoles();
+  }, []);
+
+  // Fetch modules on mount
+  useEffect(() => {
+    const loadModules = async () => {
+      try {
+        const fetched: any[] = await fetchModules();
+        const normalized = (fetched || []).map((m: any) => ({
+          Module_id: m.Module_id ?? m.id ?? 0,
+          Module_name: m.Module_name ?? m.Name ?? m.name ?? m.ModuleName ?? '',
+          Path: m.Path ?? m.path ?? undefined,
+        }));
+        setModules(normalized);
+      } catch (err) {
+        console.error('Failed to load modules:', err);
+      }
+    };
+    loadModules();
+  }, []);
+
+  // Fetch barangays on mount
+  useEffect(() => {
+    const loadBarangays = async () => {
+      try {
+        const resp: any = await fetchBarangays();
+        const list =
+          Array.isArray(resp) ? resp :
+          Array.isArray(resp?.barangays) ? resp.barangays :
+          Array.isArray(resp?.data) ? resp.data :
+          [];
+        setBarangays(list);
+      } catch (err) {
+        console.error('Failed to load barangays:', err);
+      }
+    };
+    loadBarangays();
+  }, []);
+
   return {
     accounts,
     loading,
@@ -114,5 +170,8 @@ export default function useAdmin() {
     toggleAccountActive,
     approveAccount,
     rejectAccount,
+    roles,
+    modules,
+    barangays,
   };
 }

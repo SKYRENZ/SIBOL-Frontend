@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Account } from '../../types/Types';
-import { fetchPendingAccounts, approvePendingAccount, rejectPendingAccount } from '../../services/adminService';
+import { fetchPendingAccounts} from '../../services/adminService';
 
 type Props = {
   onAccept: (a: Account) => Promise<void> | void;
@@ -30,12 +30,23 @@ export default function UserApproval({ onAccept, onReject }: Props) {
   }, []);
 
   const handleAccept = async (pendingAccount: any) => {
-    // delegate to parent handler
-    await onAccept(pendingAccount);
+    try {
+      await onAccept(pendingAccount); // parent performs network call
+      // remove from local list after success (pessimistic update)
+      setAccounts((prev) => prev.filter((p) => p.Pending_id !== pendingAccount.Pending_id && p.Email !== pendingAccount.Email));
+    } catch (err: any) {
+      alert(err?.message ?? 'Approve failed');
+    }
   };
 
   const handleReject = async (pendingAccount: any) => {
-    await onReject(pendingAccount);
+    try {
+      await onReject(pendingAccount);
+      // remove from local list after success
+      setAccounts((prev) => prev.filter((p) => p.Pending_id !== pendingAccount.Pending_id && p.Email !== pendingAccount.Email));
+    } catch (err: any) {
+      alert(err?.message ?? 'Reject failed');
+    }
   };
 
   if (loading) return <div className="py-6 text-sm text-gray-600">Loading pending accounts...</div>;
