@@ -40,18 +40,35 @@ const AdminForm: React.FC<AdminFormProps> = ({
   const inferredMode = modeProp ?? (initialData && initialData.Account_id ? 'edit' : 'create');
   const isCreate = inferredMode === 'create';
 
-  // Keep local copies only for UI; most fields are read-only except role and access
+  // Editable state used for create mode (and optionally for a nicer UX in edit mode if needed)
+  const [firstName, setFirstName] = useState<string>(initialData.FirstName ?? '');
+  const [lastName, setLastName] = useState<string>(initialData.LastName ?? '');
+  const [barangayId, setBarangayId] = useState<number | ''>(initialData.Barangay_id ?? '');
+  const [email, setEmail] = useState<string>(initialData.Email ?? '');
+  const [password, setPassword] = useState<string>('');
+
+  // Role + Access are editable in both modes
   const [roleId, setRoleId] = useState<number>(initialData.Roles ?? roles[0]?.Roles_id ?? 1);
   const [access, setAccess] = useState<Record<string, boolean>>({});
 
-  const generatedUsername = useMemo(() => slugify(`${initialData.FirstName ?? ''}.${initialData.LastName ?? ''}`), [
-    initialData,
-  ]);
+  // generated username (read-only in UI)
+  const generatedUsername = useMemo(
+    () =>
+      slugify(
+        `${(firstName || initialData.FirstName || '').toString()}.${(lastName || initialData.LastName || '').toString()}`
+      ),
+    [firstName, lastName, initialData]
+  );
   const generatedPassword = useMemo(() => Math.random().toString(36).slice(-8), []);
 
+  // sync initialData to editable states when initialData changes (important when switching between edit/create)
   useEffect(() => {
-    // initialize role from initialData or fallback
+    setFirstName(initialData.FirstName ?? '');
+    setLastName(initialData.LastName ?? '');
+    setBarangayId(initialData.Barangay_id ?? '');
+    setEmail(initialData.Email ?? '');
     setRoleId(initialData.Roles ?? roles[0]?.Roles_id ?? 1);
+    // don't overwrite password (leave blank)
   }, [initialData, roles]);
 
   useEffect(() => {
@@ -75,13 +92,31 @@ const AdminForm: React.FC<AdminFormProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     const accessArray = Object.keys(access).filter((k) => access[k]);
+
+    if (isCreate) {
+      // create payload: include all editable fields except username (username derived)
+      const payload: AdminPayload = {
+        FirstName: firstName,
+        LastName: lastName,
+        Barangay_id: barangayId === '' ? undefined : barangayId,
+        Email: email,
+        Roles: roleId,
+        Username: generatedUsername,
+        Password: password || generatedPassword,
+        Access: accessArray,
+      };
+      await onSubmit(payload);
+      return;
+    }
+
+    // edit mode: preserve original values and only override Roles / Access (keeps updateUser behavior)
     const payload: AdminPayload = {
-      // preserve original values from initialData, but overwrite Roles and Access
       ...initialData,
       Roles: roleId,
       Access: accessArray,
-      Password: isCreate ? generatedPassword : undefined,
+      // do not include Password on update to avoid overwriting
     };
     await onSubmit(payload);
   };
@@ -92,39 +127,109 @@ const AdminForm: React.FC<AdminFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Display-only fields */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">First Name</label>
-          <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-            {initialData.FirstName ?? '-'}
+      {/* For create mode: editable fields (all except username) */}
+      {isCreate ? (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">First Name</label>
+              <input
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                placeholder="First name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Last Name</label>
+              <input
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                placeholder="Last name"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Barangay</label>
+              <select
+                value={barangayId}
+                onChange={(e) => setBarangayId(e.target.value === '' ? '' : Number(e.target.value))}
+                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+              >
+                <option value="">Select barangay</option>
+                {barangays.map((b) => (
+                  <option key={b.Barangay_id} value={b.Barangay_id}>
+                    {b.Barangay_Name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <input
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                placeholder="email@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Username (auto)</label>
+              <div className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green">{generatedUsername}</div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Password</label>
+              <input
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Leave blank to auto-generate"
+                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+              />
+            </div>
           </div>
-        </div>
+        </>
+      ) : (
+        /* Edit / view mode: display-only fields */
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">First Name</label>
+              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
+                {initialData.FirstName ?? '-'}
+              </div>
+            </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Last Name</label>
-          <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-            {initialData.LastName ?? '-'}
+            <div>
+              <label className="block text-sm font-medium mb-1">Last Name</label>
+              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
+                {initialData.LastName ?? '-'}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Barangay</label>
+              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{barangayName || '-'}</div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Email</label>
+              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{initialData.Email ?? '-'}</div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-1">Username</label>
+              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
+                {initialData.Username ?? '-'}
+              </div>
+            </div>
           </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Barangay</label>
-          <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{barangayName || '-'}</div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
-          <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{initialData.Email ?? '-'}</div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">Username</label>
-          <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-            {initialData.Username ?? (isCreate ? generatedUsername : '-')}
-          </div>
-        </div>
-      </div>
+        </>
+      )}
 
       {/* Editable: Role */}
       <div>
@@ -132,10 +237,15 @@ const AdminForm: React.FC<AdminFormProps> = ({
         <select
           value={roleId}
           onChange={(e) => setRoleId(Number(e.target.value))}
-          className="w-full border rounded px-3 py-2"
+          className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
         >
           {roles.map((r) => (
-            <option key={r.Roles_id} value={r.Roles_id}>
+            <option
+              key={r.Roles_id}
+              value={r.Roles_id}
+              // browsers limit <option> styling; set inline to help where supported
+              style={{ background: 'transparent', color: 'inherit' }}
+            >
               {r.Roles}
             </option>
           ))}
