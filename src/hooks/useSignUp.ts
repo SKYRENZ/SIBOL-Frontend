@@ -12,6 +12,7 @@ export const useSignUp = () => {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [barangay, setBarangay] = useState("");
+  const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]); // NEW
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
@@ -46,6 +47,23 @@ export const useSignUp = () => {
       if (lastNameParam) setLastName(lastNameParam);
     }
   }, [searchParams]);
+
+  // Fetch barangays on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBarangays() {
+      try {
+        const data = await fetchJson('/api/auth/barangays');
+        if (!cancelled && data?.success && Array.isArray(data.barangays)) {
+          setBarangays(data.barangays);
+        }
+      } catch (err) {
+        console.warn('Failed to load barangays', err);
+      }
+    }
+    loadBarangays();
+    return () => { cancelled = true; };
+  }, []);
 
   // Validate form function
   const validateForm = () => {
@@ -156,6 +174,7 @@ export const useSignUp = () => {
     setEmail,
     barangay,
     setBarangay,
+    barangays, // EXPOSED
     errors,
     isSSO,
     ssoMessage,

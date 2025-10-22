@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react'
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
 import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
 import { login as apiLogin } from '../services/authService'; // added
@@ -7,6 +8,7 @@ const Login: React.FC = () => {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
   const [loading, setLoading] = useState(false) // added
   const [serverError, setServerError] = useState<string | null>(null) // added
@@ -89,14 +91,24 @@ const Login: React.FC = () => {
             {usernameError ? <div className="auth-error">{usernameError}</div> : null}
 
             <label className="auth-label">Password</label>
-            <input
-              className={`auth-input${passwordError ? ' is-error' : ''}`}
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              onBlur={() => setTouched((t) => ({ ...t, password: true }))}
-            />
+            <div className="relative">
+              <input
+                className={`auth-input${passwordError ? ' is-error' : ''}`}
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                className="absolute inset-y-0 right-3 flex items-center justify-center px-2 text-gray-600 bg-transparent border-0 focus:outline-none"
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+              </button>
+            </div>
             {passwordError ? <div className="auth-error">{passwordError}</div> : null}
 
             <div className="auth-forgot">
