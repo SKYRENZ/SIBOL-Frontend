@@ -9,6 +9,11 @@ function asArray(payload: any): any[] {
   if (Array.isArray(payload.accounts)) return payload.accounts;
   if (Array.isArray(payload.data)) return payload.data;
   if (payload?.rows?.data && Array.isArray(payload.rows.data)) return payload.rows.data;
+  // some responses use pendingAccounts / barangays / roles / modules keys
+  if (Array.isArray(payload.pendingAccounts)) return payload.pendingAccounts;
+  if (Array.isArray(payload.barangays)) return payload.barangays;
+  if (Array.isArray(payload.roles)) return payload.roles;
+  if (Array.isArray(payload.modules)) return payload.modules;
   return [];
 }
 
@@ -20,9 +25,17 @@ export const fetchAccounts = async (): Promise<Account[]> => {
 };
 
 export const fetchPendingAccounts = async (): Promise<any[]> => {
-  const res = await api.get('/api/admin/pending-accounts');
-  // backend returns { success: true, pendingAccounts: [...], count } or other shapes
-  return asArray(res.data.pendingAccounts ?? res.data);
+  const tries = ['/api/admin/pending-accounts', '/admin/pending-accounts', '/api/pending-accounts', '/pending-accounts'];
+  for (const path of tries) {
+    try {
+      const res = await api.get(path);
+      return asArray(res.data.pendingAccounts ?? res.data);
+    } catch (err) {
+      // try next
+    }
+  }
+  console.warn('fetchPendingAccounts: no endpoint responded, returning []');
+  return [];
 };
 
 export const fetchPendingById = async (pendingId: number) => {
@@ -31,13 +44,39 @@ export const fetchPendingById = async (pendingId: number) => {
 };
 
 export const approvePending = async (pendingId: number) => {
-  const res = await api.post(`/api/admin/pending-accounts/${pendingId}/approve`);  // Added /api
-  return res.data;
+  const tries = [
+    `/api/admin/pending-accounts/${pendingId}/approve`,
+    `/admin/pending-accounts/${pendingId}/approve`,
+    `/api/pending-accounts/${pendingId}/approve`,
+    `/pending-accounts/${pendingId}/approve`,
+  ];
+  for (const path of tries) {
+    try {
+      const res = await api.post(path);
+      return res.data;
+    } catch (err) {
+      // try next
+    }
+  }
+  throw new Error(`approvePending: no endpoint available for pendingId=${pendingId}`);
 };
 
 export const rejectPending = async (pendingId: number, reason?: string) => {
-  const res = await api.post(`/api/admin/pending-accounts/${pendingId}/reject`, { reason });  // Added /api
-  return res.data;
+  const tries = [
+    `/api/admin/pending-accounts/${pendingId}/reject`,
+    `/admin/pending-accounts/${pendingId}/reject`,
+    `/api/pending-accounts/${pendingId}/reject`,
+    `/pending-accounts/${pendingId}/reject`,
+  ];
+  for (const path of tries) {
+    try {
+      const res = await api.post(path, { reason });
+      return res.data;
+    } catch (err) {
+      // try next
+    }
+  }
+  throw new Error(`rejectPending: no endpoint available for pendingId=${pendingId}`);
 };
 
 export const createAccount = async (accountData: Partial<Account>) => {
@@ -81,6 +120,15 @@ export async function rejectPendingAccount(pendingId: number, reason?: string): 
 
 // NEW: Add fetchBarangays
 export const fetchBarangays = async () => {
-  const res = await api.get('/api/admin/barangays');  // Added /api
-  return asArray(res.data.barangays ?? res.data);
+  const tries = ['/api/admin/barangays', '/admin/barangays', '/api/barangays', '/barangays'];
+  for (const path of tries) {
+    try {
+      const res = await api.get(path);
+      return asArray(res.data.barangays ?? res.data);
+    } catch (err) {
+      // try next
+    }
+  }
+  console.warn('fetchBarangays: no endpoint responded, returning []');
+  return [];
 };
