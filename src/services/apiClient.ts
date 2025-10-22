@@ -1,7 +1,7 @@
 const API_URL =
   import.meta.env.VITE_API_URL ??
   import.meta.env.VITE_API_BASE_URL ??
-  'https://sibol-backend-i0i6.onrender.com';
+  'http://localhost:5000';  // Changed default from production to localhost
 
 export { API_URL };
 

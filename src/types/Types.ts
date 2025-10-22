@@ -10,4 +10,6 @@ export interface Account {
   Email?: string;
   Contact?: string | number;
   Pending_id?: number; // Add this for pending accounts
+  Barangay_id?: number;
+  Barangay_Name?: string;
 }
