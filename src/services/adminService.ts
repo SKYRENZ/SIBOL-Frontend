@@ -9,6 +9,11 @@ function asArray(payload: any): any[] {
   if (Array.isArray(payload.accounts)) return payload.accounts;
   if (Array.isArray(payload.data)) return payload.data;
   if (payload?.rows?.data && Array.isArray(payload.rows.data)) return payload.rows.data;
+  // some responses use pendingAccounts / barangays / roles / modules keys
+  if (Array.isArray(payload.pendingAccounts)) return payload.pendingAccounts;
+  if (Array.isArray(payload.barangays)) return payload.barangays;
+  if (Array.isArray(payload.roles)) return payload.roles;
+  if (Array.isArray(payload.modules)) return payload.modules;
   return [];
 }
 
@@ -20,9 +25,15 @@ export const fetchAccounts = async (): Promise<Account[]> => {
 };
 
 export const fetchPendingAccounts = async (): Promise<any[]> => {
-  const res = await api.get('/api/admin/pending-accounts');
-  // backend returns { success: true, pendingAccounts: [...], count } or other shapes
-  return asArray(res.data.pendingAccounts ?? res.data);
+  try {
+    const res = await api.get('/api/admin/pending-accounts');
+    // backend may return { success: true, pendingAccounts: [...] } or raw array
+    return asArray(res.data.pendingAccounts ?? res.data);
+  } catch (err) {
+    // don't blow up UI if endpoint is missing or network fails; return empty list
+    console.warn('fetchPendingAccounts failed', err);
+    return [];
+  }
 };
 
 export const fetchPendingById = async (pendingId: number) => {
@@ -81,6 +92,17 @@ export async function rejectPendingAccount(pendingId: number, reason?: string): 
 
 // NEW: Add fetchBarangays
 export const fetchBarangays = async () => {
-  const res = await api.get('/api/admin/barangays');  // Added /api
-  return asArray(res.data.barangays ?? res.data);
+  // try admin route first, fallback to public route, return [] on failure
+  try {
+    const res = await api.get('/api/admin/barangays');
+    return asArray(res.data.barangays ?? res.data);
+  } catch (err) {
+    try {
+      const res2 = await api.get('/api/barangays');
+      return asArray(res2.data.barangays ?? res2.data);
+    } catch (err2) {
+      console.warn('fetchBarangays failed, returning empty array', err2);
+      return [];
+    }
+  }
 };

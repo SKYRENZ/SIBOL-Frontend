@@ -89,13 +89,14 @@ export default function Admin() {
     if (!confirm(`Approve account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     try {
       await approveAccount(Number(pendingId));
+      // keep badge in sync immediately (pessimistic update)
+      setPendingCount((c) => Math.max(0, c - 1));
       alert('Account approved');
     } catch (err: any) {
       alert(err?.message ?? 'Approve failed');
     }
   };
 
-  // onReject must accept the Account object (not a reason string)
   const onReject = async (a: Account) => {
     const pendingId = (a as any).Pending_id;
     if (!pendingId) return;
@@ -103,6 +104,8 @@ export default function Admin() {
     if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     try {
       await rejectAccount(Number(pendingId), reason);
+      // decrement badge locally
+      setPendingCount((c) => Math.max(0, c - 1));
       alert('Account rejected');
     } catch (err: any) {
       alert(err?.message ?? 'Reject failed');
