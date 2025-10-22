@@ -34,7 +34,6 @@ createRoot(document.getElementById('root')).render(
         {/* Protected/Main Application Routes */}
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/admin" element={<Admin />} />
-        <Route path="/test" element={<TestPage />} /> {/* <-- add this route */}
         <Route path="/sibol-machines" element={<SibolMachinePage />} />
         <Route path="/household" element={<Household/>} />
         <Route path="/maintenance" element={<MaintenancePage />} />

@@ -33,7 +33,7 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, onEdit, onToggleActive 
                 </td>
 
                 <td className="px-4 py-1.5 text-sibol-green align-middle">
-                  {acct.Area_id ? `Brgy. ${acct.Area_id}` : '-'}
+                  {acct.Barangay_Name || '-'}
                 </td>
 
                 <td className="px-4 py-1.5 text-sibol-green align-middle">
