@@ -32,7 +32,7 @@ const ClaimedRewards = () => {
           <input
             type="text"
             placeholder="Search"
-            className="w-full border border-[#7B9B7B] rounded-md pl-10 pr-4 py-2 text-sm text-[#355842] placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#7B9B7B]"
+            className="w-full border border-[#7B9B7B] rounded-md pl-10 pr-4 py-2 text-sm text-[#355842] placeholder-gray-400 bg-transparent focus:outline-none focus:ring-2 focus:ring-[#7B9B7B]"
           />
           <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#355842]" />
         </div>

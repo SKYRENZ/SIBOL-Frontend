@@ -32,7 +32,7 @@ const FilterDropdown: React.FC<FilterDropdownProps> = ({ onSelect }) => {
     <div ref={dropdownRef} className="relative inline-block text-[#355842]">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="border border-[#7B9B7B] rounded-md h-9 px-4 flex items-center justify-between gap-2 min-w-[150px] text-sm font-medium"
+        className="border border-[#7B9B7B] rounded-md h-9 px-4 flex items-center justify-between gap-2 min-w-[150px] text-sm font-medium bg-transparent"
       >
         <span>{selected || "Filter by"}</span>
         <Filter className="w-4 h-4" />
