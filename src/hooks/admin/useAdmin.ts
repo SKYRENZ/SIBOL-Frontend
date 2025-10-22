@@ -146,15 +146,17 @@ export default function useAdmin() {
   useEffect(() => {
     const loadBarangays = async () => {
       try {
-        const resp: any = await fetchBarangays();
+        const resp: any = await fetchBarangays(); // fetchBarangays should call your API
+        // support either: resp is array OR resp = { barangays: [...] } OR axios.resp -> resp.data
         const list =
           Array.isArray(resp) ? resp :
           Array.isArray(resp?.barangays) ? resp.barangays :
           Array.isArray(resp?.data) ? resp.data :
+          Array.isArray(resp?.data?.barangays) ? resp.data.barangays :
           [];
         setBarangays(list);
       } catch (err) {
-        console.error('Failed to load barangays:', err);
+        console.error('loadBarangays error', err);
       }
     };
     loadBarangays();
