@@ -10,7 +10,11 @@ const AddRewardsBar: React.FC<AddRewardsBarProps> = ({ onAddReward }) => {
     <div className="search-filter-bar">
       <div className="search-section">
         <div className="search-input">
-          <input type="text" placeholder="Search" />
+          <input
+            type="text"
+            placeholder="Search"
+            className="bg-transparent border border-[#7B9B7B] rounded-md px-3 py-2 text-sm text-[#355842] placeholder-gray-400 focus:outline-none"
+          />
           <Search className="search-icon" size={18} />
         </div>
       </div>
