@@ -1,35 +1,32 @@
-import React from "react";
-import { Search, Filter, Clock } from "lucide-react";
+import React, { useState } from "react";
+import { Filter } from "lucide-react";
+import SearchBar from "../common/SearchBar";
 
 interface SearchFilterBarProps {
   onAddSchedule: () => void;
 }
 
 const SearchFilterBar: React.FC<SearchFilterBarProps> = ({ onAddSchedule }) => {
+  const [searchTerm, setSearchTerm] = useState("");
+
   return (
-    <div className="search-filter-bar">
-      <div className="search-section">
-        <div className="search-input">
-          <input type="text" placeholder="Search" />
-          <Search className="search-icon" size={18} />
-        </div>
+    <div className="flex items-center justify-between gap-6 mb-6">
+      <div className="w-3/5">
+        <SearchBar value={searchTerm} onChange={setSearchTerm} />
       </div>
 
-      <div className="filter-section">
-        <button className="add-btn" onClick={onAddSchedule}>
+      <div className="flex items-center gap-3">
+        <button 
+          className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40" 
+          onClick={onAddSchedule}
+        >
           Add Schedule
         </button>
 
-        <div className="filter-group">
-          <div className="filter-dropdown">
-            <Clock size={16} />
-            <span>All</span>
-          </div>
-          <div className="filter-dropdown">
-            <Filter size={16} />
-            <span>Filter by</span>
-          </div>
-        </div>
+        <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none">
+          <Filter size={16} />
+          <span>Filter by</span>
+        </button>
       </div>
     </div>
   );

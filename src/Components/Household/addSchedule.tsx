@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { CalendarDays, X } from "lucide-react";
+import { CalendarDays } from "lucide-react";
+import FormModal from "../common/FormModal";
+import FormField from "../common/FormField";
 
 interface AddScheduleModalProps {
   isOpen: boolean;
@@ -20,7 +22,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   if (!isOpen) return null;
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -33,105 +35,62 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-50">
-      <div className="bg-white rounded-lg shadow-lg w-[600px] p-6 relative border border-gray-300">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-green-900 hover:text-green-700"
-        >
-          <X size={20} />
-        </button>
+    <FormModal
+      isOpen={isOpen}
+      onClose={onClose}
+      title="Add Schedule"
+      subtitle="Fill out the form below to add a new collection schedule."
+      icon={<CalendarDays size={22} />}
+      width="600px"
+    >
 
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-4">
-          <CalendarDays className="text-green-800" size={22} />
-          <div>
-            <h2 className="text-lg font-semibold text-green-800">
-              Add Schedule
-            </h2>
-            <p className="text-gray-600 text-sm">
-              Fill out the form below to add a new collection schedule.
-            </p>
-          </div>
+      <form className="space-y-4">
+        <FormField
+          label="Maintenance"
+          name="maintenance"
+          type="text"
+          value={formData.maintenance}
+          onChange={handleChange}
+          placeholder="Enter maintenance name"
+        />
+
+        <FormField
+          label="Contact of Maintenance"
+          name="contact"
+          type="text"
+          value={formData.contact}
+          onChange={handleChange}
+          placeholder="Enter contact number or email"
+        />
+
+        <FormField
+          label="Area"
+          name="area"
+          type="text"
+          value={formData.area}
+          onChange={handleChange}
+          placeholder="Enter area (e.g., Dahlia St., Petunia St.)"
+        />
+
+        <FormField
+          label="Date of Collection"
+          name="date"
+          type="date"
+          value={formData.date}
+          onChange={handleChange}
+        />
+
+        <div className="flex justify-center pt-2">
+          <button
+            type="button"
+            onClick={handleSave}
+            className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
+          >
+            Save Schedule
+          </button>
         </div>
-
-        <hr className="border-gray-300 mb-4" />
-
-        {/* Form Section */}
-        <form className="space-y-4">
-          {/* Maintenance */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Maintenance
-            </label>
-            <input
-              type="text"
-              name="maintenance"
-              value={formData.maintenance}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-1 focus:ring-green-600 focus:outline-none"
-              placeholder="Enter maintenance name"
-            />
-          </div>
-
-          {/* Contact */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Contact of Maintenance
-            </label>
-            <input
-              type="text"
-              name="contact"
-              value={formData.contact}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-1 focus:ring-green-600 focus:outline-none"
-              placeholder="Enter contact number or email"
-            />
-          </div>
-
-          {/* Area */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Area
-            </label>
-            <input
-              type="text"
-              name="area"
-              value={formData.area}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-1 focus:ring-green-600 focus:outline-none"
-              placeholder="Enter area (e.g., Dahlia St., Petunia St.)"
-            />
-          </div>
-
-          {/* Date */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date of Collection
-            </label>
-            <input
-              type="date"
-              name="date"
-              value={formData.date}
-              onChange={handleChange}
-              className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-1 focus:ring-green-600 focus:outline-none"
-            />
-          </div>
-
-          {/* Save Button */}
-          <div className="flex justify-center pt-2">
-            <button
-              type="button"
-              onClick={handleSave}
-              className="bg-green-800 hover:bg-green-900 text-white font-medium px-6 py-2 rounded-md"
-            >
-              Save Schedule
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+      </form>
+    </FormModal>
   );
 };
 
