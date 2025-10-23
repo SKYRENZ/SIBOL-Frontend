@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Header from "../Components/Header";
 import HouseholdTabs from "../Components/Household/tabs";
 import SearchFilterBar from "../Components/Household/searchFilter";
@@ -10,6 +10,7 @@ import AddScheduleModal from "../Components/Household/addSchedule";
 import EditScheduleModal from "../Components/Household/editScheduleModal";
 import AddRewardModal from "../Components/Household/addReward";
 import LeaderboardTab from "../Components/Household/leaderboard";
+import PointSystem from "../Components/Household/pointSystem";
 import "../types/Household.css";
 
 interface RowData {
@@ -23,6 +24,15 @@ interface RowData {
 
 const Household: React.FC = () => {
   const [activeTab, setActiveTab] = useState("schedule");
+  
+  useEffect(() => {
+    console.log("Household mounted");
+  }, []);
+
+  useEffect(() => {
+    console.log("activeTab ->", activeTab);
+  }, [activeTab]);
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [rowToEdit, setRowToEdit] = useState<RowData | null>(null);
@@ -69,13 +79,15 @@ const Household: React.FC = () => {
             <SearchFilterBar onAddSchedule={handleAddSchedule} />
           )}
 
-          {(activeTab === "reward" || activeTab === "leaderboard") && (
-            <AddRewardsBar onAddReward={handleAddReward} />
-          )}
-
+          {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}
+          {activeTab === "reward" && <AddRewardsBar onAddReward={handleAddReward} />}
+  
           {activeTab === "schedule" && <ScheduleTab />}
           {activeTab === "reward" && <RewardTab />}
           {activeTab === "leaderboard" && <LeaderboardTab />}
+  
+          {/* render Point System tab */}
+          {activeTab === "points" && <PointSystem />}
         </div>
       </div>
 

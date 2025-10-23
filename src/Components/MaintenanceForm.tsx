@@ -73,6 +73,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClose, onSu
               onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
               options={assignedOptions.map(p => ({ value: p, label: p }))}
               required
+              variant="transparent" // make input transparent
             />
 
             <FormField
@@ -84,6 +85,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClose, onSu
               placeholder="Describe the issue..."
               rows={5}
               required
+              variant="transparent"
             />
 
             <FormField
@@ -94,6 +96,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClose, onSu
               onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
               options={priorityOptions.map(o => ({ value: o.value, label: o.text }))}
               required
+              variant="transparent"
             />
           </div>
 
@@ -111,11 +114,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ isOpen, onClose, onSu
                 </svg>
               }
               required
+              variant="transparent"
             />
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Upload File</label>
-              <div className="border-2 border-dashed rounded-xl p-8 text-center" style={{ borderColor: '#2E523A' }}>
+              <div className="border-2 border-dashed rounded-xl p-8 text-center bg-transparent" style={{ borderColor: '#2E523A' }}>
                 <svg className="mx-auto h-12 w-12" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#2E523A' }}>
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>

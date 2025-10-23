@@ -1,10 +1,15 @@
 import { Award } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const PointSystem = () => {
   const [isEditable, setIsEditable] = useState(false);
   const [waste, setWaste] = useState("1kg");
   const [points, setPoints] = useState("30 SIBOL Points");
+
+  useEffect(() => {
+    console.log("PointSystem mounted");
+    return () => console.log("PointSystem unmounted");
+  }, []);
 
   const handleEdit = () => setIsEditable(true);
   const handleSave = () => setIsEditable(false);
