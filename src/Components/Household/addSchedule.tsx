@@ -1,7 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CalendarDays } from "lucide-react";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
+import * as scheduleService from '../../services/Schedule/scheduleService';
+import * as areaService from '../../services/Schedule/areaService';
+import * as operatorService from '../../services/Schedule/operatorService';  // Add this
 
 interface AddScheduleModalProps {
   isOpen: boolean;
@@ -13,11 +16,38 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   onClose,
 }) => {
   const [formData, setFormData] = useState({
-    maintenance: "",
-    contact: "",
-    area: "",
-    date: "",
+    Account_id: '',  // Change to string for dropdown
+    Contact: '',
+    Area: '',
+    sched_stat_id: 2,
+    Date_of_collection: '',
   });
+  const [saving, setSaving] = useState(false);
+  const [areas, setAreas] = useState<areaService.Area[]>([]);
+  const [operators, setOperators] = useState<operatorService.Operator[]>([]);  // Add state for operators
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchData = async () => {
+        try {
+          const [areasData, operatorsData] = await Promise.all([
+            areaService.getAllAreas(),
+            operatorService.getAllOperators(),
+          ]);
+          setAreas(areasData);
+          setOperators(operatorsData);
+        } catch (err) {
+          console.error('Failed to load data:', err);
+        }
+      };
+      fetchData();
+
+      // Set default date to today + 2 days
+      const defaultDate = new Date();
+      defaultDate.setDate(defaultDate.getDate() + 2);
+      setFormData(prev => ({ ...prev, Date_of_collection: defaultDate.toISOString().split('T')[0] }));
+    }
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -28,10 +58,23 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    console.log("Data to send to backend:", formData);
-    // 🔜 later: replace with fetch/axios POST request
-    onClose();
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...formData,
+        Account_id: Number(formData.Account_id),
+        Contact: Number(formData.Contact),
+        Area: Number(formData.Area),
+      };
+      await scheduleService.createSchedule(payload);
+      alert('Schedule created successfully!');
+      onClose();
+    } catch (err: any) {
+      alert(`Failed to create schedule: ${err?.message ?? 'Unknown error'}`);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -43,40 +86,53 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
       icon={<CalendarDays size={22} />}
       width="600px"
     >
-
       <form className="space-y-4">
+        {/* Maintenance Person Dropdown */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Maintenance Person (Operator)</label>
+          <select
+            name="Account_id"
+            value={formData.Account_id}
+            onChange={handleChange}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">Select an operator</option>
+            {operators.map((op) => (
+              <option key={op.Account_id} value={op.Account_id}>
+                {op.Username}
+              </option>
+            ))}
+          </select>
+        </div>
         <FormField
-          label="Maintenance"
-          name="maintenance"
-          type="text"
-          value={formData.maintenance}
+          label="Contact"
+          name="Contact"
+          type="number"
+          value={formData.Contact}
           onChange={handleChange}
-          placeholder="Enter maintenance name"
+          placeholder="Enter contact number"
         />
-
+        <div>
+          <label className="block text-sm font-medium text-gray-700">Area</label>
+          <select
+            name="Area"
+            value={formData.Area}
+            onChange={handleChange}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+          >
+            <option value="">Select an area</option>
+            {areas.map((area) => (
+              <option key={area.Area_id} value={area.Area_id}>
+                {area.Area_Name}
+              </option>
+            ))}
+          </select>
+        </div>
         <FormField
-          label="Contact of Maintenance"
-          name="contact"
-          type="text"
-          value={formData.contact}
-          onChange={handleChange}
-          placeholder="Enter contact number or email"
-        />
-
-        <FormField
-          label="Area"
-          name="area"
-          type="text"
-          value={formData.area}
-          onChange={handleChange}
-          placeholder="Enter area (e.g., Dahlia St., Petunia St.)"
-        />
-
-        <FormField
-          label="Date of Collection"
-          name="date"
+          label="Date of Collection (defaults to every 2 days, editable)"
+          name="Date_of_collection"
           type="date"
-          value={formData.date}
+          value={formData.Date_of_collection}
           onChange={handleChange}
         />
 
@@ -84,9 +140,10 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
           <button
             type="button"
             onClick={handleSave}
+            disabled={saving}
             className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
           >
-            Save Schedule
+            {saving ? 'Saving...' : 'Save Schedule'}
           </button>
         </div>
       </form>
