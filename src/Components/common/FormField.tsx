@@ -1,109 +1,90 @@
-import React, { ReactNode } from "react";
+import React from 'react';
 
-interface FormFieldProps {
-  label: string;
-  name: string;
-  type?: "text" | "date" | "textarea" | "select" | "file";
-  value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
+type Option = { value: string; label: string };
+
+type Props = {
+  label?: string;
+  name?: string;
+  value?: any;
+  onChange?: (e: any) => void;
   placeholder?: string;
-  required?: boolean;
-  options?: { value: string; label: string }[];
+  type?: 'text' | 'textarea' | 'select' | 'date';
+  options?: Option[];
   rows?: number;
-  accept?: string;
-  icon?: ReactNode;
+  required?: boolean;
+  icon?: React.ReactNode;
+  // NEW: allow transparent styling for different forms
+  variant?: 'transparent';
   className?: string;
-}
+};
 
-const FormField: React.FC<FormFieldProps> = ({
+const FormField: React.FC<Props> = ({
   label,
   name,
-  type = "text",
   value,
   onChange,
   placeholder,
-  required = false,
+  type = 'text',
   options = [],
   rows = 3,
-  accept,
+  required,
   icon,
-  className = ""
+  variant,
+  className = '',
 }) => {
-  const baseInputClasses = "w-full border border-gray-300 rounded-lg px-3 py-2 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 focus:border-[#AFC8AD] transition-all duration-200 text-sm";
+  // base input classes
+  const base = `w-full px-3 py-2 rounded-md text-sm transition ${className}`;
+  const transparentStyles =
+    'bg-transparent border border-[#D8E3D8] placeholder:text-gray-400 text-gray-800';
+  const defaultStyles =
+    'bg-white border border-gray-300 placeholder-gray-400 text-gray-900';
 
-  const renderInput = () => {
-    switch (type) {
-      case "textarea":
-        return (
-          <textarea
-            name={name}
-            value={value}
-            onChange={onChange}
-            className={baseInputClasses}
-            placeholder={placeholder}
-            required={required}
-            rows={rows}
-          />
-        );
-      
-      case "select":
-        return (
-          <select
-            name={name}
-            value={value}
-            onChange={onChange}
-            className={baseInputClasses}
-            required={required}
-          >
-            <option value="">Select {label}</option>
-            {options.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        );
-      
-      case "file":
-        return (
-          <input
-            type="file"
-            name={name}
-            onChange={onChange}
-            className={baseInputClasses}
-            accept={accept}
-            required={required}
-          />
-        );
-      
-      default:
-        return (
-          <div className="relative">
-            <input
-              type={type}
-              name={name}
-              value={value}
-              onChange={onChange}
-              className={baseInputClasses}
-              placeholder={placeholder}
-              required={required}
-            />
-            {icon && (
-              <div className="absolute right-3 top-2.5">
-                {icon}
-              </div>
-            )}
-          </div>
-        );
-    }
-  };
+  const inputClass = `${base} ${variant === 'transparent' ? transparentStyles : defaultStyles}`;
 
   return (
-    <div className={className}>
-      <label className="block text-sm font-medium text-gray-700 mb-1">
-        {label}
-      </label>
-      {renderInput()}
+    <div>
+      {label && (
+        <label className="block text-sm font-medium text-gray-700 mb-1">
+          {label} {required ? '*' : null}
+        </label>
+      )}
+
+      {type === 'textarea' ? (
+        <textarea
+          name={name}
+          value={value}
+          onChange={onChange}
+          placeholder={placeholder}
+          rows={rows}
+          className={`${inputClass} resize-none`}
+        />
+      ) : type === 'select' ? (
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          className={`${inputClass} appearance-none`}
+        >
+          <option value="">{`Select ${label || name}`}</option>
+          {options.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <div className="relative">
+          {icon && <div className="absolute left-3 top-1/2 -translate-y-1/2">{icon}</div>}
+          <input
+            name={name}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            type={type === 'date' ? 'date' : 'text'}
+            className={`${icon ? 'pl-10' : ''} ${inputClass}`}
+          />
+        </div>
+      )}
     </div>
   );
 };

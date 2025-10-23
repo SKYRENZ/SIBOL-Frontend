@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { X, Upload } from "lucide-react";
+import FormField from "../common/FormField";
 
 interface AddRewardModalProps {
   isOpen: boolean;
@@ -51,28 +52,35 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
 
         <div className="reward-form">
           <div className="left-section">
-            <label>Reward</label>
-            <input
-              type="text"
+            <FormField
+              label="Reward"
               name="reward"
-              placeholder="e.g. 1kg of Rice"
               value={formData.reward}
-              onChange={handleChange}
+              onChange={(e) => setFormData((p) => ({ ...p, reward: (e.target as HTMLInputElement).value }))}
+              placeholder="e.g. 1kg of Rice"
+              variant="transparent"
             />
 
-            <label>Status</label>
-            <select name="status" value={formData.status} onChange={handleChange}>
-              <option>Available</option>
-              <option>Not Available</option>
-            </select>
+            <FormField
+              label="Status"
+              name="status"
+              type="select"
+              value={formData.status}
+              onChange={(e) => setFormData((p) => ({ ...p, status: (e.target as HTMLSelectElement).value }))}
+              options={[
+                { value: "Available", label: "Available" },
+                { value: "Not Available", label: "Not Available" },
+              ]}
+              variant="transparent"
+            />
 
-            <label>Eligibility</label>
-            <input
-              type="text"
+            <FormField
+              label="Eligibility"
               name="eligibility"
-              placeholder="e.g. 200 Points"
               value={formData.eligibility}
-              onChange={handleChange}
+              onChange={(e) => setFormData((p) => ({ ...p, eligibility: (e.target as HTMLInputElement).value }))}
+              placeholder="e.g. 200 Points"
+              variant="transparent"
             />
           </div>
 
@@ -81,7 +89,8 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
               <Upload size={32} className="upload-icon" />
               <p className="upload-title">Click to Upload or drag & drop file</p>
               <p className="upload-subtext">maximum file size 10MB</p>
-              <input type="file" onChange={handleImageUpload} />
+              <input type="file" className="hidden" id="reward-file" onChange={handleImageUpload} />
+              <label htmlFor="reward-file" className="choose-file-btn">Choose File</label>
 
               {formData.image && (
                 <div className="uploaded-file">

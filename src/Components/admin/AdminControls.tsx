@@ -69,7 +69,7 @@ export default function AdminControls({ globalQuery, setGlobalQuery, roleFilter,
         <button
           type="button"
           onClick={() => setShowRoles((s) => !s)}
-          className="flex items-center gap-2 bg-white border border-green-100 rounded px-2 py-1 text-sm text-sibol-green"
+          className="flex items-center gap-2 bg-transparent border border-green-100 rounded px-2 py-1 text-sm text-sibol-green"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" aria-hidden>
             <path d="M10 18h4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -81,7 +81,7 @@ export default function AdminControls({ globalQuery, setGlobalQuery, roleFilter,
 
    
         {showRoles && (
-          <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-green-100 rounded shadow-md z-50">
+          <div className="absolute right-0 top-full mt-2 w-44 bg-transparent border border-transparent rounded z-50 backdrop-blur-sm">
             <button
               className={`w-full text-left px-3 py-2 text-sm ${roleFilter === 'all' ? 'bg-green-50' : 'hover:bg-green-50'}`}
               onClick={() => { setRoleFilter('all'); setShowRoles(false); }}

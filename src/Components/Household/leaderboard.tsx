@@ -5,7 +5,7 @@ const LeaderboardTab: React.FC = () => {
   const columns = [
     { key: 'rank', label: '#' },
     { key: 'name', label: 'Name' },
-    { key: 'area', label: 'Area' },
+    { key: 'barangay', label: 'Barangay' },
     { key: 'points', label: 'Points' },
     { 
       key: 'status', 
@@ -21,8 +21,8 @@ const LeaderboardTab: React.FC = () => {
   ];
 
   const leaderboardData = [
-    { rank: 1, name: "User#3521", area: "Package 1", points: "100pts", status: "Inactive" },
-    { rank: 2, name: "User#3521", area: "Petunia St", points: "100pts", status: "Active" },
+    { rank: 1, name: "Laurenz.listangco", barangay: "barangay 178", points: "100pts", status: "Inactive" },
+    { rank: 2, name: "Karl Miranda", barangay: "barangay 178", points: "100pts", status: "Active" },
   ];
 
   return (

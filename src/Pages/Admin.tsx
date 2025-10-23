@@ -191,7 +191,13 @@ export default function Admin() {
             {error && <div className="text-sm text-red-500">{error}</div>}
 
             {activeTab === 'list' && (
-              <AdminList accounts={filteredAccounts} onEdit={setEditingAccount} onToggleActive={onToggleActive} />
+              <AdminList
+                accounts={filteredAccounts}
+                barangays={barangays}
+                roles={roles}            // <- add this line
+                onEdit={(a) => setEditingAccount(a)}
+                onToggleActive={onToggleActive}
+              />
             )}
 
             {activeTab === 'approval' && (
