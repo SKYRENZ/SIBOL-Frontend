@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useForgotPassword } from '../../hooks/useForgotPassword';
+import { useForgotPassword } from '../../hooks/signup/useForgotPassword';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 
 type Props = {

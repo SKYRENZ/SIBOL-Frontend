@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEmailVerification } from '../hooks/useEmailVerification';
+import { useEmailVerification } from '../hooks/signup/useEmailVerification';
 import AuthLayout from '../Components/verification/AuthLayout';
 import LoadingSpinner from '../Components/verification/LoadingSpinner';
 import StatusCard from '../Components/verification/StatusCard';

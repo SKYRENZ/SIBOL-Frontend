@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { fetchJson } from '../services/apiClient';
+import { fetchJson } from '../../services/apiClient';
 
 export const useEmailVerification = () => {
   const [searchParams] = useSearchParams();

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSignUp } from '../hooks/useSignUp';
+import { useSignUp } from '../hooks/signup/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchJson } from '../services/apiClient';
 

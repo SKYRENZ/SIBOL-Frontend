@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { fetchJson } from '../services/apiClient';
+import { fetchJson } from '../../services/apiClient';
 
 type Step = 'email' | 'verify' | 'reset' | 'done';
 
