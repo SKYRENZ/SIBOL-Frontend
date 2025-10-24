@@ -9,8 +9,8 @@ vi.mock('../src/services/apiClient', () => ({
 }));
 
 // replace require(...) with ESM import so vitest returns the mocked module
-import api from '../src/services/apiClient';
-import Header from '../src/Components/Header';
+import api from '../services/apiClient';
+import Header from '../Components/Header';
 
 describe('Header component', () => {
   afterEach(() => {

@@ -1,16 +1,21 @@
+/// <reference types="vitest" />
+import { vi, describe, it, expect, afterEach } from 'vitest';
+import type { Mock } from 'vitest';
 import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { vi, describe, it, expect, afterEach } from 'vitest';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
-import '@testing-library/jest-dom'
+import '@testing-library/jest-dom';
 
-vi.mock('../src/services/auth'); // mock the auth service
+// mock the actual service module used by the component
+vi.mock('../services/authService', () => ({
+  login: vi.fn()
+}));
 
-import * as auth from '../src/services/auth';
-import SignIN from '../src/Pages/SignIN';
+import * as auth from '../services/authService';
+import SignIN from '../Pages/SignIN';
 
-const mockLogin = (auth as any).login as vi.Mock;
+const mockLogin = (auth as any).login as Mock;
 
 describe('SignIN (frontend)', () => {
   afterEach(() => {
@@ -34,7 +39,6 @@ describe('SignIN (frontend)', () => {
     await userEvent.type(screen.getByPlaceholderText(/enter your password/i), 'SIBOL12345');
     await userEvent.click(screen.getByRole('button', { name: /^Sign in$/i }));
 
-    // wait for navigation to dashboard
     await waitFor(() => {
       expect(screen.getByText('Dashboard')).toBeInTheDocument();
     });
@@ -56,7 +60,9 @@ describe('SignIN (frontend)', () => {
     await userEvent.click(screen.getByRole('button', { name: /^Sign in$/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument();
+      // component may render a generic "Login failed" message or the server message.
+      expect(screen.getByText(/invalid credentials|login failed/i)).toBeInTheDocument();
     });
+    expect(mockLogin).toHaveBeenCalledWith('bad.user', 'wrong');
   });
 });

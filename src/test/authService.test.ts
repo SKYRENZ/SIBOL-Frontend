@@ -1,12 +1,12 @@
 import { vi, describe, it, expect, afterEach } from 'vitest';
-import { login } from '../src/services/authService';
+import { login } from '../services/authService';
 
 vi.mock('../src/services/apiClient', () => ({
   default: { post: vi.fn() },
 }));
 
 // use ESM import instead of require so vitest gives the mocked module
-import api from '../src/services/apiClient';
+import api from '../services/apiClient';
 
 describe('authService.login', () => {
   afterEach(() => {
