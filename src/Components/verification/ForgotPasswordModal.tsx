@@ -90,8 +90,16 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
         </div>
 
         <div className="p-4">
-          {error && <div className="mb-3 bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{error}</div>}
-          {info && <div className="mb-3 bg-blue-50 text-sky-800 px-3 py-2 rounded text-sm">{info}</div>}
+          {info && (
+            <div className="mb-3">
+              <div className="bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
+                {info}
+              </div>
+              <div className="mt-2 bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
+                Delivery may take 1–5 minutes. If you don't see the email, please check your spam/junk folder.
+              </div>
+            </div>
+          )}
 
           {step === 'email' && (
             <>
@@ -172,6 +180,8 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                   </div>
                 </div>
 
+                {error && <div className="mb-3 bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{error}</div>}
+
                 <div className="flex items-center mb-5">
                   <div className="text-xs text-gray-500">Didn't get an email?</div>
                   <button
@@ -188,7 +198,12 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <button onClick={() => setStep('email')} className="px-4 py-2 rounded-md bg-gray-100 text-gray-800">Back</button>
+                  <button
+                    onClick={() => { closeAndReset(); onClose(); }}
+                    className="px-4 py-2 rounded-md bg-gray-100 text-gray-800"
+                  >
+                    Cancel
+                  </button>
                   <button
                     onClick={verifyCode}
                     disabled={loading}
