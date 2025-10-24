@@ -44,7 +44,7 @@ export const useSignUp = () => {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Assets
-  const signupImage = new URL("../assets/images/lilisignup.png", import.meta.url).href;
+  const signupImage = new URL("../../assets/images/lilisignup.png", import.meta.url).href;
 
   // name filter + validation regex (allow letters, spaces, hyphen, apostrophe, period)
   const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
