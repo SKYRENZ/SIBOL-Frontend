@@ -20,12 +20,35 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
     loading,
     error,
     info,
+    resendCooldown,
+    canResend,
     sendResetRequest,
     verifyCode,
     submitNewPassword,
     closeAndReset
-  } = useForgotPassword();
+  } = useForgotPassword() as {
+    step: any;
+    setStep: any;
+    email: string;
+    setEmail: (v: string) => void;
+    code: string;
+    setCode: (v: string) => void;
+    newPassword: string;
+    setNewPassword: (v: string) => void;
+    loading: boolean;
+    error: string | null;
+    info: string | null;
+    resendCooldown: number;
+    canResend: boolean;
+    sendResetRequest: () => Promise<void>;
+    verifyCode: () => Promise<void>;
+    submitNewPassword: () => Promise<void>;
+    closeAndReset: () => void;
+  };
 
+  // show seconds only (padded to 2 digits), e.g. "59", "05"
+  const formatSeconds = (s: number) => String(s).padStart(2, '0');
+ 
   // Local-only state for confirm password and show/hide toggles
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -85,11 +108,15 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                 <button onClick={() => { closeAndReset(); onClose(); }} className="px-4 py-2 rounded-md bg-gray-100 text-gray-800">Cancel</button>
                 <button
                   onClick={sendResetRequest}
-                  disabled={loading}
+                  disabled={loading || (resendCooldown ?? 0) > 0}
                   className="px-4 py-2 rounded-md bg-[#2E523A] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Sending…' : 'Send Reset Code'}
                 </button>
+                {/* realtime countdown shown beside button as seconds only */}
+                <span className="ml-2 text-xs text-gray-500 font-semibold" aria-live="polite">
+                  {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
+                </span>
               </div>
             </>
           )}
@@ -150,11 +177,14 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                   <button
                     type="button"
                     onClick={sendResetRequest}
-                    disabled={loading}
-                    className="text-sm px-3 py-1 rounded-md bg-transparent text-blue-800 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={loading || (resendCooldown ?? 0) > 0}
+                    className="text-sm px-3 py-1 rounded-md bg-transparent text-blue-800 hover:text-blue-600 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 hover:ring-0 border-0 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Sending…' : 'Resend code'}
                   </button>
+                  <span className="ml-3 text-s text-gray-500 font-bold" aria-live="polite">
+                    {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
+                  </span>
                 </div>
 
                 <div className="flex justify-end gap-2">

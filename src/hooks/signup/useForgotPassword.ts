@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { fetchJson } from '../../services/apiClient';
 
 type Step = 'email' | 'verify' | 'reset' | 'done';
@@ -12,6 +12,34 @@ export function useForgotPassword(initialEmail = '') {
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
 
+  // Resend cooldown logic
+  const COOLDOWN_SECONDS = 60;
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
+
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setResendCooldown(0);
+      return;
+    }
+
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((resendAvailableAt - Date.now()) / 1000));
+      setResendCooldown(remaining);
+    };
+
+    update();
+    const id = window.setInterval(() => {
+      update();
+      if ((resendAvailableAt ?? 0) - Date.now() <= 0) {
+        clearInterval(id);
+        setResendAvailableAt(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [resendAvailableAt]);
+
   const emailValid = !!email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   const codeValid = /^\d{6}$/.test(code);
   const passwordValid = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}/.test(newPassword);
@@ -24,10 +52,16 @@ export function useForgotPassword(initialEmail = '') {
     setError(null);
     setInfo(null);
     setLoading(false);
+    setResendAvailableAt(null);
+    setResendCooldown(0);
   }, []);
 
   const sendResetRequest = useCallback(async () => {
     setError(null);
+    // prevent resending while cooldown active
+    if (resendAvailableAt && Date.now() < resendAvailableAt) {
+      return setError(`Please wait ${Math.ceil((resendAvailableAt - Date.now()) / 1000)}s before resending.`);
+    }
     if (!emailValid) return setError('Please enter a valid email.');
     setLoading(true);
     try {
@@ -36,13 +70,16 @@ export function useForgotPassword(initialEmail = '') {
         body: JSON.stringify({ email })
       });
       setInfo(data?.debugCode ? `Debug code: ${data.debugCode}` : 'Reset code sent. Check your email.');
+      // start cooldown
+      setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
+      setResendCooldown(COOLDOWN_SECONDS);
       setStep('verify');
     } catch (err: any) {
       setError(err?.message ?? 'Failed to request reset');
     } finally {
       setLoading(false);
     }
-  }, [email, emailValid]);
+  }, [email, emailValid, resendAvailableAt]);
 
   const verifyCode = useCallback(async () => {
     setError(null);
@@ -96,6 +133,8 @@ export function useForgotPassword(initialEmail = '') {
     loading,
     error,
     info,
+    resendCooldown,
+    canResend: resendCooldown === 0,
     emailValid,
     codeValid,
     passwordValid,
