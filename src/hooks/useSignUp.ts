@@ -7,13 +7,36 @@ export const useSignUp = () => {
   const [searchParams] = useSearchParams();
 
   // State
-  const [role, setRole] = useState("");
+  const [role, setRoleState] = useState("");
+  // setter that clears role error when user selects a value
+  const setRole = (v: string) => {
+    setRoleState(v);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (v) delete next.role;
+      return next;
+    });
+    setTouched(prev => ({ ...prev, role: true }));
+  };
+
   const [firstName, setFirstNameState] = useState("");
   const [lastName, setLastNameState] = useState("");
   const [email, setEmail] = useState("");
-  const [barangay, setBarangay] = useState("");
+  const [barangay, setBarangayState] = useState("");
+  // setter that clears barangay error when user selects a value
+  const setBarangay = (v: string) => {
+    setBarangayState(v);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (v) delete next.barangay;
+      return next;
+    });
+    setTouched(prev => ({ ...prev, barangay: true }));
+  };
+
   const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]); // NEW
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -30,6 +53,37 @@ export const useSignUp = () => {
   // Exposed setters that filter invalid characters
   const setFirstName = (v: string) => setFirstNameState(nameFilter(v));
   const setLastName = (v: string) => setLastNameState(nameFilter(v));
+
+  // Validate a single field on blur (updates errors state)
+  const validateField = (field: string) => {
+    const newErrors = { ...errors };
+    if (field === 'role') {
+      if (!role) newErrors.role = 'Role is required';
+      else delete newErrors.role;
+    }
+    if (field === 'firstName') {
+      if (!firstName.trim()) newErrors.firstName = 'First name is required';
+      else if (!nameRegex.test(firstName.trim())) newErrors.firstName = 'First name can only contain letters, spaces, hyphens, apostrophes and periods';
+      else delete newErrors.firstName;
+    }
+    if (field === 'lastName') {
+      if (!lastName.trim()) newErrors.lastName = 'Last name is required';
+      else if (!nameRegex.test(lastName.trim())) newErrors.lastName = 'Last name can only contain letters, spaces, hyphens, apostrophes and periods';
+      else delete newErrors.lastName;
+    }
+    if (field === 'email') {
+      if (!email.trim()) newErrors.email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Enter a valid email';
+      else delete newErrors.email;
+    }
+    if (field === 'barangay') {
+      if (!barangay.trim()) newErrors.barangay = 'Barangay is required';
+      else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) newErrors.barangay = 'Barangay must be a valid number';
+      else delete newErrors.barangay;
+    }
+    setErrors(newErrors);
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
 
   // Check for SSO redirect parameters
   useEffect(() => {
@@ -201,6 +255,9 @@ export const useSignUp = () => {
     loading,
     serverError,
     pendingEmail,
+    touched,
+    setTouched,
+    validateField,
 
     // Assets
     signupImage,
