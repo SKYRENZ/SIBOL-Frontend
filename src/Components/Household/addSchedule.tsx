@@ -4,7 +4,7 @@ import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
 import * as scheduleService from '../../services/Schedule/scheduleService';
 import * as areaService from '../../services/Schedule/areaService';
-import * as operatorService from '../../services/Schedule/operatorService';  // Add this
+import * as operatorService from '../../services/Schedule/operatorService';
 
 interface AddScheduleModalProps {
   isOpen: boolean;
@@ -16,7 +16,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   onClose,
 }) => {
   const [formData, setFormData] = useState({
-    Account_id: '',  // Change to string for dropdown
+    Account_id: '', 
     Contact: '',
     Area: '',
     sched_stat_id: 2,
@@ -24,7 +24,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   });
   const [saving, setSaving] = useState(false);
   const [areas, setAreas] = useState<areaService.Area[]>([]);
-  const [operators, setOperators] = useState<operatorService.Operator[]>([]);  // Add state for operators
+  const [operators, setOperators] = useState<operatorService.Operator[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -42,7 +42,6 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
       };
       fetchData();
 
-      // Set default date to today + 2 days
       const defaultDate = new Date();
       defaultDate.setDate(defaultDate.getDate() + 2);
       setFormData(prev => ({ ...prev, Date_of_collection: defaultDate.toISOString().split('T')[0] }));
@@ -64,7 +63,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
       const payload = {
         ...formData,
         Account_id: Number(formData.Account_id),
-        Contact: Number(formData.Contact),
+        Contact: formData.Contact,
         Area: Number(formData.Area),
       };
       await scheduleService.createSchedule(payload);
@@ -77,6 +76,9 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
     }
   };
 
+  const operatorOptions = operators.map(op => ({ value: String(op.Account_id), label: op.Username }));
+  const areaOptions = areas.map(a => ({ value: String(a.Area_id), label: a.Area_Name }));
+
   return (
     <FormModal
       isOpen={isOpen}
@@ -87,47 +89,33 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
       width="600px"
     >
       <form className="space-y-4">
-        {/* Maintenance Person Dropdown */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Maintenance Person (Operator)</label>
-          <select
-            name="Account_id"
-            value={formData.Account_id}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select an operator</option>
-            {operators.map((op) => (
-              <option key={op.Account_id} value={op.Account_id}>
-                {op.Username}
-              </option>
-            ))}
-          </select>
-        </div>
+        <FormField
+          label="Maintenance Person (Operator)"
+          name="Account_id"
+          type="select"
+          value={formData.Account_id}
+          onChange={handleChange}
+          options={operatorOptions}
+        />
+
         <FormField
           label="Contact"
           name="Contact"
-          type="number"
+          type="text"
           value={formData.Contact}
           onChange={handleChange}
           placeholder="Enter contact number"
         />
-        <div>
-          <label className="block text-sm font-medium text-gray-700">Area</label>
-          <select
-            name="Area"
-            value={formData.Area}
-            onChange={handleChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-          >
-            <option value="">Select an area</option>
-            {areas.map((area) => (
-              <option key={area.Area_id} value={area.Area_id}>
-                {area.Area_Name}
-              </option>
-            ))}
-          </select>
-        </div>
+
+        <FormField
+          label="Area"
+          name="Area"
+          type="select"
+          value={formData.Area}
+          onChange={handleChange}
+          options={areaOptions}
+        />
+
         <FormField
           label="Date of Collection (defaults to every 2 days, editable)"
           name="Date_of_collection"

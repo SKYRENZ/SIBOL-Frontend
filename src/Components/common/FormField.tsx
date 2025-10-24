@@ -8,7 +8,7 @@ type Props = {
   value?: any;
   onChange?: (e: any) => void;
   placeholder?: string;
-  type?: 'text' | 'textarea' | 'select' | 'date';
+  type?: 'text' | 'textarea' | 'select' | 'date' | 'number';
   options?: Option[];
   rows?: number;
   required?: boolean;
@@ -16,6 +16,7 @@ type Props = {
   // NEW: allow transparent styling for different forms
   variant?: 'transparent';
   className?: string;
+  multiple?: boolean; // NEW: allow multi-select
 };
 
 const FormField: React.FC<Props> = ({
@@ -31,6 +32,7 @@ const FormField: React.FC<Props> = ({
   icon,
   variant,
   className = '',
+  multiple = false,
 }) => {
   // base input classes
   const base = `w-full px-3 py-2 rounded-md text-sm transition ${className}`;
@@ -64,8 +66,9 @@ const FormField: React.FC<Props> = ({
           value={value}
           onChange={onChange}
           className={`${inputClass} appearance-none`}
+          multiple={multiple}
         >
-          <option value="">{`Select ${label || name}`}</option>
+          {!multiple && <option value="">{`Select ${label || name}`}</option>}
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -80,7 +83,7 @@ const FormField: React.FC<Props> = ({
             value={value}
             onChange={onChange}
             placeholder={placeholder}
-            type={type === 'date' ? 'date' : 'text'}
+            type={type === 'date' ? 'date' : type === 'number' ? 'number' : 'text'}
             className={`${icon ? 'pl-10' : ''} ${inputClass}`}
           />
         </div>
