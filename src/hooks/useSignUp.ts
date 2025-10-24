@@ -138,20 +138,26 @@ export const useSignUp = () => {
       if (data.success) {
         setPendingEmail(null);
         if (isSSO) {
-          // Always redirect SSO to /pending-approval
           navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
         } else {
           navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
         }
       } else {
+        // in case backend returns 200 with success:false
         const msg = data?.message || data?.error || 'Registration failed';
         setServerError(msg);
         if (data?.email) setPendingEmail(data.email);
         else if (data?.pendingEmail) setPendingEmail(data.pendingEmail);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Signup request failed:', err);
-      setServerError('Network error');
+      // Prefer server-provided message (err.data), then Error.message
+      const msg = err?.data?.error || err?.data?.message || err?.message || 'Network error';
+      setServerError(msg);
+
+      // if backend returned structured data with pending email, set it
+      if (err?.data?.email) setPendingEmail(err.data.email);
+      else if (err?.data?.pendingEmail) setPendingEmail(err.data?.pendingEmail);
     } finally {
       setLoading(false);
     }
