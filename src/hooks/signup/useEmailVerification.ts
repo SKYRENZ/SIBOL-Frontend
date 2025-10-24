@@ -13,15 +13,20 @@ export const useEmailVerification = () => {
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(3);
 
+  // Resend cooldown
+  const COOLDOWN_SECONDS = 60;
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
+
   // URL params
   const token = searchParams.get('token');
   const emailParam = searchParams.get('email');
   const usernameParam = searchParams.get('username');
 
   // Assets
-  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
-  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
-  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
+  const topLogo = new URL('../../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
+  const leftBg = new URL('../../assets/images/TRASHBG.png', import.meta.url).href;
+  const leftLogo = new URL('../../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
 
   // Verify email token function - use useCallback to prevent recreation
   const verifyEmailToken = useCallback(async (token: string) => {
@@ -94,6 +99,11 @@ export const useEmailVerification = () => {
 
   // Resend verification email function
   const handleResendEmail = async () => {
+    // prevent resending while cooldown active
+    if (resendAvailableAt && Date.now() < resendAvailableAt) {
+      // optionally surface a message / toast; for now just return
+      return;
+    }
     if (!email) {
       alert('Email address is required to resend verification');
       return;
@@ -105,6 +115,9 @@ export const useEmailVerification = () => {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
+      // start cooldown on success
+      setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
+      setResendCooldown(COOLDOWN_SECONDS);
       alert(data?.message || 'Verification email resent! Please check your inbox.');
     } catch (error: any) {
       console.error('❌ Resend error:', error);
@@ -119,6 +132,29 @@ export const useEmailVerification = () => {
     navigate('/login');
   };
 
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setResendCooldown(0);
+      return;
+    }
+
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((resendAvailableAt - Date.now()) / 1000));
+      setResendCooldown(remaining);
+    };
+
+    update();
+    const id = window.setInterval(() => {
+      update();
+      if ((resendAvailableAt ?? 0) - Date.now() <= 0) {
+        clearInterval(id);
+        setResendAvailableAt(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [resendAvailableAt]);
+
   return {
     // State
     status,
@@ -126,6 +162,8 @@ export const useEmailVerification = () => {
     email,
     isResending,
     countdown,
+    resendCooldown,
+    canResend: resendCooldown === 0,
     
     // Assets
     topLogo,
