@@ -31,7 +31,7 @@ const FormModal: React.FC<FormModalProps> = ({
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-green-900 hover:text-green-700 transition-colors duration-200 focus:outline-none"
+          className="absolute top-4 right-4 bg-transparent rounded-md p-1 text-green-900 hover:text-green-700 hover:bg-transparent transition-colors duration-200 focus:outline-none"
         >
           <X size={20} />
         </button>
