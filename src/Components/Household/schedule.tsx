@@ -1,6 +1,7 @@
 import React from "react";
 import Table from "../common/Table";
 import * as scheduleService from '../../services/Schedule/scheduleService';
+import * as profileService from '../../services//profile/profileService';
 import EditScheduleModal from "./editScheduleModal";
 import EditButton from "../editButton";
 import { useAreas, useSchedules } from "../../hooks/household/useScheduleHooks";
@@ -36,7 +37,7 @@ const ScheduleTab: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (updated: { maintenance: string; contact: string; area: string[]; date: string }) => {
+  const handleSaveEdit = async (updated: { maintenance: string; contact: number; area: string[]; date: string }) => {
     const scheduleId = selectedRow?.Schedule_id ?? selectedRow?.schedule_id;
 
     // build name->id map from areaMap
@@ -54,17 +55,17 @@ const ScheduleTab: React.FC = () => {
     if (mappedIds.length === 1) areaPayloadForUI = mappedIds[0];
     else if (mappedIds.length > 1) areaPayloadForUI = mappedIds;
 
-    // local UI update (Contact must be string to match scheduleService.Schedule)
+    // local UI update (keep types compatible)
     setSchedules(prev =>
       prev.map(s => {
         if (scheduleId && s.Schedule_id === scheduleId) {
           return {
             ...s,
             Collector: updated.maintenance,
-            Contact: String(updated.contact),
+            Contact: updated.contact,
             Area: areaPayloadForUI,
             Date_of_collection: updated.date,
-          } as scheduleService.Schedule;
+          };
         }
         return s;
       })
@@ -80,8 +81,14 @@ const ScheduleTab: React.FC = () => {
 
       const original = schedules.find(s => s.Schedule_id === scheduleId);
 
-      // updated.contact is string (normalized by modal). Prefer it.
-      const normalizedContact = updated.contact ?? original?.Contact;
+      // updated.contact is numeric (normalized by modal). Prefer it.
+      let normalizedContact = original?.Contact;
+      const accountIdToUse = Number(updated.Account_id ?? original?.Account_id);
+      if (accountIdToUse) {
+        const profile = await profileService.getProfileByAccountId(accountIdToUse);
+        const contactRaw = profile?.Contact ?? profile?.contact ?? '';
+        normalizedContact = String(contactRaw);
+      }
 
       // For backend prefer mapped numeric area ids. If some names weren't mapped, keep only mapped ids.
       const unknownAreas = updated.area.filter(name => nameToId[name] === undefined);
@@ -104,7 +111,7 @@ const ScheduleTab: React.FC = () => {
         // include Account_id only when available on original
         ...(original?.Account_id !== undefined ? { Account_id: original.Account_id } : {}),
         Collector: updated.maintenance,
-        Contact: String(normalizedContact),
+        Contact: normalizedContact,
         Area: backendAreaPayload,
         ...(original?.sched_stat_id !== undefined ? { sched_stat_id: original.sched_stat_id } : {}),
         Date_of_collection: updated.date,
@@ -136,7 +143,7 @@ const ScheduleTab: React.FC = () => {
   };
 
   const columns = [
-    { key: 'Collector', label: 'Maintenance Person' },
+    { key: 'Collector', label: 'Collector Name' },
     { 
       key: 'Area', 
       label: 'Area',
@@ -157,7 +164,7 @@ const ScheduleTab: React.FC = () => {
     { key: 'Date_of_collection', label: 'Date of Collection' },
     {
       key: 'actions',
-      label: '',
+      label: 'Action',
       // Table implementations vary; provide both value,row params to be safe
       render: (_value: any, row: any) => (
         <div className="flex items-center gap-2">
