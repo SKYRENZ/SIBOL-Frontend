@@ -1,31 +1,19 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import Table from "../common/Table";
-import * as scheduleService from '../../services/Schedule/scheduleService'; // Import the new service
+import * as scheduleService from '../../services/Schedule/scheduleService';
 import EditScheduleModal from "./editScheduleModal";
-import EditButton from "../editButton"; // reusable edit button component
+import EditButton from "../editButton";
+import { useAreas, useSchedules } from "../../hooks/household/useScheduleHooks";
 
 const ScheduleTab: React.FC = () => {
-  const [schedules, setSchedules] = useState<scheduleService.Schedule[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // replace local hooks with centralized hooks
+  const { schedules, setSchedules, loading: loadingSchedules, error: schedulesError } = useSchedules();
+  const { areaMap, loading: loadingAreas, error: areasError } = useAreas();
+  const loading = loadingSchedules || loadingAreas;
+  const error = schedulesError ?? areasError;
 
-  // modal state
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedRow, setSelectedRow] = useState<any | null>(null);
-
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const data = await scheduleService.getAllSchedules();
-        setSchedules(data);
-      } catch (err: any) {
-        setError(err?.message ?? 'Failed to load schedules');
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchSchedules();
-  }, []);
+  const [isEditModalOpen, setIsEditModalOpen] = React.useState(false);
+  const [selectedRow, setSelectedRow] = React.useState<any | null>(null);
 
   // Map status ID to string (fetch from backend or hardcode for now)
   const getStatusLabel = (statusId: number) => {
@@ -34,62 +22,128 @@ const ScheduleTab: React.FC = () => {
   };
 
   const handleEditClick = (row: any) => {
-    // normalize data shape expected by edit modal
     const initialData = {
+      Schedule_id: row.Schedule_id ?? row.schedule_id ?? undefined,
       maintenance: row.Collector ?? row.Maintenance ?? row.maintenance ?? row.Username ?? '',
-      contact: row.Contact ?? row.collector_contact ?? row.Contact_of_Maintenance ?? '',
-      area: Array.isArray(row.Area) ? row.Area : (row.AreaName ? [row.AreaName] : (row.Area ? [String(row.Area)] : [])),
+      // ensure modal receives a string for editing
+      contact: String(row.Contact ?? row.collector_contact ?? row.Contact_of_Maintenance ?? ''),
+      area: Array.isArray(row.Area)
+        ? row.Area.map((a: any) => areaMap[a] ?? String(a))
+        : (row.AreaName ? [row.AreaName] : (row.Area ? [ (areaMap[row.Area] ?? String(row.Area)) ] : [])),
       date: row.Date_of_collection ? new Date(row.Date_of_collection).toISOString().split('T')[0] : '',
     };
     setSelectedRow(initialData);
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = (updated: { maintenance: string; contact: string; area: string[]; date: string }) => {
-    // update local state for immediate UI feedback
+  const handleSaveEdit = async (updated: { maintenance: string; contact: string; area: string[]; date: string }) => {
+    const scheduleId = selectedRow?.Schedule_id ?? selectedRow?.schedule_id;
+
+    // build name->id map from areaMap
+    const nameToId: Record<string, number> = {};
+    for (const [key, val] of Object.entries(areaMap)) {
+      const numKey = Number(key);
+      if (!Number.isNaN(numKey)) nameToId[val] = numKey;
+    }
+
+    // map area names -> ids when possible
+    const mappedIds = updated.area.map(name => nameToId[name]).filter((v): v is number => typeof v === 'number');
+
+    // decide areaPayload for UI: keep names for display, but prepare numeric IDs (if any) for backend
+    let areaPayloadForUI: number | number[] | string | string[] = updated.area;
+    if (mappedIds.length === 1) areaPayloadForUI = mappedIds[0];
+    else if (mappedIds.length > 1) areaPayloadForUI = mappedIds;
+
+    // local UI update (Contact must be string to match scheduleService.Schedule)
     setSchedules(prev =>
       prev.map(s => {
-        // try to match by id fields commonly present
-        const idMatch = (s.Schedule_id && selectedRow && s.Schedule_id === (selectedRow.Schedule_id ?? s.Schedule_id)) || false;
-        if (idMatch) {
+        if (scheduleId && s.Schedule_id === scheduleId) {
           return {
             ...s,
             Collector: updated.maintenance,
-            Contact: updated.contact,
-            Area: updated.area, // backend may require IDs — this keeps UI consistent
+            Contact: String(updated.contact),
+            Area: areaPayloadForUI,
             Date_of_collection: updated.date,
-          };
+          } as scheduleService.Schedule;
         }
         return s;
       })
     );
 
-    // send update to backend if service provides it
-    (async () => {
-      try {
-        // best-effort: call scheduleService.updateSchedule if exists
-        if (typeof (scheduleService as any).updateSchedule === 'function') {
-          // try to include Schedule_id if available on selected schedule object
-          const scheduleId = (selectedRow && (selectedRow.Schedule_id ?? selectedRow.schedule_id)) ?? undefined;
-          await (scheduleService as any).updateSchedule(scheduleId, {
-            Collector: updated.maintenance,
-            Contact: updated.contact,
-            Area: updated.area,
-            Date_of_collection: updated.date,
-          });
-        }
-      } catch (err) {
-        console.error('Failed to persist schedule update', err);
+    try {
+      if (!scheduleId) {
+        console.warn('No Schedule_id available for update; skipping backend call.');
+        setIsEditModalOpen(false);
+        setSelectedRow(null);
+        return;
       }
-    })();
 
-    setIsEditModalOpen(false);
-    setSelectedRow(null);
+      const original = schedules.find(s => s.Schedule_id === scheduleId);
+
+      // updated.contact is string (normalized by modal). Prefer it.
+      const normalizedContact = updated.contact ?? original?.Contact;
+
+      // For backend prefer mapped numeric area ids. If some names weren't mapped, keep only mapped ids.
+      const unknownAreas = updated.area.filter(name => nameToId[name] === undefined);
+      if (unknownAreas.length > 0) {
+        console.warn('Some areas were not found in area list and will not be sent as IDs:', unknownAreas);
+      }
+
+      // Choose area payload for backend:
+      // - if we have mappedIds use them (single number or CSV string)
+      // - otherwise fall back to original.Area to avoid sending plain names that backend may reject
+      let backendAreaPayload: number | string | string[] | number[] = original?.Area ?? updated.area;
+      if (mappedIds.length === 1) {
+        backendAreaPayload = mappedIds[0];
+      } else if (mappedIds.length > 1) {
+        // Many APIs expect a comma-separated list instead of a JSON array.
+        backendAreaPayload = mappedIds.join(',');
+      }
+      
+      const payload: any = {
+        // include Account_id only when available on original
+        ...(original?.Account_id !== undefined ? { Account_id: original.Account_id } : {}),
+        Collector: updated.maintenance,
+        Contact: String(normalizedContact),
+        Area: backendAreaPayload,
+        ...(original?.sched_stat_id !== undefined ? { sched_stat_id: original.sched_stat_id } : {}),
+        Date_of_collection: updated.date,
+      };
+
+      // debug: inspect exact payload sent to server
+      console.debug('[schedule] update payload:', payload);
+
+      await scheduleService.updateSchedule(scheduleId, payload);
+    } catch (err: any) {
+      console.error('Failed to persist schedule update', err);
+      if (err?.message) console.error('Server message:', err.message);
+    } finally {
+      setIsEditModalOpen(false);
+      setSelectedRow(null);
+    }
+  };
+
+  const renderAreaCell = (row: any) => {
+    // row.Area can be an ID, array of IDs, or already a name/array of names
+    if (Array.isArray(row.Area)) {
+      return row.Area.map((a: any) => areaMap[a] ?? String(a)).join(', ');
+    }
+    if (row.AreaName) return row.AreaName;
+    const id = row.Area ?? row.Area_id ?? row.AreaId;
+    if (id === undefined || id === null || id === '') return '';
+    // if id is numeric string, try lookup
+    return areaMap[id] ?? String(id);
   };
 
   const columns = [
     { key: 'Collector', label: 'Maintenance Person' },
-    { key: 'Area', label: 'Area' }, // Note: Backend uses Area as ID; you may need to fetch area names separately
+    { 
+      key: 'Area', 
+      label: 'Area',
+      render: (_value: any, row: any) => (
+        <span>{renderAreaCell(row)}</span>
+      )
+    },
     { 
       key: 'sched_stat_id', 
       label: 'Status',
@@ -109,8 +163,9 @@ const ScheduleTab: React.FC = () => {
         <div className="flex items-center gap-2">
           <EditButton
             onClick={() => handleEditClick(row)}
-            disabled={row.sched_stat_id === 3} // example: disable edit if already collected
-            title="Edit"
+            // ensure prop matches EditButton props; use aria-label (valid attribute)
+            disable={row.sched_stat_id === 3}
+            aria-label="Edit schedule"
           />
         </div>
       )

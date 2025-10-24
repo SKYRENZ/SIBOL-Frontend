@@ -4,8 +4,10 @@ export interface Schedule {
   Schedule_id?: number;
   Account_id: number;
   Collector?: string;
-  Contact: number;
-  Area: number;
+  // Contact is stored/sent as local Philippine string with leading 0 (e.g. "09XXXXXXXXX")
+  Contact: string;
+  // area can be a single id, array of ids, or names (string) / array of names
+  Area: number | number[] | string | string[];
   sched_stat_id: number;
   Date_of_collection: string;
 }

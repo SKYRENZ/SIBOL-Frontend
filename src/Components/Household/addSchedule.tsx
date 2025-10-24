@@ -3,8 +3,8 @@ import { CalendarDays } from "lucide-react";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
 import * as scheduleService from '../../services/Schedule/scheduleService';
-import * as areaService from '../../services/Schedule/areaService';
-import * as operatorService from '../../services/Schedule/operatorService';
+import { formatContactDisplay, normalizeToLocal09 } from '../../utils/phone';
+import { useAreas, useOperators, useSchedules } from '../../hooks/household/useScheduleHooks';
 
 interface AddScheduleModalProps {
   isOpen: boolean;
@@ -15,33 +15,23 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  // form state
   const [formData, setFormData] = useState({
-    Account_id: '', 
+    Account_id: '',
     Contact: '',
     Area: '',
     sched_stat_id: 2,
     Date_of_collection: '',
   });
   const [saving, setSaving] = useState(false);
-  const [areas, setAreas] = useState<areaService.Area[]>([]);
-  const [operators, setOperators] = useState<operatorService.Operator[]>([]);
+
+  // hooks must be unconditional
+  const { areas } = useAreas();
+  const { operators } = useOperators();
+  const { reload: reloadSchedules } = useSchedules();
 
   useEffect(() => {
     if (isOpen) {
-      const fetchData = async () => {
-        try {
-          const [areasData, operatorsData] = await Promise.all([
-            areaService.getAllAreas(),
-            operatorService.getAllOperators(),
-          ]);
-          setAreas(areasData);
-          setOperators(operatorsData);
-        } catch (err) {
-          console.error('Failed to load data:', err);
-        }
-      };
-      fetchData();
-
       const defaultDate = new Date();
       defaultDate.setDate(defaultDate.getDate() + 2);
       setFormData(prev => ({ ...prev, Date_of_collection: defaultDate.toISOString().split('T')[0] }));
@@ -50,24 +40,42 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
 
   if (!isOpen) return null;
 
+  // sanitize contact input: digits only, max 11
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === 'Contact') {
+      const digits = value.replace(/\D/g, '').slice(0, 11);
+      setFormData(prev => ({ ...prev, [name]: digits }));
+      return;
+    }
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = {
-        ...formData,
+      const normalized = normalizeToLocal09(formData.Contact);
+      if (!normalized) {
+        alert('Contact must be a valid Philippine mobile number (09XXXXXXXXX)');
+        setSaving(false);
+        return;
+      }
+
+      const payload: Omit<scheduleService.Schedule, 'Schedule_id'> = {
         Account_id: Number(formData.Account_id),
-        Contact: formData.Contact,
-        Area: Number(formData.Area),
+        Contact: normalized, // send local "09..." string
+        Area: Number(formData.Area) ? Number(formData.Area) : String(formData.Area),
+        sched_stat_id: Number(formData.sched_stat_id),
+        Date_of_collection: formData.Date_of_collection,
       };
-      await scheduleService.createSchedule(payload);
-      alert('Schedule created successfully!');
+
+      const created = await scheduleService.createSchedule(payload);
+
+      // reload schedules so UI shows server-truth (and prevents mismatch)
+      await reloadSchedules();
+
       onClose();
     } catch (err: any) {
       alert(`Failed to create schedule: ${err?.message ?? 'Unknown error'}`);
@@ -102,9 +110,11 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
           label="Contact"
           name="Contact"
           type="text"
-          value={formData.Contact}
+          value={formatContactDisplay(formData.Contact)}
           onChange={handleChange}
-          placeholder="Enter contact number"
+          placeholder="0917 123 4567"
+          inputMode="numeric"
+          maxLength={14}
         />
 
         <FormField
