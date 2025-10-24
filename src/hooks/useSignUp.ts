@@ -8,8 +8,8 @@ export const useSignUp = () => {
 
   // State
   const [role, setRole] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstNameState] = useState("");
+  const [lastName, setLastNameState] = useState("");
   const [email, setEmail] = useState("");
   const [barangay, setBarangay] = useState("");
   const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]); // NEW
@@ -22,6 +22,14 @@ export const useSignUp = () => {
 
   // Assets
   const signupImage = new URL("../assets/images/lilisignup.png", import.meta.url).href;
+
+  // name filter + validation regex (allow letters, spaces, hyphen, apostrophe, period)
+  const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
+  const nameRegex = /^[A-Za-z\s.'-]+$/;
+
+  // Exposed setters that filter invalid characters
+  const setFirstName = (v: string) => setFirstNameState(nameFilter(v));
+  const setLastName = (v: string) => setLastNameState(nameFilter(v));
 
   // Check for SSO redirect parameters
   useEffect(() => {
@@ -43,8 +51,8 @@ export const useSignUp = () => {
       setEmail(emailParam);
       setIsSSO(true);
       setSsoMessage(messageParam || 'Complete your registration to continue with Google Sign-In');
-      if (firstNameParam) setFirstName(firstNameParam);
-      if (lastNameParam) setLastName(lastNameParam);
+      if (firstNameParam) setFirstName(firstNameParam); // will be filtered
+      if (lastNameParam) setLastName(lastNameParam);     // will be filtered
     }
   }, [searchParams]);
 
@@ -69,11 +77,17 @@ export const useSignUp = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!role) newErrors.role = "Role is required";
+
     if (!firstName.trim()) newErrors.firstName = "First name is required";
+    else if (!nameRegex.test(firstName.trim())) newErrors.firstName = "First name can only contain letters, spaces, hyphens, apostrophes and periods";
+
     if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    else if (!nameRegex.test(lastName.trim())) newErrors.lastName = "Last name can only contain letters, spaces, hyphens, apostrophes and periods";
+
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       newErrors.email = "Enter a valid email";
+
     if (!barangay.trim()) newErrors.barangay = "Barangay is required";
     else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) {
       newErrors.barangay = "Barangay must be a valid number";
@@ -173,9 +187,9 @@ export const useSignUp = () => {
     role,
     setRole,
     firstName,
-    setFirstName,
+    setFirstName, // now filtered
     lastName,
-    setLastName,
+    setLastName,  // now filtered
     email,
     setEmail,
     barangay,
