@@ -1,7 +1,10 @@
-import { Search } from "lucide-react";
-import FilterPanel from "../filterPanel"; 
+import React, { useState } from "react";
+import FilterPanel from "../filterPanel";
+import SearchBar from "../common/SearchBar";
 
-const ClaimedRewards = () => {
+const ClaimedRewards: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+
   const rewardsData = [
     {
       id: 1,
@@ -23,21 +26,23 @@ const ClaimedRewards = () => {
     },
   ];
 
+  const filteredData = rewardsData.filter((item) =>
+    [item.name, item.reward, item.status, item.code, item.points, item.date]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="w-full px-6 py-4">
-      {/* 🔍 Search + Filter Bar */}
       <div className="flex justify-between items-center mb-4">
-        {/* Search Box */}
-        <div className="relative w-[250px]">
-          <input
-            type="text"
-            placeholder="Search"
-            className="w-full border border-[#7B9B7B] rounded-md pl-10 pr-4 py-2 text-sm text-[#355842] placeholder-gray-400 bg-transparent focus:outline-none focus:ring-2 focus:ring-[#7B9B7B]"
-          />
-          <Search className="absolute left-3 top-2.5 w-4 h-4 text-[#355842]" />
-        </div>
-
-        {/* ✅ Use FilterPanel instead of static button */}
+        {/* Search Input */}
+        <SearchBar
+          value={searchTerm}
+          onChange={setSearchTerm}
+          placeholder="Search claimed rewards..."
+          className="max-w-[100vh] flex-grow"
+        />
         <FilterPanel />
       </div>
 
@@ -57,33 +62,43 @@ const ClaimedRewards = () => {
           </thead>
 
           <tbody>
-            {rewardsData.map((item, index) => (
-              <tr
-                key={index}
-                className="border-t border-gray-100 hover:bg-[#f9fbf9] transition"
-              >
-                <td className="px-6 py-3">{item.id}</td>
-                <td className="px-6 py-3">{item.name}</td>
-                <td className="px-6 py-3">{item.reward}</td>
-                <td className="px-6 py-3">{item.points}</td>
-                <td className="px-6 py-3">{item.code}</td>
+            {filteredData.length > 0 ? (
+              filteredData.map((item, index) => (
+                <tr
+                  key={index}
+                  className="border-t border-gray-100 hover:bg-[#f9fbf9] transition"
+                >
+                  <td className="px-6 py-3">{item.id}</td>
+                  <td className="px-6 py-3">{item.name}</td>
+                  <td className="px-6 py-3">{item.reward}</td>
+                  <td className="px-6 py-3">{item.points}</td>
+                  <td className="px-6 py-3">{item.code}</td>
 
-                {/* ✅ Status Tag */}
-                <td className="px-6 py-3">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      item.status === "Claimed"
-                        ? "bg-[#D9EBD9] text-[#355842]"
-                        : "bg-gray-200 text-gray-600"
-                    }`}
-                  >
-                    {item.status}
-                  </span>
+                  <td className="px-6 py-3">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        item.status === "Claimed"
+                          ? "bg-[#D9EBD9] text-[#355842]"
+                          : "bg-gray-200 text-gray-600"
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-3">{item.date}</td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={7}
+                  className="px-6 py-6 text-center text-gray-500 italic"
+                >
+                  No matching results found.
                 </td>
-
-                <td className="px-6 py-3">{item.date}</td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>
