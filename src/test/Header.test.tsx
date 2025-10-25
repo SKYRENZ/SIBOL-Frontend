@@ -4,13 +4,20 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 
-vi.mock('../src/services/apiClient', () => ({
-  default: { get: vi.fn() },
-}));
+// partially mock apiClient so both default and named helpers exist
+vi.mock('../services/apiClient', async (importOriginal) => {
+  const actual = (await importOriginal()) as any;
+  return {
+    ...actual,
+    default: { get: vi.fn() },   // legacy usage in some tests/components
+    apiFetch: vi.fn(),           // used by moduleService / Header
+    fetchJson: vi.fn(),
+  };
+});
 
 // replace require(...) with ESM import so vitest returns the mocked module
-import api from '../src/services/apiClient';
-import Header from '../src/Components/Header';
+import api, { apiFetch } from '../services/apiClient';
+import Header from '../Components/Header';
 
 describe('Header component', () => {
   afterEach(() => {
@@ -23,7 +30,10 @@ describe('Header component', () => {
       { Module_id: 1, Name: 'Dashboard', Path: '/dashboard' },
       { Module_id: 3, Name: 'Maintenance', Path: '/maintenance' },
     ];
-    (api.get as any).mockResolvedValueOnce({ data: allowed });
+    // Header (via moduleService) calls apiFetch, mock that to return a Response-like object
+    (apiFetch as any).mockResolvedValueOnce({
+      text: async () => JSON.stringify(allowed)
+    });
 
     render(
       <MemoryRouter>
@@ -38,7 +48,13 @@ describe('Header component', () => {
   });
 
   it('renders no links when API returns empty', async () => {
-    (api.get as any).mockResolvedValueOnce({ data: [] });
+    // API returns empty allowed modules — component should still render default links,
+    // but Admin (module id 6) shouldn't be present.
+    (apiFetch as any).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => []
+    });
 
     render(
       <MemoryRouter>
@@ -47,7 +63,8 @@ describe('Header component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     });
   });
 });

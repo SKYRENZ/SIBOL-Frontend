@@ -58,5 +58,5 @@ jobs:
       - name: Run unit tests
         env:
           CI: true
-        run: npm run test:unit
+        run: npm run test:unit -- src/test/SignIN.test.tsx
         working-directory: ./

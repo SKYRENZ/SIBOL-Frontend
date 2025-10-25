@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
 import * as machineService from '../services/machineService';
 import type { Machine, Area } from '../services/machineService';
-import { useMachine } from '../hooks/useMachine';
+import { useMachine } from '../hooks/sibolMachine/useMachine';
 import Tabs from '../Components/common/Tabs';
 import SearchBar from '../Components/common/SearchBar';
 import Table from '../Components/common/Table';

@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useEmailVerification } from '../hooks/useEmailVerification';
+import { useEmailVerification } from '../hooks/signup/useEmailVerification';
 import AuthLayout from '../Components/verification/AuthLayout';
 import LoadingSpinner from '../Components/verification/LoadingSpinner';
 import StatusCard from '../Components/verification/StatusCard';
@@ -49,6 +49,7 @@ const EmailVerification: React.FC = () => {
     email,
     isResending,
     countdown,
+    resendCooldown,
     
     // Assets
     topLogo,
@@ -59,6 +60,9 @@ const EmailVerification: React.FC = () => {
     handleResendEmail,
     goBackToLogin,
   } = useEmailVerification();
+
+  // seconds-only format, padded to 2 digits
+  const formatSeconds = (s: number) => String(s).padStart(2, '0');
 
   const renderContent = () => {
     switch (status) {
@@ -143,9 +147,17 @@ const EmailVerification: React.FC = () => {
                     onClick={handleResendEmail}
                     loading={isResending}
                     fullWidth
+                    disabled={isResending || (resendCooldown ?? 0) > 0}
                   >
                     Resend Verification Email
                   </ActionButton>
+
+                  {/* Cooldown shown below the button (seconds only, bold) */}
+                  <div className="text-center">
+                    <span className="text-xl text-blue-600 font-bold mt-1 block" aria-live="polite">
+                      {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
+                    </span>
+                  </div>
                 </div>
               </StatusCard>
             )}
@@ -166,7 +178,6 @@ const EmailVerification: React.FC = () => {
     <AuthLayout 
       leftBg={leftBg} 
       leftLogo={leftLogo} 
-      topLogo={topLogo}
     >
       {renderContent()}
     </AuthLayout>

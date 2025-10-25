@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useForgotPassword } from '../../hooks/useForgotPassword';
+import { useForgotPassword } from '../../hooks/signup/useForgotPassword';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 
 type Props = {
@@ -20,12 +20,35 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
     loading,
     error,
     info,
+    resendCooldown,
+    canResend,
     sendResetRequest,
     verifyCode,
     submitNewPassword,
     closeAndReset
-  } = useForgotPassword();
+  } = useForgotPassword() as {
+    step: any;
+    setStep: any;
+    email: string;
+    setEmail: (v: string) => void;
+    code: string;
+    setCode: (v: string) => void;
+    newPassword: string;
+    setNewPassword: (v: string) => void;
+    loading: boolean;
+    error: string | null;
+    info: string | null;
+    resendCooldown: number;
+    canResend: boolean;
+    sendResetRequest: () => Promise<void>;
+    verifyCode: () => Promise<void>;
+    submitNewPassword: () => Promise<void>;
+    closeAndReset: () => void;
+  };
 
+  // show seconds only (padded to 2 digits), e.g. "59", "05"
+  const formatSeconds = (s: number) => String(s).padStart(2, '0');
+ 
   // Local-only state for confirm password and show/hide toggles
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -67,8 +90,16 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
         </div>
 
         <div className="p-4">
-          {error && <div className="mb-3 bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{error}</div>}
-          {info && <div className="mb-3 bg-blue-50 text-sky-800 px-3 py-2 rounded text-sm">{info}</div>}
+          {info && (
+            <div className="mb-3">
+              <div className="bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
+                {info}
+              </div>
+              <div className="mt-2 bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
+                Delivery may take 1–5 minutes. If you don't see the email, please check your spam/junk folder.
+              </div>
+            </div>
+          )}
 
           {step === 'email' && (
             <>
@@ -85,11 +116,15 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                 <button onClick={() => { closeAndReset(); onClose(); }} className="px-4 py-2 rounded-md bg-gray-100 text-gray-800">Cancel</button>
                 <button
                   onClick={sendResetRequest}
-                  disabled={loading}
+                  disabled={loading || (resendCooldown ?? 0) > 0}
                   className="px-4 py-2 rounded-md bg-[#2E523A] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Sending…' : 'Send Reset Code'}
                 </button>
+                {/* realtime countdown shown beside button as seconds only */}
+                <span className="ml-2 text-xs text-gray-500 font-semibold" aria-live="polite">
+                  {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
+                </span>
               </div>
             </>
           )}
@@ -145,20 +180,30 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                   </div>
                 </div>
 
+                {error && <div className="mb-3 bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{error}</div>}
+
                 <div className="flex items-center mb-5">
                   <div className="text-xs text-gray-500">Didn't get an email?</div>
                   <button
                     type="button"
                     onClick={sendResetRequest}
-                    disabled={loading}
-                    className="text-sm px-3 py-1 rounded-md bg-transparent text-blue-800 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                    disabled={loading || (resendCooldown ?? 0) > 0}
+                    className="text-sm px-3 py-1 rounded-md bg-transparent text-blue-800 hover:text-blue-600 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 hover:ring-0 border-0 disabled:opacity-60 disabled:cursor-not-allowed"
                   >
                     {loading ? 'Sending…' : 'Resend code'}
                   </button>
+                  <span className="ml-3 text-s text-gray-500 font-bold" aria-live="polite">
+                    {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
+                  </span>
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <button onClick={() => setStep('email')} className="px-4 py-2 rounded-md bg-gray-100 text-gray-800">Back</button>
+                  <button
+                    onClick={() => { closeAndReset(); onClose(); }}
+                    className="px-4 py-2 rounded-md bg-gray-100 text-gray-800"
+                  >
+                    Cancel
+                  </button>
                   <button
                     onClick={verifyCode}
                     disabled={loading}
