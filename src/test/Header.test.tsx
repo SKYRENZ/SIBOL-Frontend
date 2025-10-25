@@ -30,8 +30,10 @@ describe('Header component', () => {
       { Module_id: 1, Name: 'Dashboard', Path: '/dashboard' },
       { Module_id: 3, Name: 'Maintenance', Path: '/maintenance' },
     ];
-    // Header (via moduleService) calls apiFetch, mock that
-    (apiFetch as any).mockResolvedValueOnce(allowed);
+    // Header (via moduleService) calls apiFetch, mock that to return a Response-like object
+    (apiFetch as any).mockResolvedValueOnce({
+      text: async () => JSON.stringify(allowed)
+    });
 
     render(
       <MemoryRouter>
@@ -46,7 +48,9 @@ describe('Header component', () => {
   });
 
   it('renders no links when API returns empty', async () => {
-    (apiFetch as any).mockResolvedValueOnce([]); // return empty allowed modules
+    (apiFetch as any).mockResolvedValueOnce({
+      text: async () => JSON.stringify([])
+    }); // return empty allowed modules
 
     render(
       <MemoryRouter>
