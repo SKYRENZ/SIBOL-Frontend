@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { CalendarDays } from "lucide-react";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
 import * as areaService from '../../services/Schedule/areaService';
@@ -134,6 +135,7 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
       onClose={onClose}
       title="Edit Schedule"
       subtitle="Modify your scheduled collection area or assignment."
+      icon={<CalendarDays size={22} />}
       width="720px"
     >
       <form className="grid grid-cols-2 gap-x-8 gap-y-4">

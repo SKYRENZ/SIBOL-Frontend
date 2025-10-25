@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import Header from "../Components/Header";
 import HouseholdTabs from "../Components/Household/tabs";
 import SearchFilterBar from "../Components/Household/searchFilter";
-import AddRewardsBar from "../Components/Household/filter";
 import ScheduleTab from "../Components/Household/schedule";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
@@ -79,12 +78,11 @@ const Household: React.FC = () => {
             <SearchFilterBar onAddSchedule={handleAddSchedule} />
           )}
 
-          {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}
-          {activeTab === "reward" && <AddRewardsBar onAddReward={handleAddReward} />}
-  
+          {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}  
           {activeTab === "schedule" && <ScheduleTab />}
           {activeTab === "reward" && <RewardTab />}
           {activeTab === "leaderboard" && <LeaderboardTab />}
+          {activeTab === "claimed" && <ClaimedRewards />}
   
           {/* render Point System tab */}
           {activeTab === "points" && <PointSystem />}

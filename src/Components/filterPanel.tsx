@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Filter, X } from "lucide-react";
+import { useFilterOptions } from "../hooks/filter/userFilterOption"; // Fix: correct path with 'user' in filename
 
 const FilterPanel = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [selectedFilters, setSelectedFilters] = useState<string[]>(["Claimed", "Last Week"]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const { categories, loading, error } = useFilterOptions(); // ✅ use hook
 
   const toggleFilter = () => setIsOpen(!isOpen);
 
@@ -11,7 +13,6 @@ const FilterPanel = () => {
     setSelectedFilters((prev) => prev.filter((f) => f !== filter));
   };
 
-  // ✅ Add/Remove filter when clicking checkbox
   const handleCheckboxChange = (option: string) => {
     setSelectedFilters((prev) =>
       prev.includes(option)
@@ -20,18 +21,14 @@ const FilterPanel = () => {
     );
   };
 
-  const categories: Record<string, string[]> = {
-    Status: ["Claimed", "Unclaimed"],
-    Reward: ["1kg of Rice", "Canned Goods"],
-    "Date Claimed": ["Last Week", "Last Month", "Last Year"],
-  };
-
   return (
     <div className="relative">
       {/* Filter Button */}
       <button
         onClick={toggleFilter}
-        className={`flex items-center gap-2 border border-[#7B9B7B] text-[#355842] rounded-md px-4 py-2 text-sm font-medium transition bg-transparent ${isOpen ? "ring-1 ring-[#7B9B7B]" : "hover:bg-transparent"}`}
+        className={`flex items-center gap-2 border border-[#7B9B7B] text-[#355842] rounded-md px-4 py-2 text-sm font-medium transition bg-transparent ${
+          isOpen ? "ring-1 ring-[#7B9B7B]" : "hover:bg-transparent"
+        }`}
       >
         <span>Filter by</span>
         <Filter className="w-4 h-4" />
@@ -48,7 +45,7 @@ const FilterPanel = () => {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 bg-gray-50 rounded-full hover:bg-gray-100 transition"
+              className="p-1.5 rounded-full hover:bg-gray-100 transition bg-transparent"
             >
               <X className="w-4 h-4 text-[#355842]" />
             </button>
@@ -72,27 +69,34 @@ const FilterPanel = () => {
             ))}
           </div>
 
-          <div className="grid grid-cols-3 gap-4 text-[#355842]">
-            {Object.entries(categories).map(([category, options]) => (
-              <div key={category}>
-                <h3 className="font-semibold mb-2">{category}</h3>
-                {options.map((option) => (
-                  <label
-                    key={option}
-                    className="flex items-center gap-2 mb-1 cursor-pointer text-sm"
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selectedFilters.includes(option)} 
-                      onChange={() => handleCheckboxChange(option)} 
-                      className="accent-[#355842] w-4 h-4"
-                    />
-                    {option}
-                  </label>
-                ))}
-              </div>
-            ))}
-          </div>
+          {/* Filter Options */}
+          {loading ? (
+            <p className="text-sm text-gray-500">Loading filters...</p>
+          ) : error ? (
+            <p className="text-sm text-red-500">{error}</p>
+          ) : (
+            <div className="grid grid-cols-3 gap-4 text-[#355842]">
+              {Object.entries(categories).map(([category, options]) => (
+                <div key={category}>
+                  <h3 className="font-semibold mb-2">{category}</h3>
+                  {options.map((option) => (
+                    <label
+                      key={option}
+                      className="flex items-center gap-2 mb-1 cursor-pointer text-sm"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedFilters.includes(option)}
+                        onChange={() => handleCheckboxChange(option)}
+                        className="accent-[#355842] w-4 h-4"
+                      />
+                      {option}
+                    </label>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
