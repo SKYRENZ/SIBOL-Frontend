@@ -5,14 +5,14 @@ vi.mock('../services/apiClient', async (importOriginal) => {
   const actual = (await importOriginal()) as any;
   return {
     ...actual,
-    default: { post: vi.fn() },    // keep default shape used by some tests
-    fetchJson: vi.fn(),            // used by authService.login
-    apiFetch: vi.fn(),             // keep available if other modules need it
+    default: { post: vi.fn() },
+    fetchJson: vi.fn(),    // ensure named export exists
+    apiFetch: vi.fn(),
   };
 });
 
-// use ESM import so vitest gives the mocked module
-import api, { fetchJson } from '../services/apiClient';
+// import the named helper so tests can set mockResolvedValueOnce
+import { fetchJson } from '../services/apiClient';
 
 describe('authService.login', () => {
   afterEach(() => {

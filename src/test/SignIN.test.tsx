@@ -1,3 +1,5 @@
+export {}; // ensure this file is a module and avoid polluting global scope
+
 /// <reference types="vitest" />
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import type { Mock } from 'vitest';

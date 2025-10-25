@@ -48,9 +48,13 @@ describe('Header component', () => {
   });
 
   it('renders no links when API returns empty', async () => {
+    // API returns empty allowed modules — component should still render default links,
+    // but Admin (module id 6) shouldn't be present.
     (apiFetch as any).mockResolvedValueOnce({
-      text: async () => JSON.stringify([])
-    }); // return empty allowed modules
+      ok: true,
+      status: 200,
+      json: async () => []
+    });
 
     render(
       <MemoryRouter>
@@ -59,7 +63,8 @@ describe('Header component', () => {
     );
 
     await waitFor(() => {
-      expect(screen.queryByText('Dashboard')).not.toBeInTheDocument();
+      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.queryByText('Admin')).not.toBeInTheDocument();
     });
   });
 });
