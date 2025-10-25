@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Header from "../Components/Header";
 import HouseholdTabs from "../Components/Household/tabs";
 import SearchBar from "../Components/common/SearchBar";
+import FilterPanel from "../Components/common/filterPanel";
 import ScheduleTab from "../Components/Household/schedule";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
@@ -90,9 +91,10 @@ const Household: React.FC = () => {
               >
                 Create
               </button>
+              <FilterPanel />
             </div>
           )}
-
+  
           {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}  
           {activeTab === "schedule" && <ScheduleTab />}
           {activeTab === "reward" && <RewardTab />}

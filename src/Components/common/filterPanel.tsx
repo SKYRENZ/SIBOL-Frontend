@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Filter, X } from "lucide-react";
-import { useFilterOptions } from "../hooks/filter/userFilterOption"; // Fix: correct path with 'user' in filename
+import { useFilterOptions } from "../../hooks/filter/userFilterOption"; // Fix: correct path with 'user' in filename
 
 const FilterPanel = () => {
   const [isOpen, setIsOpen] = useState(false);

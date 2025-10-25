@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import FilterPanel from "../filterPanel";
+import FilterPanel from "../common/filterPanel";
 import SearchBar from "../common/SearchBar";
 
 const ClaimedRewards: React.FC = () => {

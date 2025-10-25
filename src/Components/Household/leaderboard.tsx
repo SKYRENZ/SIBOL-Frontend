@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Table from "../common/Table";
 import SearchBar from "../common/SearchBar";
-import FilterPanel from "../filterPanel";
+import FilterPanel from "../common/filterPanel";
 
 const LeaderboardTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");

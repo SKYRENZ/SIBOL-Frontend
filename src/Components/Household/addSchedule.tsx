@@ -3,7 +3,7 @@ import { CalendarDays } from "lucide-react";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
 import * as scheduleService from '../../services/Schedule/scheduleService';
-import { formatContactDisplay, normalizeToLocal09 } from '../../utils/phone';
+import { normalizeToLocal09 } from '../../utils/phone';
 import { useAreas, useOperators, useSchedules } from '../../hooks/household/useScheduleHooks';
 
 interface AddScheduleModalProps {
@@ -15,10 +15,9 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  // form state
+  // form state (Contact removed — derived from selected operator)
   const [formData, setFormData] = useState({
     Account_id: '',
-    Contact: '',
     Area: '',
     sched_stat_id: 2,
     Date_of_collection: '',
@@ -40,38 +39,41 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
 
   if (!isOpen) return null;
 
-  // sanitize contact input: digits only, max 11
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value } = e.target;
-    if (name === 'Contact') {
-      const digits = value.replace(/\D/g, '').slice(0, 11);
-      setFormData(prev => ({ ...prev, [name]: digits }));
-      return;
-    }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const normalized = normalizeToLocal09(formData.Contact);
+      // derive contact from selected operator (Account_id)
+      const selectedOperator = operators.find(op => String(op.Account_id) === String(formData.Account_id));
+      const operatorContact = (selectedOperator as any)?.Contact;
+      if (!operatorContact) {
+        alert('Selected operator has no contact on file.');
+        setSaving(false);
+        return;
+      }
+
+      const normalized = normalizeToLocal09(operatorContact);
       if (!normalized) {
-        alert('Contact must be a valid Philippine mobile number (09XXXXXXXXX)');
+        alert('Operator contact is invalid (expected Philippine mobile number).');
         setSaving(false);
         return;
       }
 
       const payload: Omit<scheduleService.Schedule, 'Schedule_id'> = {
         Account_id: Number(formData.Account_id),
-        Contact: normalized, // send local "09..." string
+        Contact: normalized, // from operator
         Area: Number(formData.Area) ? Number(formData.Area) : String(formData.Area),
         sched_stat_id: Number(formData.sched_stat_id),
         Date_of_collection: formData.Date_of_collection,
       };
 
-      const created = await scheduleService.createSchedule(payload);
+      await scheduleService.createSchedule(payload);
 
       // reload schedules so UI shows server-truth (and prevents mismatch)
       await reloadSchedules();
@@ -106,16 +108,7 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
           options={operatorOptions}
         />
 
-        <FormField
-          label="Contact"
-          name="Contact"
-          type="text"
-          value={formatContactDisplay(formData.Contact)}
-          onChange={handleChange}
-          placeholder="0917 123 4567"
-          inputMode="numeric"
-          maxLength={14}
-        />
+        {/* Contact is not editable or entered here — it's derived from the selected operator */}
 
         <FormField
           label="Area"
