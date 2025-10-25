@@ -30,6 +30,7 @@ const PointSystem = () => {
 
       <div className="bg-white border border-[#D8E3D8] rounded-xl shadow-sm w-full max-w-2xl mx-auto p-8 flex flex-col items-center justify-center gap-6">
         <div className="flex items-center justify-center gap-6 w-full">
+          {/* Total Food Waste Input */}
           <div className="flex flex-col items-center text-center">
             <label className="text-sm font-medium text-[#355842] mb-1">
               Total Food Waste
@@ -39,7 +40,7 @@ const PointSystem = () => {
               value={waste}
               onChange={(e) => setWaste(e.target.value)}
               disabled={!isEditable}
-              className={`border rounded-md px-3 py-2 text-sm text-center w-24 transition ${
+              className={`border rounded-md px-3 py-2 text-sm text-center w-24 transition text-black ${
                 isEditable
                   ? "border-[#7B9B7B] focus:outline-none focus:ring-2 focus:ring-[#7B9B7B] bg-white"
                   : "border-gray-300 bg-gray-50 cursor-not-allowed"
@@ -49,6 +50,7 @@ const PointSystem = () => {
 
           <span className="text-[#355842] font-semibold text-xl">=</span>
 
+          {/* Points Input */}
           <div className="flex flex-col items-center text-center">
             <label className="text-sm font-medium text-[#355842] mb-1">
               Points
@@ -58,7 +60,7 @@ const PointSystem = () => {
               value={points}
               onChange={(e) => setPoints(e.target.value)}
               disabled={!isEditable}
-              className={`border rounded-md px-3 py-2 text-sm text-center w-40 transition ${
+              className={`border rounded-md px-3 py-2 text-sm text-center w-40 transition text-black ${
                 isEditable
                   ? "border-[#7B9B7B] focus:outline-none focus:ring-2 focus:ring-[#7B9B7B] bg-white"
                   : "border-gray-300 bg-gray-50 cursor-not-allowed"
@@ -67,6 +69,7 @@ const PointSystem = () => {
           </div>
         </div>
 
+        {/* Buttons */}
         <div className="flex gap-4 mt-2">
           <button
             onClick={handleEdit}

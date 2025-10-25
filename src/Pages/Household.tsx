@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import Header from "../Components/Header";
 import HouseholdTabs from "../Components/Household/tabs";
-import SearchFilterBar from "../Components/Household/searchFilter";
-import AddRewardsBar from "../Components/Household/filter";
+import SearchBar from "../Components/common/SearchBar";
+import FilterPanel from "../Components/common/filterPanel";
 import ScheduleTab from "../Components/Household/schedule";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
@@ -37,6 +37,7 @@ const Household: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [rowToEdit, setRowToEdit] = useState<RowData | null>(null);
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
   const handleAddSchedule = () => setIsAddModalOpen(true);
   const handleCloseAddModal = () => setIsAddModalOpen(false);
@@ -76,15 +77,29 @@ const Household: React.FC = () => {
       <div className="w-full px-6 py-8">
         <div className="max-w-screen-2xl mx-auto">
           {activeTab === "schedule" && (
-            <SearchFilterBar onAddSchedule={handleAddSchedule} />
+            <div className="flex items-center gap-4">
+              <SearchBar
+                value={searchValue}
+                onChange={setSearchValue}
+                placeholder="Search schedules..."
+                className="flex-1"
+              />
+              <button
+                type="button"
+                onClick={handleAddSchedule}
+                className="px-4 py-2 bg-[#AFC8AD] text-white rounded-md shadow-sm text-sm"
+              >
+                Create
+              </button>
+              <FilterPanel />
+            </div>
           )}
-
-          {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}
-          {activeTab === "reward" && <AddRewardsBar onAddReward={handleAddReward} />}
   
+          {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}  
           {activeTab === "schedule" && <ScheduleTab />}
           {activeTab === "reward" && <RewardTab />}
           {activeTab === "leaderboard" && <LeaderboardTab />}
+          {activeTab === "claimed" && <ClaimedRewards />}
   
           {/* render Point System tab */}
           {activeTab === "points" && <PointSystem />}
