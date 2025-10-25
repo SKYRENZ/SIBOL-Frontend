@@ -90,14 +90,11 @@ export const useSignUp = () => {
     const emailParam = searchParams.get('email');
     const ssoParam = searchParams.get('sso');
     const messageParam = searchParams.get('message');
-    const firstNameParam = searchParams.get('firstName');
-    const lastNameParam = searchParams.get('lastName');
+    // removed firstName/lastName auto-fill from SSO for privacy/UX
 
     console.log('📋 SSO params detected:', {
       email: emailParam,
       sso: ssoParam,
-      firstName: firstNameParam,
-      lastName: lastNameParam,
       message: messageParam
     });
 
@@ -105,8 +102,6 @@ export const useSignUp = () => {
       setEmail(emailParam);
       setIsSSO(true);
       setSsoMessage(messageParam || 'Complete your registration to continue with Google Sign-In');
-      if (firstNameParam) setFirstName(firstNameParam); // will be filtered
-      if (lastNameParam) setLastName(lastNameParam);     // will be filtered
     }
   }, [searchParams]);
 
