@@ -4,7 +4,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi, describe, it, expect, afterEach } from 'vitest';
 
-vi.mock('../src/services/apiClient', () => ({
+vi.mock('../services/apiClient', () => ({
   default: { get: vi.fn() },
 }));
 

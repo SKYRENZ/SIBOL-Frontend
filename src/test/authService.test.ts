@@ -1,7 +1,7 @@
 import { vi, describe, it, expect, afterEach } from 'vitest';
 import { login } from '../services/authService';
 
-vi.mock('../src/services/apiClient', () => ({
+vi.mock('../services/apiClient', () => ({
   default: { post: vi.fn() },
 }));
 
