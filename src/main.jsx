@@ -15,15 +15,16 @@ import Admin from './Pages/Admin.tsx';
 import TestPage from './Pages/TestPage.tsx'; // <-- add this import
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 import Household from './Pages/Household.tsx';
-
 import MaintenancePage from './Pages/MaintenancePage.tsx';
+import Landingpage from './Pages/Landingpage.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* makes the login page as our main page (starting point) */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* makes the landing page as our main page (starting point) */}
+        <Route path="/" element={<Navigate to="/landingpage" replace />} />
+        <Route path="/landingpage" element={<Landingpage />} />
         
         {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
