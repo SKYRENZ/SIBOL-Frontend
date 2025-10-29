@@ -82,7 +82,8 @@ const Household: React.FC = () => {
                 value={searchValue}
                 onChange={setSearchValue}
                 placeholder="Search schedules..."
-                className="flex-1"
+                className="max-w-[100vh] flex-grow"
+                
               />
               <button
                 type="button"

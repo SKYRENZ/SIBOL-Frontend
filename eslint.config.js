@@ -3,6 +3,9 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import { defineConfig, globalIgnores } from 'eslint/config'
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import svgr from 'vite-plugin-svgr'
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -44,5 +47,11 @@ export default defineConfig([
       // allow module.exports in these files
       'no-undef': 'off',
     },
+  },
+
+  // Vite config
+  {
+    files: ['vite.config.js'],
+    plugins: [react(), svgr()],
   },
 ])
