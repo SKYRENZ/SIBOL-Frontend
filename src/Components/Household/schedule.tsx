@@ -37,7 +37,7 @@ const ScheduleTab: React.FC = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (updated: { maintenance: string; contact: number; area: string[]; date: string }) => {
+  const handleSaveEdit = async (updated: { maintenance: string; Account_id?: number; area: string[]; date: string }) => {
     const scheduleId = selectedRow?.Schedule_id ?? selectedRow?.schedule_id;
 
     // build name->id map from areaMap
