@@ -1,7 +1,7 @@
 import React from "react";
 import Table from "../common/Table";
 import * as scheduleService from '../../services/Schedule/scheduleService';
-import * as profileService from '../../services//profile/profileService';
+import * as profileService from '../../services/profile/profileService';
 import EditScheduleModal from "./editScheduleModal";
 import EditButton from "../editButton";
 import { useAreas, useSchedules } from "../../hooks/household/useScheduleHooks";
@@ -66,7 +66,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ filters = [] }) => {
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (updated: { maintenance: string; contact: number; area: string[]; date: string }) => {
+  const handleSaveEdit = async (updated: { maintenance: string; Account_id?: number; area: string[]; date: string }) => {
     const scheduleId = selectedRow?.Schedule_id ?? selectedRow?.schedule_id;
 
     const nameToId: Record<string, number> = {};
