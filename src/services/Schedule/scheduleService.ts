@@ -1,13 +1,11 @@
 import { fetchJson } from '../apiClient';
 
 export interface Schedule {
-  Schedule_id?: number;
+  Schedule_id: number;
   Account_id: number;
-  Collector?: string;
-  // Contact is stored/sent as local Philippine string with leading 0 (e.g. "09XXXXXXXXX")
-  Contact: string;
-  // area can be a single id, array of ids, or names (string) / array of names
-  Area: number | number[] | string | string[];
+  Collector: string;
+  Contact?: string;  // Make optional since backend fetches it
+  Area: string | number | string[] | number[];
   sched_stat_id: number;
   Date_of_collection: string;
 }

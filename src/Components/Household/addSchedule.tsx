@@ -3,7 +3,7 @@ import { CalendarDays } from "lucide-react";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
 import * as scheduleService from '../../services/Schedule/scheduleService';
-import * as profileService from '../../services//profile/profileService';
+
 import { useAreas, useOperators, useSchedules } from '../../hooks/household/useScheduleHooks';
 
 interface AddScheduleModalProps {
@@ -68,11 +68,6 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
         setSaving(false);
         return;
       }
-      // fetch profile contact from backend
-      const profile = await profileService.getProfileByAccountId(accountId);
-      const contactRaw = profile?.Contact ?? profile?.contact ?? '';
-      // no normalization/validation — send profile contact as-is (stringified)
-      const contactToSend = String(contactRaw);
 
       // Map selected area names -> numeric IDs when possible
       const nameToId = new Map<string, number>();
@@ -85,15 +80,17 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
 
       const payload: Omit<scheduleService.Schedule, 'Schedule_id'> = {
         Account_id: accountId,
-        Contact: contactToSend,
+        Collector: operators.find(op => String(op.Account_id) === formData.Account_id)?.Username || '',
+        Contact: '', // Backend will fetch from profile
         Area: areaForPayload,
         sched_stat_id: Number(formData.sched_stat_id),
         Date_of_collection: formData.Date_of_collection,
       };
 
-      const created = await scheduleService.createSchedule(payload);
+      // Send to backend
+      await scheduleService.createSchedule(payload);
 
-      // reload schedules so UI shows server-truth (and prevents mismatch)
+      // reload schedules so UI shows server-truth
       await reloadSchedules();
 
       onClose();
@@ -105,7 +102,6 @@ const AddScheduleModal: React.FC<AddScheduleModalProps> = ({
   };
 
   const operatorOptions = operators.map(op => ({ value: String(op.Account_id), label: op.Username }));
-  const areaOptions = areas.map(a => ({ value: String(a.Area_id), label: a.Area_Name }));
 
   return (
     <FormModal
