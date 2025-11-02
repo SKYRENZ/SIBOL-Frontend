@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
 import MaintenanceTable from '../Components/MaintenanceTable';
 import MaintenanceForm from '../Components/MaintenanceForm';
 import Tabs from '../Components/common/Tabs';
 import SearchBar from '../Components/common/SearchBar';
+import FilterPanel from '../Components/common/filterPanel';
 import '../types/Household.css';
 
 const MaintenancePage: React.FC = () => {
@@ -12,13 +13,14 @@ const MaintenancePage: React.FC = () => {
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [showRowModal, setShowRowModal] = useState(false);
   const [selectedRow, setSelectedRow] = useState<any>(null);
-  const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const [filterOptions] = useState({
-    status: ['On-going', 'Completed', 'Canceled'],
-    priority: ['Critical', 'Urgent', 'Mild'],
-    requestDate: ['Weekly', 'Monthly', 'Yearly']
-  });
+
+  useEffect(() => {
+    console.log("activeTab ->", activeTab);
+    // Reset filters when tab changes
+    setSelectedFilters([]);
+  }, [activeTab]);
+
   const tabsConfig = [
     { id: 'Request Maintenance', label: 'Request Maintenance' },
     { id: 'Pending Maintenance', label: 'Pending Maintenance' },
@@ -30,19 +32,24 @@ const MaintenancePage: React.FC = () => {
     setSelectedRow(row);
     setShowRowModal(true);
   };
-  const handleFilterToggle = (filter: string) => {
-    setSelectedFilters(prev => 
-      prev.includes(filter) 
-        ? prev.filter(f => f !== filter)
-        : [...prev, filter]
-    );
-  };
-  const removeFilter = (filter: string) => {
-    setSelectedFilters(prev => prev.filter(f => f !== filter));
-  };
+
   const handleSubmitRequest = (formData: any) => {
     console.log('Request submitted:', formData);
     setShowRequestForm(false);
+  };
+
+  // Determine filter types based on active tab
+  const getFilterTypesByTab = (tab: string): string[] => {
+    switch(tab) {
+      case 'Request Maintenance':
+        return ['maintenancePriorities'];
+      case 'Pending Maintenance':
+        return ['maintenancePriorities', 'maintenanceStatuses'];
+      case 'Complete Maintenance':
+        return ['maintenancePriorities', 'maintenanceStatuses'];
+      default:
+        return [];
+    }
   };
 
   const getPriorityColor = (priority: string) => {
@@ -55,7 +62,6 @@ const MaintenancePage: React.FC = () => {
     return option ? option.color : 'bg-gray-500';
   };
 
-
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -63,27 +69,8 @@ const MaintenancePage: React.FC = () => {
       <div className="w-full bg-white shadow-sm">
         <div style={{ height: '60px' }} aria-hidden />
         <div className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm">
-          <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
+          <div className="max-w-screen-2xl mx-auto">
             <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
-            <div className="flex items-center gap-3">
-              {activeTab === 'Request Maintenance' && (
-                <button 
-                  onClick={handleRequestForm} 
-                  className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
-                >
-                  Request Maintenance
-                </button>
-              )}
-              <button 
-                className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
-                onClick={() => setShowFilterModal(true)}
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                </svg>
-                <span>Filter by</span>
-              </button>
-            </div>
           </div>
         </div>
       </div>
@@ -91,10 +78,29 @@ const MaintenancePage: React.FC = () => {
       {/* Main Content */}
       <div className="w-full px-6 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          {/* Search Bar */}
-          <div className="mb-6 flex justify-center">
-            <div className="w-[70%]">
-              <SearchBar value={searchTerm} onChange={setSearchTerm} />
+          {/* Search Bar and Controls */}
+          <div className="flex items-center justify-between gap-4 mb-6">
+            <SearchBar 
+              value={searchTerm} 
+              onChange={setSearchTerm}
+              placeholder="Search maintenance..."
+              className="flex-grow max-w-md"
+            />
+            <div className="flex items-center gap-3">
+              {activeTab === 'Request Maintenance' && (
+                <button 
+                  onClick={handleRequestForm} 
+                  className="px-4 py-2 bg-[#355842] hover:bg-[#2e4a36] text-white rounded-md shadow-sm text-sm font-medium transition"
+                >
+                  Request Maintenance
+                </button>
+              )}
+              {getFilterTypesByTab(activeTab).length > 0 && (
+                <FilterPanel 
+                  types={getFilterTypesByTab(activeTab)}
+                  onFilterChange={setSelectedFilters}
+                />
+              )}
             </div>
           </div>
 
@@ -102,6 +108,7 @@ const MaintenancePage: React.FC = () => {
           <MaintenanceTable 
             activeTab={activeTab}
             searchTerm={searchTerm}
+            filters={selectedFilters}
             onRowClick={handleRowClick}
           />
         </div>
@@ -332,126 +339,12 @@ const MaintenancePage: React.FC = () => {
                     Renew Request
                   </button>
                   <button 
-                    className="px-6 py-2.5 text-white rounded-lg font-medium transition-all duration-200 text-sm bg-[#2E523A] hover:bg-[#3b6b4c] focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
+                    className="px-6 py-2.5 text-white rounded-lg font-medium transition-all duration-200 text-sm bg-[#355842] hover:bg-[#2e4a36] focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
                   >
                     Complete
                   </button>
                 </div>
               )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Modal */}
-      {showFilterModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-6 border w-96 max-w-md shadow-lg rounded-xl bg-white">
-            <div className="mt-2">
-              <div className="flex justify-between items-center mb-6">
-                <div className="flex items-center">
-                  <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: '#2E523A' }}>
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                  </svg>
-                  <h3 className="text-xl font-bold" style={{ color: '#2E523A' }}>Filter</h3>
-                </div>
-                <button
-                  onClick={() => setShowFilterModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Selected Filters Display */}
-              <div className="mb-6">
-                <div className="w-full px-3 py-3 border rounded-lg bg-white min-h-[50px] flex flex-wrap gap-2 items-center">
-                  {selectedFilters.length === 0 ? (
-                    <span className="text-gray-400">Select filters...</span>
-                  ) : (
-                    selectedFilters.map((filter) => (
-                      <span
-                        key={filter}
-                        className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-                        style={{ backgroundColor: '#AFC8AD', color: '#2E523A' }}
-                      >
-                        {filter}
-                        <button
-                          onClick={() => removeFilter(filter)}
-                          className="ml-2 w-4 h-4 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: '#2E523A' }}
-                        >
-                          <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              {/* Filter Categories */}
-              <div className="grid grid-cols-3 gap-6">
-                {/* Status */}
-                <div>
-                  <h4 className="text-sm font-bold mb-3" style={{ color: '#2E523A' }}>Status</h4>
-                  <div className="space-y-2">
-                    {filterOptions.status.map((option) => (
-                      <label key={option} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.includes(option)}
-                          onChange={() => handleFilterToggle(option)}
-                          className="w-4 h-4 mr-2 rounded border-2"
-                          style={{ accentColor: '#2E523A' }}
-                        />
-                        <span className="text-sm text-gray-700">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Priority */}
-                <div>
-                  <h4 className="text-sm font-bold mb-3" style={{ color: '#2E523A' }}>Priority</h4>
-                  <div className="space-y-2">
-                    {filterOptions.priority.map((option) => (
-                      <label key={option} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.includes(option)}
-                          onChange={() => handleFilterToggle(option)}
-                          className="w-4 h-4 mr-2 rounded border-2"
-                          style={{ accentColor: '#2E523A' }}
-                        />
-                        <span className="text-sm text-gray-700">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Request Date */}
-                <div>
-                  <h4 className="text-sm font-bold mb-3" style={{ color: '#2E523A' }}>Request date</h4>
-                  <div className="space-y-2">
-                    {filterOptions.requestDate.map((option) => (
-                      <label key={option} className="flex items-center">
-                        <input
-                          type="checkbox"
-                          checked={selectedFilters.includes(option)}
-                          onChange={() => handleFilterToggle(option)}
-                          className="w-4 h-4 mr-2 rounded border-2"
-                          style={{ accentColor: '#2E523A' }}
-                        />
-                        <span className="text-sm text-gray-700">{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         </div>
