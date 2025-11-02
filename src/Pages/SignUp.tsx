@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSignUp } from '../hooks/useSignUp';
+import { useSignUp } from '../hooks/signup/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchJson } from '../services/apiClient';
 
@@ -21,6 +21,8 @@ const SignUp: React.FC = () => {
     barangays, // NEW
     errors,
     isSSO,
+    touched,
+    validateField,
     
     // Assets
     signupImage,
@@ -75,7 +77,9 @@ const SignUp: React.FC = () => {
             <select
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="auth-input"
+              onBlur={() => validateField('role')}
+              className={`auth-input${errors.role ? ' is-error' : ''}`}
+              aria-invalid={Boolean(errors.role)}
             >
               <option value="">Select Role</option>
               <option value="1">Admin</option>
@@ -95,8 +99,10 @@ const SignUp: React.FC = () => {
                   type="text"
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
+                  onBlur={() => validateField('firstName')}
                   placeholder="First Name"
-                  className="auth-input"
+                  className={`auth-input${errors.firstName ? ' is-error' : ''}`}
+                  aria-invalid={Boolean(errors.firstName)}
                   style={isSSO && firstName ? { backgroundColor: '#f8f9fa', border: '2px solid #e3f2fd' } : {}}
                 />
                 {errors.firstName && <div className="auth-error">{errors.firstName}</div>}
@@ -110,8 +116,10 @@ const SignUp: React.FC = () => {
                   type="text"
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
+                  onBlur={() => validateField('lastName')}
                   placeholder="Last Name"
-                  className="auth-input"
+                  className={`auth-input${errors.lastName ? ' is-error' : ''}`}
+                  aria-invalid={Boolean(errors.lastName)}
                   style={isSSO && lastName ? { backgroundColor: '#f8f9fa', border: '2px solid #e3f2fd' } : {}}
                 />
                 {errors.lastName && <div className="auth-error">{errors.lastName}</div>}
@@ -127,8 +135,10 @@ const SignUp: React.FC = () => {
               type="email"
               value={email}
               onChange={(e) => !isSSO && setEmail(e.target.value)}
+              onBlur={() => validateField('email')}
               placeholder="Enter your email address"
-              className="auth-input"
+              className={`auth-input${errors.email ? ' is-error' : ''}`}
+              aria-invalid={Boolean(errors.email)}
               readOnly={isSSO}
               style={isSSO ? { 
                 backgroundColor: '#f1f8e9', 
@@ -143,7 +153,9 @@ const SignUp: React.FC = () => {
             <select
               value={barangay}
               onChange={(e) => setBarangay(e.target.value)}
-              className="auth-input"
+              onBlur={() => validateField('barangay')}
+              className={`auth-input${errors.barangay ? ' is-error' : ''}`}
+              aria-invalid={Boolean(errors.barangay)}
             >
               <option value="">Select Barangay</option>
               {barangays && barangays.map(b => (

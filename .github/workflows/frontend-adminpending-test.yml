@@ -1,0 +1,27 @@
+name: Frontend AdminPending Tests
+
+on:
+  push:
+    paths:
+      - 'src/Pages/AdminPending.tsx'
+      - 'src/test/AdminPending.test.tsx'
+      - 'src/hooks/**'
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install
+        run: npm ci
+
+      - name: Run AdminPending test
+        run: npm run test:unit -- src/test/AdminPending.test.tsx -- --run --reporter default

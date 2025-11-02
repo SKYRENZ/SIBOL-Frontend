@@ -1,19 +1,42 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { fetchJson } from '../services/apiClient';
+import { fetchJson } from '../../services/apiClient';
 
 export const useSignUp = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
   // State
-  const [role, setRole] = useState("");
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+  const [role, setRoleState] = useState("");
+  // setter that clears role error when user selects a value
+  const setRole = (v: string) => {
+    setRoleState(v);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (v) delete next.role;
+      return next;
+    });
+    setTouched(prev => ({ ...prev, role: true }));
+  };
+
+  const [firstName, setFirstNameState] = useState("");
+  const [lastName, setLastNameState] = useState("");
   const [email, setEmail] = useState("");
-  const [barangay, setBarangay] = useState("");
+  const [barangay, setBarangayState] = useState("");
+  // setter that clears barangay error when user selects a value
+  const setBarangay = (v: string) => {
+    setBarangayState(v);
+    setErrors(prev => {
+      const next = { ...prev };
+      if (v) delete next.barangay;
+      return next;
+    });
+    setTouched(prev => ({ ...prev, barangay: true }));
+  };
+
   const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]); // NEW
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [isSSO, setIsSSO] = useState(false);
   const [ssoMessage, setSsoMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,21 +44,57 @@ export const useSignUp = () => {
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
   // Assets
-  const signupImage = new URL("../assets/images/lilisignup.png", import.meta.url).href;
+  const signupImage = new URL("../../assets/images/lilisignup.png", import.meta.url).href;
+
+  // name filter + validation regex (allow letters, spaces, hyphen, apostrophe, period)
+  const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
+  const nameRegex = /^[A-Za-z\s.'-]+$/;
+
+  // Exposed setters that filter invalid characters
+  const setFirstName = (v: string) => setFirstNameState(nameFilter(v));
+  const setLastName = (v: string) => setLastNameState(nameFilter(v));
+
+  // Validate a single field on blur (updates errors state)
+  const validateField = (field: string) => {
+    const newErrors = { ...errors };
+    if (field === 'role') {
+      if (!role) newErrors.role = 'Role is required';
+      else delete newErrors.role;
+    }
+    if (field === 'firstName') {
+      if (!firstName.trim()) newErrors.firstName = 'First name is required';
+      else if (!nameRegex.test(firstName.trim())) newErrors.firstName = 'First name can only contain letters, spaces, hyphens, apostrophes and periods';
+      else delete newErrors.firstName;
+    }
+    if (field === 'lastName') {
+      if (!lastName.trim()) newErrors.lastName = 'Last name is required';
+      else if (!nameRegex.test(lastName.trim())) newErrors.lastName = 'Last name can only contain letters, spaces, hyphens, apostrophes and periods';
+      else delete newErrors.lastName;
+    }
+    if (field === 'email') {
+      if (!email.trim()) newErrors.email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Enter a valid email';
+      else delete newErrors.email;
+    }
+    if (field === 'barangay') {
+      if (!barangay.trim()) newErrors.barangay = 'Barangay is required';
+      else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) newErrors.barangay = 'Barangay must be a valid number';
+      else delete newErrors.barangay;
+    }
+    setErrors(newErrors);
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
 
   // Check for SSO redirect parameters
   useEffect(() => {
     const emailParam = searchParams.get('email');
     const ssoParam = searchParams.get('sso');
     const messageParam = searchParams.get('message');
-    const firstNameParam = searchParams.get('firstName');
-    const lastNameParam = searchParams.get('lastName');
+    // removed firstName/lastName auto-fill from SSO for privacy/UX
 
     console.log('📋 SSO params detected:', {
       email: emailParam,
       sso: ssoParam,
-      firstName: firstNameParam,
-      lastName: lastNameParam,
       message: messageParam
     });
 
@@ -43,8 +102,6 @@ export const useSignUp = () => {
       setEmail(emailParam);
       setIsSSO(true);
       setSsoMessage(messageParam || 'Complete your registration to continue with Google Sign-In');
-      if (firstNameParam) setFirstName(firstNameParam);
-      if (lastNameParam) setLastName(lastNameParam);
     }
   }, [searchParams]);
 
@@ -69,11 +126,17 @@ export const useSignUp = () => {
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!role) newErrors.role = "Role is required";
+
     if (!firstName.trim()) newErrors.firstName = "First name is required";
+    else if (!nameRegex.test(firstName.trim())) newErrors.firstName = "First name can only contain letters, spaces, hyphens, apostrophes and periods";
+
     if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    else if (!nameRegex.test(lastName.trim())) newErrors.lastName = "Last name can only contain letters, spaces, hyphens, apostrophes and periods";
+
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       newErrors.email = "Enter a valid email";
+
     if (!barangay.trim()) newErrors.barangay = "Barangay is required";
     else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) {
       newErrors.barangay = "Barangay must be a valid number";
@@ -138,20 +201,26 @@ export const useSignUp = () => {
       if (data.success) {
         setPendingEmail(null);
         if (isSSO) {
-          // Always redirect SSO to /pending-approval
           navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(data.username)}`);
         } else {
           navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
         }
       } else {
+        // in case backend returns 200 with success:false
         const msg = data?.message || data?.error || 'Registration failed';
         setServerError(msg);
         if (data?.email) setPendingEmail(data.email);
         else if (data?.pendingEmail) setPendingEmail(data.pendingEmail);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('❌ Signup request failed:', err);
-      setServerError('Network error');
+      // Prefer server-provided message (err.data), then Error.message
+      const msg = err?.data?.error || err?.data?.message || err?.message || 'Network error';
+      setServerError(msg);
+
+      // if backend returned structured data with pending email, set it
+      if (err?.data?.email) setPendingEmail(err.data.email);
+      else if (err?.data?.pendingEmail) setPendingEmail(err.data?.pendingEmail);
     } finally {
       setLoading(false);
     }
@@ -167,9 +236,9 @@ export const useSignUp = () => {
     role,
     setRole,
     firstName,
-    setFirstName,
+    setFirstName, // now filtered
     lastName,
-    setLastName,
+    setLastName,  // now filtered
     email,
     setEmail,
     barangay,
@@ -181,6 +250,9 @@ export const useSignUp = () => {
     loading,
     serverError,
     pendingEmail,
+    touched,
+    setTouched,
+    validateField,
 
     // Assets
     signupImage,
