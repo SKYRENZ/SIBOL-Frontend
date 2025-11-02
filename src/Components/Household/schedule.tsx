@@ -52,20 +52,31 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ filters = [] }) => {
   }, [filters, schedules, scheduleStatusMap]);
 
   const handleEditClick = (row: any) => {
+    // Parse area: handle comma-separated string, single number, or array
+    let areaArray: string[] = [];
+    
+    if (typeof row.Area === 'string' && row.Area.includes(',')) {
+      // "jocson, Villa Imelda" -> ["jocson", "Villa Imelda"]
+      areaArray = row.Area.split(',').map((a: string) => a.trim());
+    } else if (Array.isArray(row.Area)) {
+      areaArray = row.Area;
+    } else if (row.Area) {
+      areaArray = [String(row.Area)];
+    }
+
     const initialData = {
       Schedule_id: row.Schedule_id ?? row.schedule_id ?? undefined,
       maintenance: row.Collector ?? row.Maintenance ?? row.maintenance ?? row.Username ?? '',
       contact: String(row.Contact ?? row.collector_contact ?? row.Contact_of_Maintenance ?? ''),
-      area: Array.isArray(row.Area)
-        ? row.Area.map((a: any) => areaMap[a] ?? String(a))
-        : (row.AreaName ? [row.AreaName] : (row.Area ? [ (areaMap[row.Area] ?? String(row.Area)) ] : [])),
+      area: areaArray,
       date: row.Date_of_collection ? new Date(row.Date_of_collection).toISOString().split('T')[0] : '',
     };
+    
     setSelectedRow(initialData);
     setIsEditModalOpen(true);
   };
 
-  const handleSaveEdit = async (updated: { maintenance: string; contact: string; area: string[]; date: string }) => {
+  const handleSaveEdit = async (updated: { maintenance: string; Account_id?: number; area: string[]; date: string; contact?: string }) => {
     const scheduleId = selectedRow?.Schedule_id ?? selectedRow?.schedule_id;
 
     const nameToId: Record<string, number> = {};
@@ -86,10 +97,10 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ filters = [] }) => {
           return {
             ...s,
             Collector: updated.maintenance,
-            Contact: String(updated.contact),
+            Contact: updated.contact ?? s.Contact ?? '',
             Area: areaPayloadForUI,
             Date_of_collection: updated.date,
-          } as scheduleService.Schedule;
+          };
         }
         return s;
       })
@@ -104,11 +115,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ filters = [] }) => {
       }
 
       const original = schedules.find(s => s.Schedule_id === scheduleId);
-      const normalizedContact = updated.contact ?? original?.Contact;
-      const unknownAreas = updated.area.filter(name => nameToId[name] === undefined);
-      if (unknownAreas.length > 0) {
-        console.warn('Some areas were not found in area list and will not be sent as IDs:', unknownAreas);
-      }
+      let normalizedContact = updated.contact ?? original?.Contact ?? '';
 
       let backendAreaPayload: number | string | string[] | number[] = original?.Area ?? updated.area;
       if (mappedIds.length === 1) {
@@ -120,7 +127,7 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ filters = [] }) => {
       const payload: any = {
         ...(original?.Account_id !== undefined ? { Account_id: original.Account_id } : {}),
         Collector: updated.maintenance,
-        Contact: String(normalizedContact),
+        Contact: normalizedContact,
         Area: backendAreaPayload,
         ...(original?.sched_stat_id !== undefined ? { sched_stat_id: original.sched_stat_id } : {}),
         Date_of_collection: updated.date,
@@ -138,17 +145,27 @@ const ScheduleTab: React.FC<ScheduleTabProps> = ({ filters = [] }) => {
   };
 
   const renderAreaCell = (row: any) => {
+    // Handle comma-separated area IDs (e.g., "1,68")
+    if (typeof row.Area === 'string' && row.Area.includes(',')) {
+      return row.Area.split(',')
+        .map((id: string) => areaMap[id.trim()] ?? id.trim())
+        .join(', ');
+    }
+    
     if (Array.isArray(row.Area)) {
       return row.Area.map((a: any) => areaMap[a] ?? String(a)).join(', ');
     }
+    
     if (row.AreaName) return row.AreaName;
+    
     const id = row.Area ?? row.Area_id ?? row.AreaId;
     if (id === undefined || id === null || id === '') return '';
+    
     return areaMap[id] ?? String(id);
   };
 
   const columns = [
-    { key: 'Collector', label: 'Maintenance Person' },
+    { key: 'Collector', label: 'Collector Name' },
     { 
       key: 'Area', 
       label: 'Area',

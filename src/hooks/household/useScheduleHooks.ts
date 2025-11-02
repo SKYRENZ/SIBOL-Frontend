@@ -3,6 +3,7 @@ import * as scheduleService from "../../services/Schedule/scheduleService";
 import * as areaService from "../../services/Schedule/areaService";
 import * as operatorService from "../../services/Schedule/operatorService";
 
+
 export function useAreas() {
   const [areas, setAreas] = useState<areaService.Area[]>([]);
   const [idToName, setIdToName] = useState<Record<string, string>>({});
@@ -27,7 +28,6 @@ export function useAreas() {
 
   useEffect(() => { load(); }, []);
 
-  // convenience map typed as number -> name too
   const areaMap: Record<number | string, string> = {};
   Object.entries(idToName).forEach(([k, v]) => { areaMap[Number(k)] = v; areaMap[k] = v; });
 
@@ -39,28 +39,46 @@ export function useSchedules() {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const normalizeToLocal09 = (input: any): string => {
-    const digits = String(input ?? '').replace(/\D/g, '');
-    if (digits.length === 12 && digits.startsWith('63')) return '0' + digits.slice(2); // 639xxxxxxxxx -> 09xxxxxxxxx
-    if (digits.length === 11 && digits.startsWith('09')) return digits; // already local
-    if (digits.length === 10 && digits.startsWith('9')) return '0' + digits; // 9xxxxxxxxx -> 09xxxxxxxxx
-    // fallback: return raw digits (keeps existing value so you can spot bad data)
-    return digits;
-  };
-
   const load = async () => {
     setLoading(true);
     setError(null);
     try {
+      // First load areas to get the mapping
+      const areaList = await areaService.getAllAreas();
+      const areaMap: Record<number | string, string> = {};
+      areaList.forEach(a => { 
+        areaMap[a.Area_id] = a.Area_Name; 
+        areaMap[String(a.Area_id)] = a.Area_Name;
+      });
+
       const data = await scheduleService.getAllSchedules();
-      // normalize Contact to local '09xxxxxxxxx' string to keep UI consistent
-      const normalized = (data ?? []).map((s: any) => ({
-        ...s,
-        Contact: normalizeToLocal09(s?.Contact),
-      }));
-      setSchedules(normalized);
+      
+      // Map area IDs to names
+      const enriched = (data ?? []).map((schedule: any) => {
+        let mappedArea: any = schedule.Area;
+        
+        if (typeof schedule.Area === 'number') {
+          mappedArea = areaMap[schedule.Area] ?? String(schedule.Area);
+        } else if (typeof schedule.Area === 'string' && schedule.Area.includes(',')) {
+          mappedArea = schedule.Area.split(',')
+            .map((id: string) => areaMap[id.trim()] ?? id.trim())
+            .join(', ');
+        } else if (Array.isArray(schedule.Area)) {
+          mappedArea = schedule.Area
+            .map((id: any) => areaMap[id] ?? String(id))
+            .join(', ');
+        }
+        
+        return {
+          ...schedule,
+          Area: mappedArea,
+        };
+      });
+      
+      setSchedules(enriched);
     } catch (err: any) {
       setError(err?.message ?? "Failed to load schedules");
+      setSchedules([]);
     } finally {
       setLoading(false);
     }
@@ -71,7 +89,6 @@ export function useSchedules() {
   return { schedules, setSchedules, loading, error, reload: load };
 }
 
-// NEW: hook to fetch operators (used by AddSchedule modal)
 export function useOperators() {
   const [operators, setOperators] = useState<operatorService.Operator[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
@@ -108,8 +125,21 @@ export function useEditScheduleForm(initialData: any, idToName: Record<string, s
       setFormData({ maintenance: "", contact: "", area: [], date: "" });
       return;
     }
-    const incomingAreas = Array.isArray(initialData.area) ? initialData.area : (initialData.area ? [initialData.area] : []);
-    const mapped = incomingAreas.map((a: any) => idToName[String(a)] ?? String(a));
+    
+    // Handle area as comma-separated string or array
+    let incomingAreas: string[] = [];
+    if (Array.isArray(initialData.area)) {
+      incomingAreas = initialData.area;
+    } else if (typeof initialData.area === 'string') {
+      // Split by comma and trim whitespace
+      incomingAreas = initialData.area.split(',').map((a: string) => a.trim()).filter((a: string) => a);
+    } else if (initialData.area) {
+      incomingAreas = [String(initialData.area)];
+    }
+    
+    // Map IDs to names if needed
+    const mapped = incomingAreas.map((a: any) => idToName[String(a)] ?? a);
+    
     setFormData({
       maintenance: initialData.maintenance ?? "",
       contact: initialData.contact ?? "",
