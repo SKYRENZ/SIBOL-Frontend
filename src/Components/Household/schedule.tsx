@@ -1,7 +1,7 @@
 import React from "react";
 import Table from "../common/Table";
 import * as scheduleService from '../../services/Schedule/scheduleService';
-import * as profileService from '../../services//profile/profileService';
+import * as profileService from '../../services/profile/profileService';
 import EditScheduleModal from "./editScheduleModal";
 import EditButton from "../editButton";
 import { useAreas, useSchedules } from "../../hooks/household/useScheduleHooks";
