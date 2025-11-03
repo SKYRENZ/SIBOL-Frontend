@@ -18,13 +18,12 @@ const WasteCollectionTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedWaste, setSelectedWaste] = useState<WasteData | null>(null);
 
-  // 🗑️ Placeholder data (will come from backend later)
   const wasteData: WasteData[] = [
     {
       id: 1,
       name: "Laurenz Listangco",
       weight: 20.5,
-      area: "Area 1",
+      area: " 1",
       date: "Oct 29, 2025",
       time: "11:50 AM",
       images: [
@@ -32,18 +31,18 @@ const WasteCollectionTab: React.FC = () => {
         "https://placehold.co/300x200?text=Waste+2",
       ],
       history: [
-        { date: "Oct 22, 2025", weight: "18.2kg", area: "Area 1" },
-        { date: "Oct 15, 2025", weight: "17.8kg", area: "Area 1" },
-        { date: "Oct 08, 2025", weight: "20.0kg", area: "Area 1" },
-        { date: "Oct 01, 2025", weight: "19.3kg", area: "Area 1" },
-        { date: "Sep 24, 2025", weight: "18.5kg", area: "Area 1" },
+        { date: "Oct 22, 2025", weight: "18.2kg", area: " 1" },
+        { date: "Oct 15, 2025", weight: "17.8kg", area: " 1" },
+        { date: "Oct 08, 2025", weight: "20.0kg", area: " 1" },
+        { date: "Oct 01, 2025", weight: "19.3kg", area: " 1" },
+        { date: "Sep 24, 2025", weight: "18.5kg", area: " 1" },
       ],
     },
     {
       id: 2,
       name: "Karl Miranda",
       weight: 29.8,
-      area: "Area 2",
+      area: " 2",
       date: "Oct 29, 2025",
       time: "01:50 AM",
       images: [
@@ -51,16 +50,15 @@ const WasteCollectionTab: React.FC = () => {
         "https://placehold.co/300x200?text=Waste+4",
       ],
       history: [
-        { date: "Oct 22, 2025", weight: "25.6kg", area: "Area 2" },
-        { date: "Oct 15, 2025", weight: "26.0kg", area: "Area 2" },
-        { date: "Oct 08, 2025", weight: "27.3kg", area: "Area 2" },
-        { date: "Oct 01, 2025", weight: "28.5kg", area: "Area 2" },
-        { date: "Sep 24, 2025", weight: "24.9kg", area: "Area 2" },
+        { date: "Oct 22, 2025", weight: "25.6kg", area: " 2" },
+        { date: "Oct 15, 2025", weight: "26.0kg", area: " 2" },
+        { date: "Oct 08, 2025", weight: "27.3kg", area: " 2" },
+        { date: "Oct 01, 2025", weight: "28.5kg", area: " 2" },
+        { date: "Sep 24, 2025", weight: "24.9kg", area: " 2" },
       ],
     },
   ];
 
-  // ✅ Filter search
   const filteredData = wasteData.filter((item) =>
     [item.name, item.area, item.date, item.time]
       .join(" ")
@@ -70,28 +68,32 @@ const WasteCollectionTab: React.FC = () => {
 
   return (
     <div className="mt-4">
-      {/* 🔍 Search Bar + Filter */}
-      <div className="flex justify-between items-center mb-6 gap-4">
-        <SearchBar
-          value={searchTerm}
-          onChange={setSearchTerm}
-          placeholder="Search"
-          className="max-w-[100vh] flex-grow"
-        />
-        <FilterPanel />
+
+     {/* Search Bar + Filter (responsive) */}
+      <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center mb-6 gap-4">
+        <div className="w-full sm:max-w-[400px]">
+          <SearchBar
+            value={searchTerm}
+            onChange={setSearchTerm}
+            placeholder="Search"
+            className="w-full"
+          />
+        </div>
+        <div className="flex justify-end">
+          <FilterPanel />
+        </div>
       </div>
 
-      {/* ♻️ Waste Collection Cards */}
+      {/* Waste Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredData.map((item) => (
           <div
             key={item.id}
             onClick={() => setSelectedWaste(item)}
-            className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex justify-between items-start cursor-pointer hover:shadow-md transition"
+            className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 flex flex-col sm:flex-row justify-between items-start cursor-pointer hover:shadow-md transition gap-4"
           >
-            {/* Left Section — Avatar, Info, Progress */}
-            <div>
-              <div className="flex items-center gap-3 mb-2">
+            <div className="flex flex-row sm:flex-col justify-between items-start gap-2 w-full">
+              <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full border-2 border-[#355842] flex items-center justify-center text-[#355842] font-semibold">
                   {item.name
                     .split(" ")
@@ -108,8 +110,8 @@ const WasteCollectionTab: React.FC = () => {
                 </div>
               </div>
 
-              {/* Progress Bar */}
-              <div className="w-[160px] h-3 bg-gray-100 rounded-full overflow-hidden mt-2">
+              {/* Progress */}
+              <div className="w-full sm:w-[160px] h-3 bg-gray-100 rounded-full overflow-hidden mt-2">
                 <div
                   className="h-full bg-[#355842] rounded-full transition-all"
                   style={{
@@ -119,8 +121,8 @@ const WasteCollectionTab: React.FC = () => {
               </div>
             </div>
 
-            {/* Right Section — Date, Time, and Area */}
-            <div className="text-right text-[#355842]/90 text-sm flex flex-col items-end justify-between h-full">
+            {/* Right */}
+            <div className="text-right text-[#355842]/90 text-sm flex flex-col sm:items-end justify-between">
               <div>
                 <p className="font-medium">{item.date}</p>
                 <p className="text-xs mt-1 text-[#355842]/70">{item.time}</p>
@@ -130,7 +132,6 @@ const WasteCollectionTab: React.FC = () => {
           </div>
         ))}
 
-        {/* Empty State */}
         {filteredData.length === 0 && (
           <p className="col-span-full text-center text-gray-500 italic py-10">
             No waste collection data found.
@@ -139,109 +140,88 @@ const WasteCollectionTab: React.FC = () => {
       </div>
 
       {/* Modal */}
-{selectedWaste && (
-  <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
-    <div className="bg-white rounded-3xl shadow-xl w-full max-w-lg p-8 relative overflow-hidden">
-      {/* Inner scroll container */}
-      <div className="overflow-y-auto max-h-[85vh] scrollbar-thin scrollbar-thumb-[#AFC8AD] scrollbar-track-gray-100 scrollbar-thumb-rounded-full rounded-3xl">
-        
-        {/* Close Button */}
-        <button
-          onClick={() => setSelectedWaste(null)}
-          className="absolute top-5 right-5 text-gray-500 hover:text-gray-700 transition bg-gray-100 rounded-full p-1"
-        >
-          <X size={18} />
-        </button>
+  {selectedWaste && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      {/* Modal Container */}
+      <div className="relative w-[90%] sm:w-[80%] md:w-[60%] lg:w-[40%] max-h-[85vh] bg-white rounded-3xl shadow-xl flex flex-col overflow-hidden p-2 sm:p-4">
 
-        {/* Modal Header */}
-        <h2 className="text-xl font-semibold text-[#355842] mb-5">
-          Waste Collection Details
-        </h2>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-6 sm:px-8 sm:py-8 scrollbar-thin scrollbar-thumb-[#AFC8AD] scrollbar-track-gray-100 scrollbar-thumb-rounded-full rounded-2xl">
 
-        {/* Info Section */}
-        <div className="space-y-2 text-[#355842]/90 text-sm">
-          <p>
-            <span className="font-semibold">Collector:</span>{" "}
-            {selectedWaste.name}
-          </p>
-          <p>
-            <span className="font-semibold">Collected Weight:</span>{" "}
-            {selectedWaste.weight} kg
-          </p>
-          <p>
-            <span className="font-semibold">Area:</span>{" "}
-            {selectedWaste.area}
-          </p>
-          <p>
-            <span className="font-semibold">Date:</span>{" "}
-            {selectedWaste.date}
-          </p>
-          <p>
-            <span className="font-semibold">Time:</span>{" "}
-            {selectedWaste.time}
-          </p>
-        </div>
+          {/* Close Button */}
+          <button
+            onClick={() => setSelectedWaste(null)}
+            className="absolute top-5 right-5 text-gray-600 hover:text-gray-800 bg-gray-100 rounded-full p-2 transition"
+          >
+            <X size={18} />
+          </button>
 
-        {/* Images Section */}
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold text-[#355842] mb-2">
-            Uploaded Images
-          </h3>
-          <div className="grid grid-cols-2 gap-3">
-            {selectedWaste.images.map((src, index) => (
-              <div
-                key={index}
-                className="w-full h-32 bg-gray-100 rounded-2xl overflow-hidden border border-gray-200"
-              >
-                <img
-                  src={src}
-                  alt={`Waste ${index + 1}`}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
+          {/* Header */}
+          <h2 className="text-xl sm:text-2xl font-bold text-[#2b4632] mb-6 text-center tracking-wide">
+            Waste Collection Details
+          </h2>
+
+          {/* Info Section */}
+          <div className="space-y-3 text-[#355842]/90 text-sm sm:text-base leading-relaxed">
+            <p>
+              <span className="font-semibold">Collector:</span> {selectedWaste.name}
+            </p>
+            <p>
+              <span className="font-semibold">Collected Weight:</span> {selectedWaste.weight} kg
+            </p>
+            <p>
+              <span className="font-semibold">Area:</span>{" "}
+              <span className="font-bold text-[#355842]">{selectedWaste.area}</span>
+            </p>
           </div>
-        </div>
 
-        {/* logs */}
-        <div className="mt-6">
-          <h3 className="text-sm font-semibold text-[#355842] mb-2 flex items-center gap-2">
-            <Clock size={16} /> Area Collection History
-          </h3>
-          <div className="border border-gray-200 rounded-2xl p-3 max-h-48 overflow-y-auto bg-gray-50/30 scrollbar-thin scrollbar-thumb-[#AFC8AD] scrollbar-track-gray-100 scrollbar-thumb-rounded-full">
-            {selectedWaste.areaHistory && selectedWaste.areaHistory.length > 0 ? (
-              selectedWaste.areaHistory.map((record, i) => (
+          {/* Uploaded Images */}
+          <div className="mt-6">
+            <h3 className="text-sm font-semibold text-[#355842] mb-3">Uploaded Images</h3>
+            <div className="grid grid-cols-2 gap-4">
+              {selectedWaste.images?.map((src, index) => (
+                <div
+                  key={index}
+                  className="w-full h-28 sm:h-32 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shadow-sm"
+                >
+                  <img src={src} alt={`Waste ${index + 1}`} className="w-full h-full object-cover" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Collection History */}
+          <div className="mt-8">
+            <h3 className="text-sm font-semibold text-[#355842] mb-3 flex items-center gap-2">
+              <Clock size={16} /> Collection History
+            </h3>
+            <div className="border border-gray-200 rounded-lg p-3 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-[#AFC8AD] scrollbar-track-gray-100 scrollbar-thumb-rounded-full">
+              {selectedWaste.history.map((record, i) => (
                 <div
                   key={i}
-                  className="flex justify-between text-sm text-[#355842]/90 py-1 border-b border-gray-100 last:border-0"
+                  className="flex justify-between text-sm text-[#355842]/90 py-2 border-b border-gray-100 last:border-0"
                 >
                   <span>{record.date}</span>
                   <span className="font-medium">{record.weight}</span>
-                  <span className="font-semibold">{record.collector}</span>
+                  <span className="font-semibold">{record.area}</span>
                 </div>
-              ))
-            ) : (
-              <p className="text-center text-gray-500 text-sm italic">
-                No previous records for this area.
-              </p>
-            )}
+              ))}
+            </div>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="mt-6 text-right">
+        <div className="px-6 py-4 border-t bg-white mt-2 flex justify-end">
           <button
             onClick={() => setSelectedWaste(null)}
-            className="px-5 py-2 bg-[#355842] text-white rounded-full hover:bg-[#2e4a36] transition"
+            className="px-5 py-2 bg-[#355842] text-white rounded-full hover:bg-[#2e4a36] transition text-sm sm:text-base"
           >
             Close
           </button>
         </div>
       </div>
     </div>
-  </div>
-)}
-
+  )}
     </div>
   );
 };
