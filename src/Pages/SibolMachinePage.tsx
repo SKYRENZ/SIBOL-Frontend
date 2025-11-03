@@ -372,10 +372,10 @@ const SibolMachinePage: React.FC = () => {
         { key: 'chemicalInput', label: 'Chemical Input' },
         { key: 'stage', label: 'Stage' },
         { key: 'value', label: 'Value' },
-        { key: 'units', label: 'Units' },
+        { key: 'units', label: 'Units', hideMobile: true },
         { key: 'date', label: 'Date' },
-        { key: 'time', label: 'Time' },
-        { key: 'personInCharge', label: 'Person in Charge' }
+        { key: 'time', label: 'Time', hideMobile: true, hideTablet: true },
+        { key: 'personInCharge', label: 'Person in Charge', hideMobile: true }
       ];
       
       // Paginate chemical additives data
@@ -414,7 +414,8 @@ const SibolMachinePage: React.FC = () => {
         { 
           key: 'Area_Name', 
           label: 'Area',
-          render: (value: string | undefined, row: Machine) => value || `Area ${row.Area_id}`
+          render: (value: string | undefined, row: Machine) => value || `Area ${row.Area_id}`,
+          hideMobile: true
         },
         { 
           key: 'status_name', 
@@ -425,7 +426,8 @@ const SibolMachinePage: React.FC = () => {
             }`}>
               {value || 'No Status'}
             </span>
-          )
+          ),
+          hideMobile: true
         },
         { 
           key: 'machine_id', 
@@ -436,7 +438,7 @@ const SibolMachinePage: React.FC = () => {
                 e.stopPropagation();
                 handleEditMachine(row);
               }}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 focus:outline-none"
+              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-medium transition-all duration-200 focus:outline-none"
             >
               Edit
             </button>
@@ -486,7 +488,7 @@ const SibolMachinePage: React.FC = () => {
         { key: 'wasteContainerNo', label: 'Waste Container No' },
         { key: 'area', label: 'Area' },
         { key: 'status', label: 'Status' },
-        { key: 'startDate', label: 'Start Date' }
+        { key: 'startDate', label: 'Start Date', hideMobile: true }
       ];
       
       // Paginate waste container data
@@ -520,21 +522,23 @@ const SibolMachinePage: React.FC = () => {
       <div className="w-full bg-white shadow-sm">
         <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
         <div
-          className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm"
+          className="subheader sticky top-[60px] z-30 w-full bg-white px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 shadow-sm"
           style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
         >
-          <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-            {/* Tabs */}
-            <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
+          <div className="max-w-screen-2xl mx-auto flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
+            {/* Tabs - with relative positioning for dropdown overlay */}
+            <div className="relative">
+              <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
+            </div>
 
-            {/* Right side buttons */}
-            <div className="flex items-center space-x-3">
+            {/* Right side buttons - always horizontal */}
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0 ml-auto">
               {activeTab !== 'Machines' && (
-                <div className="relative">
+                <div className="relative flex-shrink-0">
                   <select
                     value={selectedMachine}
                     onChange={(e) => setSelectedMachine(e.target.value)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 appearance-none pr-8 cursor-pointer bg-white border border-gray-200"
+                    className="px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors duration-200 appearance-none pr-6 sm:pr-8 cursor-pointer bg-white border border-gray-200 whitespace-nowrap"
                   >
                     {sibolMachines.slice(0, 100).map((machine) => (
                       <option key={machine} value={machine} className="bg-white text-gray-900">
@@ -542,17 +546,17 @@ const SibolMachinePage: React.FC = () => {
                       </option>
                     ))}
                   </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="absolute inset-y-0 right-0 flex items-center pr-1 sm:pr-2 pointer-events-none">
+                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </div>
                 </div>
               )}
 
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
-                 <span>Filter by</span>
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="flex items-center justify-center gap-1 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 flex-shrink-0 whitespace-nowrap">
+                 <span className="hidden sm:inline">Filter by</span>
+                 <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                  </svg>
                </button>
@@ -562,29 +566,29 @@ const SibolMachinePage: React.FC = () => {
       </div>
 
       {/* Main Content */}
-      <div className="w-full px-6 py-8">
+      <div className="w-full px-2 sm:px-4 md:px-6 py-4 sm:py-6 md:py-8">
         <div className="max-w-screen-2xl mx-auto">
           {/* Search Bar and Action Buttons */}
-          <div className="mb-6 flex items-center justify-between gap-6">
-            <div className="w-3/5">
+          <div className="mb-4 sm:mb-6 flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
+            <div className="min-w-0 flex-1 max-w-xs sm:max-w-sm md:max-w-md">
               <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm}
               />
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex space-x-3">
+            {/* Action Buttons - always horizontal */}
+            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 flex-shrink-0">
             <button 
               onClick={openAddForm}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
+              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 whitespace-nowrap"
             >
               {activeTab === 'Chemical Additives' ? 'Add Chemical' : 'Add Machine'}
             </button>
             {activeTab !== 'Machines' && (
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
-                 <span>Filter by</span>
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="flex items-center justify-center gap-1 px-1.5 sm:px-2 md:px-3 py-1.5 sm:py-2 border border-gray-300 rounded-lg text-xs sm:text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 flex-shrink-0">
+                 <span className="hidden sm:inline">Filter</span>
+                 <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                  </svg>
                </button>
@@ -682,7 +686,7 @@ const SibolMachinePage: React.FC = () => {
               label="Status"
               name="status"
               type="select"
-              value={formData.status}
+              value={formData.status || ''}
               onChange={(e) => updateFormField('status', e.target.value)}
               options={[
                 { value: '', label: 'No Status' },
