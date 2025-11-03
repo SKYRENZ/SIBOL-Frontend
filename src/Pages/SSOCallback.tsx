@@ -13,10 +13,29 @@ const SSOCallback: React.FC = () => {
         const auth = searchParams.get('auth');
         const errorParam = searchParams.get('error');
         const errorMessage = searchParams.get('message');
+        const sso = searchParams.get('sso');
+        const email = searchParams.get('email');
+        const username = searchParams.get('username');
+        const firstName = searchParams.get('firstName');
+        const lastName = searchParams.get('lastName');
+
+        console.log('🔍 SSOCallback params:', {
+          token: !!token,
+          user: !!user,
+          auth,
+          errorParam,
+          message: errorMessage,
+          sso,
+          email,
+          username,
+          firstName,
+          lastName
+        });
 
         // Check if this is a popup window
         const isPopup = window.opener && !window.opener.closed;
 
+        // Handle authentication failure
         if (auth === 'fail' || errorParam) {
           const error = errorMessage || errorParam || 'Authentication failed';
           setMessage(error);
@@ -31,6 +50,7 @@ const SSOCallback: React.FC = () => {
           return;
         }
 
+        // Handle successful authentication with token
         if (token && user) {
           try {
             const parsedUser = JSON.parse(decodeURIComponent(user));
@@ -58,26 +78,62 @@ const SSOCallback: React.FC = () => {
           return;
         }
 
-        // Handle other cases (signup needed, verification needed, etc.)
-        const sso = searchParams.get('sso');
-        const email = searchParams.get('email');
-        
+        // Handle admin pending (check message parameter first)
+        if (errorMessage === 'admin_pending' && email) {
+          console.log('⏳ Admin pending - redirecting to pending-approval');
+          const pendingUrl = `/pending-approval?email=${encodeURIComponent(email)}${
+            sso ? '&sso=true' : ''
+          }${username ? `&username=${encodeURIComponent(username)}` : ''}`;
+          
+          setMessage('Account pending approval...');
+          
+          if (isPopup) {
+            window.opener.location.href = pendingUrl;
+            setTimeout(() => window.close(), 500);
+          } else {
+            window.location.href = pendingUrl;
+          }
+          return;
+        }
+
+        // Handle email verification needed
+        if (errorMessage === 'email_pending' && email) {
+          console.log('📧 Email verification needed');
+          const verifyUrl = `/email-verification?email=${encodeURIComponent(email)}${
+            username ? `&username=${encodeURIComponent(username)}` : ''
+          }`;
+          
+          setMessage('Email verification required...');
+          
+          if (isPopup) {
+            window.opener.location.href = verifyUrl;
+            setTimeout(() => window.close(), 500);
+          } else {
+            window.location.href = verifyUrl;
+          }
+          return;
+        }
+
+        // Handle SSO signup flow (no account exists)
         if (sso === 'google' && email) {
-          const firstName = searchParams.get('firstName');
-          const lastName = searchParams.get('lastName');
+          console.log('📝 SSO Signup flow - redirecting to signup');
           const signupUrl = `/signup?sso=google&email=${encodeURIComponent(email)}${
             firstName ? `&firstName=${encodeURIComponent(firstName)}` : ''
           }${lastName ? `&lastName=${encodeURIComponent(lastName)}` : ''}`;
           
+          setMessage('Redirecting to signup...');
+          
           if (isPopup) {
             window.opener.location.href = signupUrl;
-            window.close();
+            setTimeout(() => window.close(), 500);
           } else {
             window.location.href = signupUrl;
           }
           return;
         }
 
+        // No valid params - redirect to login
+        console.log('⚠️ No valid SSO params - Redirecting to login');
         setMessage('Redirecting to login...');
         setTimeout(() => {
           if (isPopup) {
