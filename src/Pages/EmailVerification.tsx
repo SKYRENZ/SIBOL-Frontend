@@ -46,6 +46,7 @@ const EmailVerification: React.FC = () => {
     isResending,
     countdown,
     resendCooldown,
+    resendMessage,
     topLogo,
     leftBg,
     leftLogo,
@@ -111,13 +112,30 @@ const EmailVerification: React.FC = () => {
             
             {email && (
               <StatusCard type="info" title="Need a new verification email?">
+                {resendMessage && (
+                  <div className={`mb-3 p-3 rounded-lg text-sm ${
+                    resendMessage.includes('error') || resendMessage.includes('Network')
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    {resendMessage}
+                  </div>
+                )}
                 <ActionButton
                   onClick={handleResendEmail}
                   loading={isResending}
                   fullWidth
+                  disabled={isResending || (resendCooldown ?? 0) > 0}
                 >
-                  Resend Verification Email
+                  {isResending ? 'Sending...' : 'Resend Verification Email'}
                 </ActionButton>
+                {resendCooldown > 0 && (
+                  <div className="text-center mt-2">
+                    <span className="text-sm text-gray-600">
+                      Resend available in {formatSeconds(resendCooldown)}
+                    </span>
+                  </div>
+                )}
               </StatusCard>
             )}
             
@@ -155,6 +173,15 @@ const EmailVerification: React.FC = () => {
             
             {email && (
               <StatusCard type="info" title="Didn't receive the email?">
+                {resendMessage && (
+                  <div className={`mb-3 p-3 rounded-lg text-sm ${
+                    resendMessage.includes('error') || resendMessage.includes('Network')
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    {resendMessage}
+                  </div>
+                )}
                 <div className="space-y-3 sm:space-y-4">
                   <ActionButton
                     onClick={handleResendEmail}
@@ -162,14 +189,16 @@ const EmailVerification: React.FC = () => {
                     fullWidth
                     disabled={isResending || (resendCooldown ?? 0) > 0}
                   >
-                    Resend Verification Email
+                    {isResending ? 'Sending...' : 'Resend Verification Email'}
                   </ActionButton>
 
-                  <div className="text-center">
-                    <span className="text-lg sm:text-xl text-blue-600 font-bold mt-1 block" aria-live="polite">
-                      {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
-                    </span>
-                  </div>
+                  {resendCooldown > 0 && (
+                    <div className="text-center">
+                      <span className="text-sm text-gray-600">
+                        Resend available in <span className="font-bold text-blue-600">{formatSeconds(resendCooldown)}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </StatusCard>
             )}

@@ -12,6 +12,7 @@ export const useEmailVerification = () => {
   const [email, setEmail] = useState('');
   const [isResending, setIsResending] = useState(false);
   const [countdown, setCountdown] = useState(3);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   // Resend cooldown
   const COOLDOWN_SECONDS = 60;
@@ -105,11 +106,12 @@ export const useEmailVerification = () => {
       return;
     }
     if (!email) {
-      alert('Email address is required to resend verification');
+      setResendMessage('Email address is required to resend verification');
       return;
     }
     try {
       setIsResending(true);
+      setResendMessage(null);
       console.log('📤 Resending verification email to:', email);
       const data = await fetchJson('/api/auth/resend-verification', {
         method: 'POST',
@@ -118,10 +120,10 @@ export const useEmailVerification = () => {
       // start cooldown on success
       setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
       setResendCooldown(COOLDOWN_SECONDS);
-      alert(data?.message || 'Verification email resent! Please check your inbox.');
+      setResendMessage(data?.message || 'Verification email resent! Please check your inbox.');
     } catch (error: any) {
       console.error('❌ Resend error:', error);
-      alert(error?.message ?? 'Network error occurred while resending email');
+      setResendMessage(error?.message ?? 'Network error occurred while resending email');
     } finally {
       setIsResending(false);
     }
@@ -163,6 +165,7 @@ export const useEmailVerification = () => {
     isResending,
     countdown,
     resendCooldown,
+    resendMessage,
     canResend: resendCooldown === 0,
     
     // Assets
