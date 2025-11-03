@@ -1,5 +1,6 @@
 import React from "react";
 import Tabs from "../common/Tabs";
+import { label } from "happy-dom/lib/PropertySymbol";
 
 interface HouseholdTabsProps {
   activeTab: string;
@@ -9,6 +10,7 @@ interface HouseholdTabsProps {
 const HouseholdTabs: React.FC<HouseholdTabsProps> = ({ activeTab, onTabChange }) => {
   const tabs = [
     { id: "schedule", label: "Schedule" },
+    {id: "wasteCollection", label: "Waste Collection"},
     { id: "leaderboard", label: "Leaderboard" },
     { id: "reward", label: "Rewards" },
     { id: "claimed", label: "Claimed Rewards" },
