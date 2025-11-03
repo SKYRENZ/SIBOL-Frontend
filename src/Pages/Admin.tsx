@@ -7,6 +7,7 @@ import AdminControls from '../Components/admin/AdminControls';
 import { Account } from '../types/Types';
 import Header from '../Components/Header';
 import { fetchPendingAccounts } from '../services/adminService'; // adjust path if needed
+import Pagination from '../Components/common/Pagination';
 
 export default function Admin() {
   const {
@@ -32,6 +33,8 @@ export default function Admin() {
   const [globalQuery, setGlobalQuery] = useState('');
   // roleFilter now stores role id (from user_roles_tbl) or 'all'
   const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
 
   const filteredAccounts = useMemo(() => {
     const q = globalQuery.trim().toLowerCase();
@@ -43,6 +46,24 @@ export default function Admin() {
       return `${a.Username ?? a.FirstName ?? ''} ${a.LastName ?? ''} ${a.Email ?? ''}`.toLowerCase().includes(q);
     });
   }, [accounts, globalQuery, roleFilter]);
+
+  const totalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredAccounts.length / pageSize) || 1),
+    [filteredAccounts.length, pageSize],
+  );
+
+  const paginatedAccounts = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return filteredAccounts.slice(start, start + pageSize);
+  }, [filteredAccounts, currentPage, pageSize]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [globalQuery, roleFilter]);
+
+  useEffect(() => {
+    setCurrentPage((prev) => Math.min(prev, totalPages));
+  }, [totalPages]);
 
   // UI-level slim wrappers (network handled in hook)
   const onCreate = async (p: Partial<Account>) => {
@@ -191,13 +212,27 @@ export default function Admin() {
             {error && <div className="text-sm text-red-500">{error}</div>}
 
             {activeTab === 'list' && (
-              <AdminList
-                accounts={filteredAccounts}
-                barangays={barangays}
-                roles={roles}            // <- add this line
-                onEdit={(a) => setEditingAccount(a)}
-                onToggleActive={onToggleActive}
-              />
+              <>
+                <AdminList
+                  accounts={paginatedAccounts}
+                  barangays={barangays}
+                  roles={roles}
+                  onEdit={(a) => setEditingAccount(a)}
+                  onToggleActive={onToggleActive}
+                />
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  pageSize={pageSize}
+                  totalItems={filteredAccounts.length}
+                  onPageSizeChange={(newSize) => {
+                    setPageSize(newSize);
+                    setCurrentPage(1);
+                  }}
+                  fixed={false}
+                />
+              </>
             )}
 
             {activeTab === 'approval' && (
@@ -234,20 +269,6 @@ export default function Admin() {
               </div>
             )}
           </div>
-        </div>
-      </div>
-
-      <div className="px-6 py-2 flex items-center justify-between text-sm text-gray-600 bg-white border-t border-green-50">
-        <div>
-          Records per page: <span className="font-medium">10</span>
-          <svg className="inline w-3 h-3 ml-1" viewBox="0 0 20 20" fill="currentColor"><path d="M5 8h10L10 13 5 8z" /></svg>
-        </div>
-        <div>
-          1-10 of {filteredAccounts.length}
-          <button className="mx-2 text-sibol-green hover:underline">&lt;&lt;</button>
-          <button className="mx-1 text-sibol-green hover:underline">&lt;</button>
-          <button className="mx-1 text-sibol-green hover:underline">&gt;</button>
-          <button className="mx-1 text-sibol-green hover:underline">&gt;&gt;</button>
         </div>
       </div>
     </>
