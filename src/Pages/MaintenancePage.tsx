@@ -13,6 +13,7 @@ const MaintenancePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [, setSelectedFilters] = useState<string[]>([]);
   const [createdByAccountId, setCreatedByAccountId] = useState<number | null>(null);
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -51,7 +52,12 @@ const MaintenancePage: React.FC = () => {
       case "Complete Maintenance":
         return <CompletedMaintenance />;
       default:
-        return <RequestMaintenance createdByAccountId={createdByAccountId} />;
+        return <RequestMaintenance 
+          createdByAccountId={createdByAccountId} 
+          onCreateRequest={() => setShowMaintenanceForm(true)}
+          showForm={showMaintenanceForm}
+          onFormClose={() => setShowMaintenanceForm(false)}
+        />;
     }
   };
 
@@ -81,19 +87,37 @@ const MaintenancePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-full px-6 py-8">
-        <div className="max-w-screen-2xl mx-auto">
-          <div className="flex items-center justify-between gap-4 mb-6">
-            <SearchBar
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Search maintenance..."
-              className="flex-grow max-w-md"
-            />
-            <FilterPanel types={getFilterTypesByTab(activeTab)} onFilterChange={setSelectedFilters} />
+      <div className="w-full px-4 sm:px-6 py-6 sm:py-8">
+        <div className="max-w-screen-2xl mx-auto space-y-6">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
+            <div className="flex-1 max-w-2xl">
+              <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Search maintenance..."
+                className="w-full"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              {activeTab === 'Request Maintenance' && (
+                <button
+                  onClick={() => setShowMaintenanceForm(true)}
+                  className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap w-full sm:w-auto text-center"
+                >
+                  New Maintenance Request
+                </button>
+              )}
+              <FilterPanel 
+                types={getFilterTypesByTab(activeTab)} 
+                onFilterChange={setSelectedFilters} 
+                className="w-full sm:w-auto"
+              />
+            </div>
           </div>
 
-          {renderActiveTab()}
+          <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
+            {renderActiveTab()}
+          </div>
         </div>
       </div>
     </div>
