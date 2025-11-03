@@ -1,10 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useSignUp } from '../hooks/signup/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchJson } from '../services/apiClient';
 
 const SignUp: React.FC = () => {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
+  const [isBarangayOpen, setIsBarangayOpen] = useState(false);
+  const barangayRef = useRef<HTMLDivElement>(null);
+  
   const {
     // State
     role,
@@ -35,6 +38,17 @@ const SignUp: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (barangayRef.current && !barangayRef.current.contains(event.target as Node)) {
+        setIsBarangayOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -78,6 +92,13 @@ const SignUp: React.FC = () => {
       setResendMessage(err?.message ?? 'Network error');
     }
   }
+
+  const handleBarangaySelect = (id: number, name: string) => {
+    setBarangay(id.toString());
+    setIsBarangayOpen(false);
+  };
+
+  const selectedBarangay = barangays.find(b => b.id.toString() === barangay);
 
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
@@ -182,27 +203,55 @@ const SignUp: React.FC = () => {
               {errors.email && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.email}</div>}
             </div>
 
-            {/* Barangay Selection */}
-            <div>
+            {/* Custom Barangay Dropdown */}
+            <div className="relative" ref={barangayRef}>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 Barangay
               </label>
-              <select
-                value={barangay}
-                onChange={(e) => setBarangay(e.target.value)}
+              <button
+                type="button"
+                onClick={() => setIsBarangayOpen(!isBarangayOpen)}
                 onBlur={() => validateField('barangay')}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all text-left flex justify-between items-center bg-white ${
                   errors.barangay 
                     ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
                     : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
                 }`}
                 aria-invalid={Boolean(errors.barangay)}
               >
-                <option value="">Select Barangay</option>
-                {barangays && barangays.map(b => (
-                  <option key={b.id} value={b.id}>{b.name}</option>
-                ))}
-              </select>
+                <span className={selectedBarangay ? 'text-gray-900 font-normal' : 'text-gray-400 font-normal'}>
+                  {selectedBarangay ? selectedBarangay.name : 'Select Barangay'}
+                </span>
+                <svg 
+                  className={`w-4 h-4 transition-transform text-gray-600 ${isBarangayOpen ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {isBarangayOpen && (
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {barangays && barangays.map((b, index) => (
+                    <button
+                      key={b.id}
+                      type="button"
+                      onClick={() => handleBarangaySelect(b.id, b.name)}
+                      style={{ backgroundColor: 'white', color: 'black' }}
+                      className={`w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base font-normal hover:bg-green-50 transition-colors block ${
+                        index === 0 ? 'rounded-t-lg' : ''
+                      } ${
+                        index === barangays.length - 1 ? 'rounded-b-lg' : ''
+                      }`}
+                    >
+                      {b.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              
               {errors.barangay && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.barangay}</div>}
             </div>
 
