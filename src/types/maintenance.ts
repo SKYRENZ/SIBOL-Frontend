@@ -18,6 +18,8 @@ export interface MaintenanceTicket {
   Request_date?: string;
   created_at?: string;
   Main_stat_id?: number;
+  Remarks?: string | null;
+  remarks?: string | null;
   Updated_at?: string;
   updated_at?: string;
 }

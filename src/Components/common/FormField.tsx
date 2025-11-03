@@ -13,10 +13,10 @@ type Props = {
   rows?: number;
   required?: boolean;
   icon?: React.ReactNode;
-  // NEW: allow transparent styling for different forms
   variant?: 'transparent';
   className?: string;
-  multiple?: boolean; // NEW: allow multi-select
+  multiple?: boolean;
+  disabled?: boolean;
 };
 
 const FormField: React.FC<Props> = ({
@@ -33,13 +33,13 @@ const FormField: React.FC<Props> = ({
   variant,
   className = '',
   multiple = false,
+  disabled = false,
 }) => {
-  // base input classes
   const base = `w-full px-3 py-2 rounded-md text-sm transition ${className}`;
   const transparentStyles =
-    'bg-transparent border border-[#D8E3D8] placeholder:text-gray-400 text-gray-800';
+    'bg-transparent border border-[#D8E3D8] placeholder:text-gray-400 text-gray-800 disabled:bg-gray-50 disabled:text-gray-600';
   const defaultStyles =
-    'bg-white border border-gray-300 placeholder-gray-400 text-gray-900';
+    'bg-white border border-gray-300 placeholder-gray-400 text-gray-900 disabled:bg-gray-50 disabled:text-gray-600';
 
   const inputClass = `${base} ${variant === 'transparent' ? transparentStyles : defaultStyles}`;
 
@@ -58,6 +58,7 @@ const FormField: React.FC<Props> = ({
           onChange={onChange}
           placeholder={placeholder}
           rows={rows}
+          disabled={disabled}
           className={`${inputClass} resize-none`}
         />
       ) : type === 'select' ? (
@@ -65,10 +66,11 @@ const FormField: React.FC<Props> = ({
           name={name}
           value={value}
           onChange={onChange}
+          disabled={disabled}
           className={`${inputClass} appearance-none`}
           multiple={multiple}
         >
-          {!multiple && <option value="">{`Select ${label || name}`}</option>}
+          <option value="">{`Select ${label || name}`}</option>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
               {opt.label}
@@ -84,6 +86,7 @@ const FormField: React.FC<Props> = ({
             onChange={onChange}
             placeholder={placeholder}
             type={type === 'date' ? 'date' : type === 'number' ? 'number' : 'text'}
+            disabled={disabled}
             className={`${icon ? 'pl-10' : ''} ${inputClass}`}
           />
         </div>

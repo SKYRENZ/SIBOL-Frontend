@@ -1,35 +1,19 @@
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import Table from "../common/Table";
-import FormModal from "../common/FormModal";
 import MaintenanceForm from "./MaintenanceForm";
 import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMaintenance";
 import * as maintenanceService from "../../services/maintenanceService";
-import type { MaintenanceTicketPayload, MaintenanceTicket } from "../../types/maintenance";
+import type { MaintenanceTicket } from "../../types/maintenance";
 
 interface RequestMaintenanceProps {
   createdByAccountId: number;
 }
 
-const PRIORITY_OPTIONS = ["Critical", "Urgent", "Mild"];
-
 export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdByAccountId }) => {
   const { tickets, loading, error, createTicket, refetch } = useRequestMaintenance();
   const [showForm, setShowForm] = useState(false);
-  const [showAcceptForm, setShowAcceptForm] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<'create' | 'assign'>('create');
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
-  const [form, setForm] = useState<MaintenanceTicketPayload>({
-    title: "",
-    details: "",
-    priority: "",
-    due_date: null,
-    created_by: createdByAccountId,
-  });
-
-  // Update form when createdByAccountId changes
-  useEffect(() => {
-    setForm((prev) => ({ ...prev, created_by: createdByAccountId }));
-  }, [createdByAccountId]);
 
   const columns = useMemo(
     () => [
@@ -61,7 +45,8 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
           <button
             onClick={() => {
               setSelectedTicket(row);
-              setShowAcceptForm(true);
+              setFormMode('assign');
+              setShowForm(true);
             }}
             className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
           >
@@ -73,54 +58,37 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
     []
   );
 
-  const handleCreateSubmit = async () => {
-    setFormError(null);
-    if (!form.title.trim()) {
-      setFormError("Title is required");
-      return;
-    }
-    try {
-      await createTicket({ ...form, created_by: createdByAccountId });
-      setShowForm(false);
-      setForm({
-        title: "",
-        details: "",
-        priority: "",
-        due_date: null,
-        created_by: createdByAccountId,
-      });
-    } catch (err: any) {
-      setFormError(err.message || "Failed to create request");
-    }
+  const handleCreateClick = () => {
+    setFormMode('create');
+    setSelectedTicket(null);
+    setShowForm(true);
   };
 
-  const handleAcceptSubmit = async (formData: any) => {
-    if (!selectedTicket) return;
+  const handleFormSubmit = async (formData: any) => {
     try {
-      const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
-      const staffId = parseInt(formData.staffAccountId, 10);
-      
-      console.log("Submitting:", {
-        requestId: selectedTicket.Request_Id || selectedTicket.request_id,
-        staffAccountId: staffId,
-        assignToAccountId: assignToId
-      });
-      
-      const requestId = selectedTicket.Request_Id || selectedTicket.request_id;
-      if (!requestId) {
-        throw new Error("Request ID not found");
+      if (formMode === 'create') {
+        await createTicket({
+          title: formData.title,
+          details: formData.issue,
+          priority: formData.priority,
+          created_by: createdByAccountId,
+          due_date: formData.dueDate || null,
+        });
+      } else if (formMode === 'assign' && selectedTicket) {
+        const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
+        const staffId = parseInt(formData.staffAccountId, 10);
+        const requestId = selectedTicket.Request_Id || selectedTicket.request_id;
+        
+        if (!requestId) throw new Error("Request ID not found");
+        
+        await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
       }
       
-      await maintenanceService.acceptAndAssign(
-        requestId,
-        staffId,
-        assignToId
-      );
-      setShowAcceptForm(false);
+      setShowForm(false);
       setSelectedTicket(null);
       await refetch();
     } catch (err: any) {
-      console.error("Failed to accept:", err);
+      console.error("Form error:", err);
     }
   };
 
@@ -128,7 +96,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
     <div className="space-y-4">
       <div className="flex justify-end">
         <button
-          onClick={() => setShowForm(true)}
+          onClick={handleCreateClick}
           className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition"
         >
           New Maintenance Request
@@ -143,89 +111,14 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
         emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
       />
 
-      {/* Create New Request Modal */}
-      <FormModal
-        isOpen={showForm}
-        onClose={() => setShowForm(false)}
-        title="Request Maintenance"
-        subtitle="Provide the details below."
-      >
-        <div className="space-y-3">
-          {formError && <p className="text-sm text-red-600">{formError}</p>}
-          
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Title *</label>
-            <input
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#355842] focus:outline-none"
-              value={form.title}
-              onChange={(e) => setForm((prev) => ({ ...prev, title: e.target.value }))}
-              placeholder="Enter request title"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Details</label>
-            <textarea
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#355842] focus:outline-none"
-              rows={4}
-              value={form.details || ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, details: e.target.value }))}
-              placeholder="Describe the issue"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Priority</label>
-            <select
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#355842] focus:outline-none"
-              value={form.priority || ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, priority: e.target.value }))}
-            >
-              <option value="">Select priority</option>
-              {PRIORITY_OPTIONS.map((priority) => (
-                <option key={priority} value={priority}>
-                  {priority}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700">Due Date</label>
-            <input
-              type="date"
-              className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-[#355842] focus:outline-none"
-              value={form.due_date || ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, due_date: e.target.value || null }))}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              onClick={() => setShowForm(false)}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleCreateSubmit}
-              className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md hover:bg-[#2e4a36]"
-            >
-              Submit Request
-            </button>
-          </div>
-        </div>
-      </FormModal>
-
-      {/* Accept Request Modal */}
       <MaintenanceForm
-        isOpen={showAcceptForm}
+        isOpen={showForm}
         onClose={() => {
-          setShowAcceptForm(false);
+          setShowForm(false);
           setSelectedTicket(null);
         }}
-        onSubmit={handleAcceptSubmit}
-        mode="assign"
+        onSubmit={handleFormSubmit}
+        mode={formMode}
         initialData={selectedTicket}
       />
     </div>
