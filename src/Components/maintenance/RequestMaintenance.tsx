@@ -7,11 +7,18 @@ import type { MaintenanceTicket } from "../../types/maintenance";
 
 interface RequestMaintenanceProps {
   createdByAccountId: number;
+  onCreateRequest?: () => void;
+  showForm?: boolean;
+  onFormClose?: () => void;
 }
 
-export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdByAccountId }) => {
+export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ 
+  createdByAccountId, 
+  onCreateRequest, 
+  showForm = false, 
+  onFormClose 
+}) => {
   const { tickets, loading, error, createTicket, refetch } = useRequestMaintenance();
-  const [showForm, setShowForm] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'assign'>('create');
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
 
@@ -94,15 +101,6 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          onClick={handleCreateClick}
-          className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition"
-        >
-          New Maintenance Request
-        </button>
-      </div>
-
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Table
@@ -114,7 +112,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
       <MaintenanceForm
         isOpen={showForm}
         onClose={() => {
-          setShowForm(false);
+          onFormClose?.();
           setSelectedTicket(null);
         }}
         onSubmit={handleFormSubmit}
