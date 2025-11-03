@@ -73,8 +73,11 @@ const MaintenancePage: React.FC = () => {
       <Header />
 
       <div className="w-full bg-white shadow-sm">
-        <div style={{ height: '60px' }} aria-hidden />
-        <div className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm">
+        <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
+        <div
+          className="subheader sticky z-30 w-full bg-white px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 shadow-sm"
+          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
+        >
           <div className="max-w-screen-2xl mx-auto">
             <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
