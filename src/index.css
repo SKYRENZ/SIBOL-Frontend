@@ -28,6 +28,11 @@ body {
   min-height: 100vh;
   background: #f5f5f5;
   font-family: system-ui, Arial, sans-serif;
+  padding-top: 120px; /* Space for fixed header */
+}
+
+body.auth-page {
+  padding-top: 0;
 }
 
 h1 {
@@ -52,6 +57,11 @@ button:hover {
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
+}
+
+/* Smooth scrolling for better UX */
+html {
+  scroll-behavior: smooth;
 }
 
 /* Override Vite default layout so auth pages can be full screen */
@@ -350,4 +360,195 @@ html, body, #root {
   text-align: center;
   margin: 18px 0 0;
   color: #2c4737;
+}
+
+/* Page content margin to prevent header overlap */
+.page-content {
+  margin-top: 120px;
+}
+
+.main-content {
+  margin-top: 120px;
+}
+
+/* Responsive body padding to match header size */
+@media (max-width: 1024px) {
+  body:not(.auth-page) {
+    padding-top: 100px;
+  }
+  
+  .page-content,
+  .main-content {
+    margin-top: 100px;
+  }
+}
+
+@media (max-width: 900px) {
+  body:not(.auth-page) {
+    padding-top: 85px;
+  }
+  
+  .page-content,
+  .main-content {
+    margin-top: 85px;
+  }
+}
+
+@media (max-width: 480px) {
+  body:not(.auth-page) {
+    padding-top: 75px;
+  }
+  
+  .page-content,
+  .main-content {
+    margin-top: 75px;
+  }
+}
+
+/* Global table enhancements for better readability */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 18px;
+}
+
+table th {
+  font-weight: 600;
+  padding: 20px 32px;
+  text-align: left;
+  background-color: #AFC8AD;
+  border-bottom: 2px solid #e5e7eb;
+  color: rgba(55, 65, 81, 0.6);
+  font-size: 18px;
+}
+
+table td {
+  padding: 20px 32px;
+  border-bottom: 1px solid #f2f2f2;
+}
+
+table tr:hover {
+  background-color: #f9fafb;
+  transition: background-color 0.15s ease;
+}
+
+/* Sticky controls positioning */
+.sticky-controls {
+  position: sticky;
+  top: 120px;
+  z-index: 40;
+  background-color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Responsive sticky positioning */
+@media (max-width: 1024px) {
+  .sticky-controls {
+    top: 100px;
+  }
+}
+
+@media (max-width: 900px) {
+  .sticky-controls {
+    top: 85px;
+  }
+  
+  table th,
+  table td {
+    padding: 14px 18px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  table th,
+  table td {
+    padding: 12px 16px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sticky-controls {
+    top: 75px;
+  }
+  
+  table {
+    font-size: 13px;
+  }
+  
+  table th,
+  table td {
+    padding: 10px 12px;
+  }
+}
+
+/* Uniform button sizing across the application */
+.btn-uniform,
+button.btn-primary,
+button.btn-secondary,
+button.btn-action {
+  min-height: 48px;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  border: none;
+}
+
+.btn-primary {
+  background-color: #2E523A;
+  color: white;
+}
+
+.btn-primary:hover {
+  background-color: #3b6b4c;
+}
+
+.btn-secondary {
+  background-color: #166534;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #14532d;
+}
+
+.btn-action {
+  background-color: #355842;
+  color: white;
+}
+
+.btn-action:hover {
+  background-color: #2e4a36;
+}
+
+/* Responsive button sizing */
+@media (max-width: 768px) {
+  .btn-uniform,
+  button.btn-primary,
+  button.btn-secondary,
+  button.btn-action {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .btn-uniform,
+  button.btn-primary,
+  button.btn-secondary,
+  button.btn-action {
+    min-height: 40px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }

@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
       <Header />
 
       {/* 🧭 Main Content */}
-      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 flex flex-col gap-6 mt-[8vh]">
+      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 flex flex-col gap-6 main-content">
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-0">
           <div>

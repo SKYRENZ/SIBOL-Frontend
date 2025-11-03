@@ -9,8 +9,8 @@
 .household-tabs {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
+  gap: 1.5rem;
+  margin-bottom: 0;
   flex-wrap: wrap;
 }
 
@@ -18,12 +18,13 @@
   background-color: #f5f6f7;
   border: none;
   border-radius: 9999px; /* pill shape */
-  padding: 10px 20px;
-  font-size: 15px;
+  padding: 16px 36px;
+  font-size: 18px;
   font-family: "Inter", sans-serif;
   color: #374151;
   cursor: pointer;
   transition: all 0.2s ease-in-out;
+  font-weight: 500;
 }
 
 .tab-button:hover {
@@ -50,17 +51,21 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
+  font-size: 18px;
 }
 
 .table-section th,
 .table-section td {
-  padding: 12px 16px;
+  padding: 20px 32px;
   text-align: left;
 }
 
 .table-section th {
   font-weight: 600;
-  border-bottom: 2px solid #eee;
+  border-bottom: 2px solid #e5e7eb;
+  font-size: 18px;
+  color: rgba(55, 65, 81, 0.6);
+  background-color: #AFC8AD;
 }
 
 .table-section tr:not(:last-child) td {
@@ -81,11 +86,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin: 1.5rem 0;
+  margin: 0;
   background-color: #fff;
-  padding: 12px 24px;
-  border-radius: 8px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+  padding: 18px 32px;
+  border-radius: 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 120px;
+  z-index: 40;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .search-section .search-input {
@@ -95,11 +104,18 @@
 }
 
 .search-section input {
-  width: 220px;
-  padding: 8px 32px 8px 10px;
+  width: 320px;
+  padding: 12px 40px 12px 16px;
   border: 1px solid #dcdcdc;
-  border-radius: 6px;
+  border-radius: 8px;
   outline: none;
+  font-size: 15px;
+  transition: border-color 0.2s ease;
+}
+
+.search-section input:focus {
+  border-color: #1f4529;
+  box-shadow: 0 0 0 3px rgba(31, 69, 41, 0.1);
 }
 
 .search-icon {
@@ -117,11 +133,18 @@
 .add-btn {
   background-color: #166534; /* green-800 */
   color: white;
-  padding: 8px 16px;
+  padding: 12px 24px;
+  min-height: 48px;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .add-btn:hover {
@@ -137,13 +160,14 @@
 .filter-dropdown {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+  gap: 8px;
+  padding: 10px 16px;
   border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
+  border-radius: 8px;
+  font-size: 15px;
   cursor: pointer;
   background-color: #fafafa;
+  transition: all 0.2s ease;
 }
 
 .filter-dropdown:hover {
@@ -297,4 +321,107 @@
   border-radius: 8px;
   cursor: pointer;
   font-size: 16px;
+}
+
+/* Sticky subheader for tabs - FIXED positioning */
+.subheader {
+  position: sticky;
+  top: 120px;
+  z-index: 45;
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+  padding: 20px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .search-filter-bar {
+    top: 100px;
+  }
+  
+  .subheader {
+    top: 100px;
+  }
+  
+  .tab-button {
+    padding: 14px 30px;
+    font-size: 17px;
+  }
+  
+  .search-section input {
+    width: 280px;
+  }
+  
+  .table-section th,
+  .table-section td {
+    padding: 18px 28px;
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 900px) {
+  .search-filter-bar {
+    top: 85px;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px 24px;
+  }
+  
+  .subheader {
+    top: 85px;
+  }
+  
+  .search-section input {
+    width: 100%;
+  }
+  
+  .filter-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (max-width: 768px) {
+  .tab-button {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
+  
+  .table-section th,
+  .table-section td {
+    padding: 16px 20px;
+    font-size: 16px;
+  }
+  
+  .add-btn {
+    padding: 10px 20px;
+    font-size: 15px;
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 480px) {
+  .search-filter-bar {
+    top: 75px;
+  }
+  
+  .subheader {
+    top: 75px;
+  }
+  
+  .household-tabs {
+    gap: 0.75rem;
+  }
+  
+  .tab-button {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+  
+  .add-btn {
+    min-height: 40px;
+    padding: 8px 16px;
+    font-size: 14px;
+  }
 }

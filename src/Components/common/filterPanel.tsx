@@ -51,7 +51,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ types, onFilterChange }) => {
       {/* Filter Button */}
       <button
         onClick={toggleFilter}
-        className={`flex items-center gap-2 border border-[#7B9B7B] text-[#355842] rounded-md px-4 py-2 text-sm font-medium transition bg-transparent ${
+        className={`flex items-center gap-2 border border-[#7B9B7B] text-[#355842] rounded-lg px-5 py-3 text-base font-semibold transition bg-transparent ${
           isOpen ? "ring-1 ring-[#7B9B7B]" : "hover:bg-transparent"
         }`}
       >

@@ -225,7 +225,7 @@ const SibolMachinePage: React.FC = () => {
                 e.stopPropagation();
                 handleEditMachine(row);
               }}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 focus:outline-none"
+              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-6 py-2.5 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none min-h-[40px]"
             >
               Edit
             </button>
@@ -275,9 +275,8 @@ const SibolMachinePage: React.FC = () => {
       <Header />
       
       {/* Sub Navigation Bar */}
-      <div className="w-full bg-white shadow-sm">
-        <div style={{ height: '60px' }} aria-hidden />
-        <div className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm">
+      <div className="w-full bg-white shadow-sm page-content">
+        <div className="subheader sticky top-[120px] z-45 w-full bg-white px-6 py-5 shadow-sm border-b border-gray-200">
           <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
             {/* Tabs */}
             <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
@@ -305,9 +304,9 @@ const SibolMachinePage: React.FC = () => {
                 </div>
               )}
 
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
+              <button className="flex items-center gap-2 px-6 py-3 min-h-[48px] border border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
                  <span>Filter by</span>
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                  </svg>
                </button>
@@ -332,14 +331,14 @@ const SibolMachinePage: React.FC = () => {
             <div className="flex space-x-3">
             <button 
               onClick={openAddForm}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
+              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-6 py-3 min-h-[48px] rounded-lg text-base font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
             >
               {activeTab === 'Chemical Additives' ? 'Add Chemical' : 'Add Machine'}
             </button>
             {activeTab !== 'Machines' && (
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
+              <button className="flex items-center gap-2 px-6 py-3 min-h-[48px] border border-gray-300 rounded-lg text-base font-semibold text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
                  <span>Filter by</span>
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                  </svg>
                </button>

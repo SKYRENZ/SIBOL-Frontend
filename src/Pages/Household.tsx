@@ -96,9 +96,8 @@ const Household: React.FC = () => {
       <Header />
       
       {/* Sub Navigation Bar */}
-      <div className="w-full bg-white shadow-sm">
-        <div style={{ height: '60px' }} aria-hidden />
-        <div className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm">
+      <div className="w-full bg-white shadow-sm page-content">
+        <div className="subheader sticky top-[120px] z-45 w-full bg-white px-6 py-5 shadow-sm border-b border-gray-200">
           <div className="max-w-screen-2xl mx-auto">
             <HouseholdTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
@@ -120,7 +119,7 @@ const Household: React.FC = () => {
                 <button
                   type="button"
                   onClick={activeTab === "schedule" ? handleAddSchedule : handleAddReward}
-                  className="px-4 py-2 bg-[#355842] text-white rounded-md shadow-sm text-sm font-medium hover:bg-[#2e4a36] transition"
+                  className="px-6 py-3 min-h-[48px] bg-[#355842] text-white rounded-lg shadow-sm text-base font-semibold hover:bg-[#2e4a36] transition-all duration-200"
                 >
                   {getButtonLabel()}
                 </button>

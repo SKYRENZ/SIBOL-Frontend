@@ -137,8 +137,7 @@ export default function Admin() {
       <Header />
       {/* make white background touch the header by using a full-bleed white wrapper
           and a spacer equal to the header height so content stays below the fixed header */}
-      <div className="w-full bg-white">
-        <div style={{ height: 'var(--header-h,96px)' }} aria-hidden />
+      <div className="w-full bg-white page-content">
         {/* subheader with more visible separator (tabs centered vertically, slightly shifted left) */}
         <div className="subheader sticky top-[var(--header-h,96px)] z-30 w-full border-b border-sibol-green/10 bg-white">
           {/* tighter subheader */}

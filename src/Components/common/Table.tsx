@@ -30,7 +30,7 @@ const Table: React.FC<TableProps> = ({
 }) => {
   return (
     <div className={`w-full overflow-x-auto ${className}`}>
-      <table className="w-full bg-white border border-gray-200 rounded-lg shadow-sm table-fixed">
+      <table className="w-full bg-white border border-gray-200 rounded-lg shadow-sm">
         <thead className="bg-[#AFC8AD]/50">
           <tr>
             {columns.map((column) => {
@@ -38,7 +38,7 @@ const Table: React.FC<TableProps> = ({
               return (
                 <th
                   key={column.key}
-                  className="px-4 py-3 text-left align-middle font-medium text-xs text-gray-700 select-none"
+                  className="px-8 py-5 text-left align-middle font-semibold text-lg text-gray-700/60 select-none"
                 >
                   {column.sortable ? (
                     <button
@@ -64,7 +64,7 @@ const Table: React.FC<TableProps> = ({
         <tbody className="bg-white divide-y divide-gray-200">
           {data.length === 0 ? (
             <tr>
-              <td colSpan={columns.length} className="px-4 py-6 text-center text-gray-500">
+              <td colSpan={columns.length} className="px-8 py-10 text-center text-gray-500 text-lg">
                 {emptyMessage}
               </td>
             </tr>
@@ -78,7 +78,7 @@ const Table: React.FC<TableProps> = ({
                 onClick={() => onRowClick && onRowClick(row)}
               >
                 {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 align-top text-sm text-gray-700">
+                  <td key={column.key} className="px-8 py-5 align-top text-lg text-gray-700">
                     {column.render ? column.render(row[column.key], row) : String(row[column.key] ?? "")}
                   </td>
                 ))}

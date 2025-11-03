@@ -15,6 +15,7 @@ const allLinks = [
 
 const Header: React.FC = () => {
   const [modules, setModules] = useState<any>({ list: [], has: () => false });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   
   async function handleLogout() {
@@ -46,6 +47,24 @@ const Header: React.FC = () => {
     return () => { mounted = false; };
   }, []);
 
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isMenuOpen && !target.closest('.nav')) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    if (isMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [isMenuOpen]);
+
   const hasModule = (key: string | number) => {
     if (!modules) return false;
     if (typeof modules.has === 'function') return modules.has(key);
@@ -68,6 +87,14 @@ const Header: React.FC = () => {
     return true;
   });
 
+  const toggleMenu = () => {
+    setIsMenuOpen(!isMenuOpen);
+  };
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
+
   return (
     <header className="header">
       <nav className="nav">
@@ -77,11 +104,25 @@ const Header: React.FC = () => {
             import.meta.url
           ).href}
           alt="SIBOL"
-          style={{ height: 28, width: "auto" }}
+          style={{ height: 48, width: "auto" }}
         />
 
+        {/* Mobile Menu Toggle */}
+        <button 
+          className={`menu-toggle ${isMenuOpen ? 'open' : ''}`}
+          onClick={toggleMenu}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMenuOpen}
+        >
+          <div className="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </button>
+
         {/* Navigation Links */}
-        <ul className="nav-links">
+        <ul className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
           {links.map((link) => (
             <li key={link.to}>
               <NavLink
@@ -89,6 +130,7 @@ const Header: React.FC = () => {
                 className={({ isActive }) =>
                   `nav-link ${isActive ? "active" : ""}`
                 }
+                onClick={closeMenu}
               >
                 {link.label}
               </NavLink>
@@ -100,8 +142,8 @@ const Header: React.FC = () => {
         <div className="nav-icons">
           <svg
             className="icon"
-            width="20"
-            height="20"
+            width="28"
+            height="28"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -115,8 +157,8 @@ const Header: React.FC = () => {
 
           <svg
             className="icon"
-            width="20"
-            height="20"
+            width="28"
+            height="28"
             viewBox="0 0 24 24"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -138,11 +180,12 @@ const Header: React.FC = () => {
             style={{
               background: 'transparent',
               border: 'none',
-              padding: '4px 8px',
+              padding: '8px 16px',
               marginLeft: 8,
               cursor: 'pointer',
               color: 'inherit',
-              fontSize: 14,
+              fontSize: 18,
+              fontWeight: 500,
             }}
           >
             Logout
