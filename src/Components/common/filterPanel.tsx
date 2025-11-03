@@ -1,24 +1,49 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Filter, X } from "lucide-react";
-import { useFilterOptions } from "../../hooks/filter/userFilterOption"; // Fix: correct path with 'user' in filename
+import useFilters from "../../hooks/filter/useFilter";
 
-const FilterPanel = () => {
+type FilterPanelProps = {
+  types?: string[];
+  onFilterChange?: (filters: string[]) => void;
+};
+
+const prettify = (key: string) =>
+  key
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[-_]/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+const FilterPanel: React.FC<FilterPanelProps> = ({ types, onFilterChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
-  const { categories, loading, error } = useFilterOptions(); // ✅ use hook
+  
+  // Fetch only the specified filter types
+  const { filters, loading, error } = useFilters(types);
+
+  const orderedCategories = useMemo(() => {
+    const keys = types ?? Object.keys(filters);
+    return keys
+      .map((key) => ({ 
+        key, 
+        options: (filters[key] ?? []).map(item => item.name)
+      }))
+      .filter(({ options }) => options.length > 0);
+  }, [filters, types]);
 
   const toggleFilter = () => setIsOpen(!isOpen);
 
   const handleRemoveFilter = (filter: string) => {
-    setSelectedFilters((prev) => prev.filter((f) => f !== filter));
+    const newFilters = selectedFilters.filter((f) => f !== filter);
+    setSelectedFilters(newFilters);
+    onFilterChange?.(newFilters);
   };
 
   const handleCheckboxChange = (option: string) => {
-    setSelectedFilters((prev) =>
-      prev.includes(option)
-        ? prev.filter((f) => f !== option)
-        : [...prev, option]
-    );
+    const newFilters = selectedFilters.includes(option)
+      ? selectedFilters.filter((f) => f !== option)
+      : [...selectedFilters, option];
+    setSelectedFilters(newFilters);
+    onFilterChange?.(newFilters);
   };
 
   return (
@@ -53,6 +78,9 @@ const FilterPanel = () => {
 
           {/* Active Filter Pills */}
           <div className="border border-gray-300 rounded-md p-2 flex flex-wrap gap-2 mb-5">
+            {selectedFilters.length === 0 && (
+              <span className="text-sm text-gray-400">No filters applied</span>
+            )}
             {selectedFilters.map((filter, idx) => (
               <span
                 key={idx}
@@ -74,11 +102,13 @@ const FilterPanel = () => {
             <p className="text-sm text-gray-500">Loading filters...</p>
           ) : error ? (
             <p className="text-sm text-red-500">{error}</p>
+          ) : orderedCategories.length === 0 ? (
+            <p className="text-sm text-gray-500">No filter options available.</p>
           ) : (
             <div className="grid grid-cols-3 gap-4 text-[#355842]">
-              {Object.entries(categories).map(([category, options]) => (
-                <div key={category}>
-                  <h3 className="font-semibold mb-2">{category}</h3>
+              {orderedCategories.map(({ key, options }) => (
+                <div key={key}>
+                  <h3 className="font-semibold mb-2">{prettify(key)}</h3>
                   {options.map((option) => (
                     <label
                       key={option}

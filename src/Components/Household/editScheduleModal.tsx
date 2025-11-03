@@ -3,22 +3,22 @@ import { CalendarDays } from "lucide-react";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
 import * as areaService from '../../services/Schedule/areaService';
-import { formatContactDisplay, normalizeToLocal09 } from '../../utils/phone';
+import { normalizeToLocal09 } from '../../utils/phone';
 
 interface EditScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
   initialData: {
     maintenance: string;
-    // editing uses local string format like "09171234567"
-    contact: string;
+    // include Account_id so we can later fetch profile contact from backend
+    Account_id?: number;
     area: string[];
     date: string;
   } | null;
   onSave: (data: {
     maintenance: string;
-    // saved contact is a string in local format '09...'
-    contact: string;
+    // include Account_id so parent can fetch contact
+    Account_id?: number;
     area: string[];
     date: string;
   }) => void;
@@ -66,17 +66,9 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
       const incomingAreas = Array.isArray(initialData.area) ? initialData.area : (initialData.area ? [initialData.area] : []);
       const mapped = incomingAreas.map((a: any) => idToName[String(a)] ?? String(a));
 
-      // normalize incoming contact to local 09... for editing
-      const raw = String(initialData.contact ?? '').replace(/\D/g, '');
-      let local = raw;
-      if (raw.length === 12 && raw.startsWith('63')) local = '0' + raw.slice(2);
-      if (raw.length === 10 && raw.startsWith('9')) local = '0' + raw;
-      if (raw.length === 11 && raw.startsWith('09')) local = raw;
-      local = local.slice(0, 11);
-
       setFormData({
         maintenance: initialData.maintenance ?? '',
-        contact: local,
+        contact: '',
         area: mapped,
         date: initialData.date ?? '',
       });
@@ -117,13 +109,8 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
   };
 
   const handleSave = () => {
-    const normalized = normalizeToLocal09(formData.contact);
-    if (!normalized) {
-      setContactError('Invalid Philippine mobile number (09XXXXXXXXX).');
-      return;
-    }
-    setContactError(null);
-    onSave({ maintenance: formData.maintenance, contact: normalized, area: formData.area, date: formData.date });
+    // Contact not edited here — return Account_id (if provided) so parent can fetch profile contact
+    onSave({ maintenance: formData.maintenance, Account_id: initialData?.Account_id, area: formData.area, date: formData.date });
     onClose();
   };
 
@@ -148,16 +135,7 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
           placeholder="Enter maintenance name"
         />
 
-        <FormField
-          label="Contact of Maintenance"
-          name="contact"
-          type="text"
-          // display formatted contact with spaces while storing digits-only in state
-          value={formatContactDisplay(formData.contact)}
-          onChange={handleChange}
-          placeholder="0917 123 4567"
-        />
-        {contactError && <div className="col-span-2 text-sm text-red-600 mt-1">{contactError}</div>}
+        {/* Contact removed — contact comes from profile table */}
 
         <div className="col-span-2">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -224,7 +202,6 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
   );
 };
 
-/* Place this helper inside the same file (just below imports) */
 const AreaCombobox: React.FC<{
   available: { Area_id: number; Area_Name: string }[];
   valueList: string[];
@@ -233,6 +210,7 @@ const AreaCombobox: React.FC<{
   const [input, setInput] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const suggestions = available
     .map(a => a.Area_Name)
@@ -246,10 +224,19 @@ const AreaCombobox: React.FC<{
     return () => document.removeEventListener("click", onClick);
   }, []);
 
+  const addAndRefocus = (val: string) => {
+    onAdd(val);
+    setInput("");
+    setOpen(true);
+    // refocus input next tick
+    setTimeout(() => inputRef.current?.focus(), 0);
+  };
+
   return (
     <div ref={ref} className="relative">
       <div className="flex items-center">
         <input
+          ref={inputRef}
           type="text"
           value={input}
           onChange={(e) => { setInput(e.target.value); setOpen(true); }}
@@ -258,10 +245,8 @@ const AreaCombobox: React.FC<{
             if (e.key === "Enter") {
               const val = input.trim();
               if (val) {
-                onAdd(val);
-                setInput("");
-                setOpen(false);
                 e.preventDefault();
+                addAndRefocus(val);
               }
             } else if (e.key === "Escape") {
               setOpen(false);
@@ -277,7 +262,7 @@ const AreaCombobox: React.FC<{
           {suggestions.map((s, i) => (
             <li
               key={i}
-              onMouseDown={(e) => { e.preventDefault(); onAdd(s); setInput(""); setOpen(false); }}
+              onMouseDown={(e) => { e.preventDefault(); addAndRefocus(s); }}
               className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm text-gray-900"
             >
               {s}

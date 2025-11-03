@@ -24,6 +24,7 @@ interface RowData {
 
 const Household: React.FC = () => {
   const [activeTab, setActiveTab] = useState("schedule");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   
   useEffect(() => {
     console.log("Household mounted");
@@ -31,6 +32,8 @@ const Household: React.FC = () => {
 
   useEffect(() => {
     console.log("activeTab ->", activeTab);
+    // Reset filters when tab changes
+    setSelectedFilters([]);
   }, [activeTab]);
 
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -59,6 +62,35 @@ const Household: React.FC = () => {
     setIsRewardModalOpen(false);
   };
 
+  // Determine filter types based on active tab
+  const getFilterTypesByTab = (tab: string): string[] => {
+    switch(tab) {
+      case 'schedule':
+        return ['scheduleStatuses'];
+      case 'reward':
+        return ['maintenanceStatuses'];
+      case 'leaderboard':
+        return [];
+      case 'claimed':
+        return [];
+      case 'points':
+        return [];
+      default:
+        return [];
+    }
+  };
+
+  const getButtonLabel = (): string => {
+    switch(activeTab) {
+      case 'schedule':
+        return 'Create';
+      case 'reward':
+        return 'Add Reward';
+      default:
+        return 'Create';
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
@@ -76,29 +108,35 @@ const Household: React.FC = () => {
       {/* Main Content */}
       <div className="w-full px-6 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          {activeTab === "schedule" && (
-            <div className="flex items-center gap-4">
+          {(activeTab === "schedule" || activeTab === "reward") && (
+            <div className="flex items-center justify-between gap-4 mb-6">
               <SearchBar
                 value={searchValue}
                 onChange={setSearchValue}
-                placeholder="Search schedules..."
-                className="max-w-[100vh] flex-grow"
-                
+                placeholder={activeTab === "schedule" ? "Search schedules..." : "Search rewards..."}
+                className="flex-grow max-w-md"
               />
-              <button
-                type="button"
-                onClick={handleAddSchedule}
-                className="px-4 py-2 bg-[#AFC8AD] text-white rounded-md shadow-sm text-sm"
-              >
-                Create
-              </button>
-              <FilterPanel />
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={activeTab === "schedule" ? handleAddSchedule : handleAddReward}
+                  className="px-4 py-2 bg-[#355842] text-white rounded-md shadow-sm text-sm font-medium hover:bg-[#2e4a36] transition"
+                >
+                  {getButtonLabel()}
+                </button>
+                {getFilterTypesByTab(activeTab).length > 0 && (
+                  <FilterPanel 
+                    types={getFilterTypesByTab(activeTab)}
+                    onFilterChange={setSelectedFilters}
+                  />
+                )}
+              </div>
             </div>
           )}
   
-          {/* show the AddRewardsBar only on the Rewards tab so the Create button is hidden on Leaderboard */}  
-          {activeTab === "schedule" && <ScheduleTab />}
-          {activeTab === "reward" && <RewardTab />}
+          {/* Pass filters to child components */}
+          {activeTab === "schedule" && <ScheduleTab filters={selectedFilters} />}
+          {activeTab === "reward" && <RewardTab filters={selectedFilters} />}
           {activeTab === "leaderboard" && <LeaderboardTab />}
           {activeTab === "claimed" && <ClaimedRewards />}
   
