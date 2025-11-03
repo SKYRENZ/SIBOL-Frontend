@@ -1,125 +1,108 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 const SSOCallback: React.FC = () => {
-  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState('Processing...');
 
   useEffect(() => {
-    const handleSSOCallback = async () => {
+    const handleSSOCallback = () => {
       try {
-        console.log('🔐 SSO Callback - Processing...');
-        
-        // Get all params
         const token = searchParams.get('token') || searchParams.get('access_token');
         const user = searchParams.get('user');
         const auth = searchParams.get('auth');
         const errorParam = searchParams.get('error');
-        const message = searchParams.get('message');
-        const sso = searchParams.get('sso');
-        const email = searchParams.get('email');
-        const firstName = searchParams.get('firstName');
-        const lastName = searchParams.get('lastName');
+        const errorMessage = searchParams.get('message');
 
-        console.log('📋 SSO Params:', { 
-          token: !!token, 
-          user: !!user, 
-          auth, 
-          errorParam, 
-          message, 
-          sso, 
-          email 
-        });
+        // Check if this is a popup window
+        const isPopup = window.opener && !window.opener.closed;
 
-        // Handle authentication failure
         if (auth === 'fail' || errorParam) {
-          console.log('❌ SSO Auth failed:', errorParam || 'Unknown error');
-          setError(message || errorParam || 'Authentication failed');
-          setTimeout(() => navigate('/login', { replace: true }), 2000);
+          const error = errorMessage || errorParam || 'Authentication failed';
+          setMessage(error);
+          
+          if (isPopup) {
+            window.opener.postMessage({
+              type: 'SSO_ERROR',
+              message: error
+            }, window.location.origin);
+            setTimeout(() => window.close(), 1000);
+          }
           return;
         }
 
-        // Handle successful authentication with token
         if (token && user) {
-          console.log('✅ SSO Success - Storing credentials');
-          
-          // Store token
-          localStorage.setItem('token', token);
-          
-          // Parse and store user
           try {
             const parsedUser = JSON.parse(decodeURIComponent(user));
-            localStorage.setItem('user', JSON.stringify(parsedUser));
-            console.log('👤 User stored:', parsedUser);
+            
+            if (isPopup) {
+              // Send success message to parent window
+              window.opener.postMessage({
+                type: 'SSO_SUCCESS',
+                token,
+                user: parsedUser
+              }, window.location.origin);
+              
+              setMessage('Success! Closing window...');
+              setTimeout(() => window.close(), 500);
+            } else {
+              // Fallback: store and redirect if not in popup
+              localStorage.setItem('token', token);
+              localStorage.setItem('user', JSON.stringify(parsedUser));
+              window.location.href = '/dashboard';
+            }
           } catch (e) {
             console.error('Failed to parse user:', e);
+            setMessage('Error parsing user data');
           }
-
-          // Redirect to dashboard
-          console.log('🔄 Redirecting to dashboard...');
-          setTimeout(() => navigate('/dashboard', { replace: true }), 500);
           return;
         }
 
-        // Handle SSO signup flow (no account exists)
+        // Handle other cases (signup needed, verification needed, etc.)
+        const sso = searchParams.get('sso');
+        const email = searchParams.get('email');
+        
         if (sso === 'google' && email) {
-          console.log('📝 SSO Signup flow - Redirecting to signup');
+          const firstName = searchParams.get('firstName');
+          const lastName = searchParams.get('lastName');
           const signupUrl = `/signup?sso=google&email=${encodeURIComponent(email)}${
             firstName ? `&firstName=${encodeURIComponent(firstName)}` : ''
-          }${lastName ? `&lastName=${encodeURIComponent(lastName)}` : ''}${
-            message ? `&message=${encodeURIComponent(message)}` : ''
-          }`;
+          }${lastName ? `&lastName=${encodeURIComponent(lastName)}` : ''}`;
           
-          navigate(signupUrl, { replace: true });
+          if (isPopup) {
+            window.opener.location.href = signupUrl;
+            window.close();
+          } else {
+            window.location.href = signupUrl;
+          }
           return;
         }
 
-        // Handle email verification needed
-        if (message === 'email_pending' && email) {
-          console.log('📧 Email verification needed');
-          navigate(`/email-verification?email=${encodeURIComponent(email)}`, { replace: true });
-          return;
-        }
-
-        // Handle admin approval needed
-        if (message === 'admin_pending' && email) {
-          console.log('⏳ Admin approval needed');
-          navigate(`/pending-approval?email=${encodeURIComponent(email)}${sso ? '&sso=true' : ''}`, { replace: true });
-          return;
-        }
-
-        // No valid params - redirect to login
-        console.log('⚠️ No valid SSO params - Redirecting to login');
-        navigate('/login', { replace: true });
+        setMessage('Redirecting to login...');
+        setTimeout(() => {
+          if (isPopup) {
+            window.opener.location.href = '/login';
+            window.close();
+          } else {
+            window.location.href = '/login';
+          }
+        }, 1000);
 
       } catch (err: any) {
-        console.error('❌ SSO Callback error:', err);
-        setError(err?.message || 'An error occurred during sign-in');
-        setTimeout(() => navigate('/login', { replace: true }), 2000);
+        console.error('SSO Callback error:', err);
+        setMessage('An error occurred');
+        setTimeout(() => window.close(), 2000);
       }
     };
 
     handleSSOCallback();
-  }, [navigate, searchParams]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center max-w-md p-8">
-        {error ? (
-          <>
-            <div className="text-4xl mb-4">❌</div>
-            <h2 className="text-xl font-bold text-red-600 mb-2">Authentication Failed</h2>
-            <p className="text-gray-600 mb-4">{error}</p>
-            <p className="text-sm text-gray-500">Redirecting to login...</p>
-          </>
-        ) : (
-          <>
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-            <h2 className="text-xl font-bold text-gray-800 mb-2">Processing Sign-In...</h2>
-            <p className="text-gray-600">Please wait while we complete your authentication.</p>
-          </>
-        )}
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+        <p className="text-gray-700 font-medium">{message}</p>
       </div>
     </div>
   );

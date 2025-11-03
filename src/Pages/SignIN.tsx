@@ -15,15 +15,36 @@ const Login: React.FC = () => {
   const [serverError, setServerError] = useState<string | null>(null)
   const [fpOpen, setFpOpen] = useState(false);
 
-  // Check if user is already logged in - but allow SSO redirect
+  // Check if user is already logged in
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const hasAuthParams = params.has('token') || params.has('access_token') || params.has('auth');
-    
-    // Only redirect if authenticated AND not coming from SSO
-    if (isAuthenticated() && !hasAuthParams) {
+    if (isAuthenticated()) {
       navigate('/dashboard', { replace: true });
     }
+  }, [navigate]);
+
+  // Listen for SSO messages from popup
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      // Only accept messages from your backend domain
+      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const allowedOrigin = new URL(API_URL).origin;
+      
+      if (event.origin !== allowedOrigin && event.origin !== window.location.origin) {
+        return;
+      }
+
+      if (event.data?.type === 'SSO_SUCCESS') {
+        const { token, user } = event.data;
+        if (token) localStorage.setItem('token', token);
+        if (user) localStorage.setItem('user', JSON.stringify(user));
+        navigate('/dashboard', { replace: true });
+      } else if (event.data?.type === 'SSO_ERROR') {
+        setServerError(event.data.message || 'Google sign-in failed');
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
   }, [navigate]);
 
   const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
@@ -44,7 +65,7 @@ const Login: React.FC = () => {
       if (data?.user) {
         if (data?.token) localStorage.setItem('token', data.token);
         if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
-        navigate('/dashboard');
+        navigate('/dashboard', { replace: true });
       } else {
         setServerError(data?.message || 'Invalid response from server');
       }
@@ -55,10 +76,27 @@ const Login: React.FC = () => {
     }
   }
 
-  const handleGoogleSignIn = () => {
-    const apiUrl = import.meta.env.VITE_API_URL || 'https://sibol-backend-i0i6.onrender.com';
-    window.location.href = `${apiUrl}/api/auth/google`;
-  }
+  const handleGoogleLogin = () => {
+    const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const authUrl = `${API_URL}/api/auth/google`;
+    
+    // Open Google OAuth in popup
+    const width = 500;
+    const height = 600;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    
+    const popup = window.open(
+      authUrl,
+      'Google Sign In',
+      `width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`
+    );
+
+    // Check if popup was blocked
+    if (!popup || popup.closed || typeof popup.closed === 'undefined') {
+      setServerError('Popup blocked. Please allow popups for this site.');
+    }
+  };
 
   const googleIcon = new URL('../assets/images/flat-color-icons_google.png', import.meta.url).href
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
@@ -86,13 +124,15 @@ const Login: React.FC = () => {
           </h1>
 
           {/* Google Sign In Button */}
-          <button 
-            className="w-full flex items-center justify-center gap-2 sm:gap-3 border border-gray-200 bg-white text-gray-900 px-4 py-3 sm:py-3.5 rounded-lg sm:rounded-xl hover:bg-gray-50 transition-colors text-sm sm:text-base font-medium"
-            type="button" 
-            onClick={handleGoogleSignIn}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-3.5 bg-white border-2 border-gray-200 rounded-full hover:bg-gray-50 transition-colors"
           >
             <img src={googleIcon} className="w-5 h-5" alt="Google" />
-            <span>Sign in with Google</span>
+            <span className="text-gray-700 font-medium text-sm sm:text-base">
+              Continue with Google
+            </span>
           </button>
 
           {/* Divider */}
