@@ -138,19 +138,19 @@ export default function Admin() {
       {/* make white background touch the header by using a full-bleed white wrapper
           and a spacer equal to the header height so content stays below the fixed header */}
       <div className="w-full bg-white">
-        <div style={{ height: 'var(--header-h,96px)' }} aria-hidden />
-        {/* subheader with more visible separator (tabs centered vertically, slightly shifted left) */}
-        <div className="subheader sticky top-[var(--header-h,96px)] z-30 w-full border-b border-sibol-green/10 bg-white">
-          {/* tighter subheader */}
-          <div className="max-w-screen-2xl mx-auto flex items-center justify-between py-0.5 px-3">
-            {/* tabs slightly more compact (moved up slightly) */}
-            <nav className="flex items-center gap-5 -ml-2 -mt-1" role="tablist" aria-label="Admin tabs">
+        <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
+        <div
+          className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm"
+          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
+        >
+          <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
+            <nav className="flex items-center gap-5" role="tablist" aria-label="Admin tabs">
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}
-                className={`text-xl px-4 py-2 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform -translate-y-4 hover:scale-105
+                className={`text-xl px-4 py-2 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-colors duration-150
                   ${activeTab === 'list'
                     ? 'text-sibol-green font-semibold underline underline-offset-4'
                     : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'}`}
@@ -163,7 +163,7 @@ export default function Admin() {
                 role="tab"
                 aria-selected={activeTab === 'approval'}
                 onClick={() => setActiveTab('approval')}
-                className={`flex items-center gap-2 text-xl px-4 py-2 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-transform duration-150 transform -translate-y-4 hover:scale-105
+                className={`flex items-center gap-2 text-xl px-4 py-2 font-medium bg-transparent appearance-none focus:outline-none focus:ring-0 shadow-none transition-colors duration-150
                   ${activeTab === 'approval'
                     ? 'text-sibol-green font-semibold underline underline-offset-4'
                     : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'}`}

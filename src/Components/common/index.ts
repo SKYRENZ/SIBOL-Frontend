@@ -6,3 +6,4 @@ export { default as Table } from './Table';
 export { default as Tabs } from './Tabs';
 export { default as AuthLeftPanel } from './AuthLeftPanel';
 export { default as MessageModal } from './MessageModal';
+export { default as Pagination } from './Pagination';

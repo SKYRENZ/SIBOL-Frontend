@@ -1,3 +1,7 @@
+:root {
+    --header-height: 72px;
+}
+
 .header {
     position: fixed;
     top: 0;
@@ -5,7 +9,8 @@
     right: 0;
     z-index: 1000;
     background-color: #355842; /* dark green tone */
-    padding: 0.8rem 2rem;
+    padding: 0.96rem 2.57rem; /* ~20% taller, +7% wider */
+    min-height: var(--header-height);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -18,12 +23,42 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 1.5rem;
   }
-  
+
+  .nav-logo {
+    height: 32px;
+    width: auto;
+  }
+
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: #ffffff;
+    border-radius: 999px;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
   .nav-links {
     list-style: none;
     display: flex;
-    gap: 3rem;
+    gap: 3.6rem; /* ~20% larger spacing */
     margin: 0;
     padding: 0;
   }
@@ -31,7 +66,7 @@
   .nav-link {
     text-decoration: none;
     color: #d1d1d1;
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 400; /* regular */
     transition: color 0.3s ease;
   }
@@ -50,29 +85,169 @@
   .nav-icons {
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    gap: 1.8rem;
   }
-  
+
   .icon {
     color: white;
     cursor: pointer;
     transition: opacity 0.2s ease;
+    width: 22px;
+    height: 22px;
   }
-  
+
   .icon:hover {
     opacity: 0.8;
   }
   
+  .nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+  }
+
   /* Responsive design */
-  @media (max-width: 768px) {
-    .nav-links {
-      gap: 1rem;
-      font-size: 0.9rem;
+  @media (max-width: 1024px) {
+    :root {
+      --header-height: 68px;
     }
-  
+
+    .header {
+      padding: 0.9rem 2.14rem;
+    }
+
+    .nav-links {
+      gap: 3rem;
+      font-size: 1.05rem;
+    }
+
+    .nav-icons {
+      gap: 1.6rem;
+    }
+
+    .nav-logo {
+      height: 30px;
+    }
+
     .icon {
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
+    }
+
+    .nav-menu {
+      gap: 2.5rem;
     }
   }
-  
+
+  @media (max-width: 768px) {
+    :root {
+      --header-height: 64px;
+    }
+
+    .nav {
+      flex-wrap: wrap;
+      gap: 1rem;
+      justify-content: space-between;
+    }
+
+    .menu-toggle {
+      display: flex;
+    }
+
+    .nav-menu {
+      width: 100%;
+      background: #2c4b31;
+      border-radius: 16px;
+      margin: 0;
+      padding: 0.75rem 1rem 1rem;
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      animation: slideDown 0.2s ease forwards;
+    }
+
+    .nav-menu.open {
+      display: flex;
+    }
+
+    .nav-links {
+      width: 100%;
+      flex-direction: column;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0.75rem;
+      font-size: 0.95rem;
+    }
+
+    .nav-links li {
+      width: 100%;
+    }
+
+    .nav-link {
+      display: block;
+      padding: 0.6rem 0.85rem;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.06);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .nav-link:hover,
+    .nav-link.active {
+      background: rgba(175, 200, 173, 0.22);
+      color: #ffffff;
+      border-bottom: none;
+    }
+
+    .nav-icons {
+      width: 100%;
+      justify-content: center;
+      gap: 1.15rem;
+    }
+
+    .nav-logo {
+      height: 26px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    :root {
+      --header-height: 58px;
+    }
+
+    .header {
+      padding: 0.7rem 1.34rem;
+    }
+
+    .nav {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .nav-links {
+      width: 100%;
+      flex-direction: column;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+    }
+
+    .nav-icons {
+      width: 100%;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .nav-logo {
+      height: 26px;
+    }
+  }
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
