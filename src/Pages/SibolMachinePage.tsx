@@ -15,6 +15,10 @@ const SibolMachinePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMachine, setSelectedMachine] = useState('SIBOL Machine 1');
   
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10); // Items per page
+  
   const { 
     showAddForm, 
     showEditForm,
@@ -41,6 +45,17 @@ const SibolMachinePage: React.FC = () => {
       loadMachineData();
     }
   }, [activeTab]);
+
+  // Reset to page 1 when search term or active tab changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeTab]);
+
+  // Handle page size change
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
 
   const loadMachineData = async () => {
     try {
@@ -81,6 +96,123 @@ const SibolMachinePage: React.FC = () => {
       date: '8/27/25',
       time: '10:40AM',
       personInCharge: 'Maintenance#54'
+    },
+    {
+      chemicalInput: 'Sodium Hydroxide',
+      stage: '1',
+      value: '15',
+      units: 'liters',
+      date: '8/28/25',
+      time: '08:15AM',
+      personInCharge: 'Maintenance#12'
+    },
+    {
+      chemicalInput: 'Hydrochloric Acid',
+      stage: '3',
+      value: '5',
+      units: 'liters',
+      date: '8/28/25',
+      time: '11:20AM',
+      personInCharge: 'Maintenance#45'
+    },
+    {
+      chemicalInput: 'Chlorine',
+      stage: '2',
+      value: '8',
+      units: 'liters',
+      date: '8/29/25',
+      time: '09:00AM',
+      personInCharge: 'Maintenance#23'
+    },
+    {
+      chemicalInput: 'Water',
+      stage: '1',
+      value: '25',
+      units: 'liters',
+      date: '8/29/25',
+      time: '02:30PM',
+      personInCharge: 'Maintenance#32'
+    },
+    {
+      chemicalInput: 'Sulfuric Acid',
+      stage: '3',
+      value: '12',
+      units: 'liters',
+      date: '8/30/25',
+      time: '10:45AM',
+      personInCharge: 'Maintenance#67'
+    },
+    {
+      chemicalInput: 'Ammonia',
+      stage: '2',
+      value: '18',
+      units: 'liters',
+      date: '8/30/25',
+      time: '03:15PM',
+      personInCharge: 'Maintenance#54'
+    },
+    {
+      chemicalInput: 'Sodium Hypochlorite',
+      stage: '1',
+      value: '22',
+      units: 'liters',
+      date: '8/31/25',
+      time: '08:30AM',
+      personInCharge: 'Maintenance#12'
+    },
+    {
+      chemicalInput: 'Water',
+      stage: '3',
+      value: '30',
+      units: 'liters',
+      date: '8/31/25',
+      time: '01:00PM',
+      personInCharge: 'Maintenance#45'
+    },
+    {
+      chemicalInput: 'Phosphoric Acid',
+      stage: '2',
+      value: '7',
+      units: 'liters',
+      date: '9/1/25',
+      time: '09:20AM',
+      personInCharge: 'Maintenance#23'
+    },
+    {
+      chemicalInput: 'Calcium Chloride',
+      stage: '1',
+      value: '14',
+      units: 'liters',
+      date: '9/1/25',
+      time: '11:45AM',
+      personInCharge: 'Maintenance#32'
+    },
+    {
+      chemicalInput: 'Water',
+      stage: '2',
+      value: '19',
+      units: 'liters',
+      date: '9/2/25',
+      time: '08:00AM',
+      personInCharge: 'Maintenance#67'
+    },
+    {
+      chemicalInput: 'Potassium Hydroxide',
+      stage: '3',
+      value: '11',
+      units: 'liters',
+      date: '9/2/25',
+      time: '02:20PM',
+      personInCharge: 'Maintenance#54'
+    },
+    {
+      chemicalInput: 'Nitric Acid',
+      stage: '1',
+      value: '9',
+      units: 'liters',
+      date: '9/3/25',
+      time: '10:10AM',
+      personInCharge: 'Maintenance#12'
     }
   ];
 
@@ -97,6 +229,66 @@ const SibolMachinePage: React.FC = () => {
       area: 'Package 2',
       status: 'Not Full',
       startDate: '8/15/2025'
+    },
+    {
+      wasteContainerNo: 'WC-003',
+      area: 'Package 3',
+      status: 'Full',
+      startDate: '8/5/2025'
+    },
+    {
+      wasteContainerNo: 'WC-004',
+      area: 'Package 1',
+      status: 'Not Full',
+      startDate: '8/10/2025'
+    },
+    {
+      wasteContainerNo: 'WC-005',
+      area: 'Package 4',
+      status: 'Full',
+      startDate: '8/12/2025'
+    },
+    {
+      wasteContainerNo: 'WC-006',
+      area: 'Package 2',
+      status: 'Not Full',
+      startDate: '8/18/2025'
+    },
+    {
+      wasteContainerNo: 'WC-007',
+      area: 'Package 3',
+      status: 'Full',
+      startDate: '8/20/2025'
+    },
+    {
+      wasteContainerNo: 'WC-008',
+      area: 'Package 1',
+      status: 'Not Full',
+      startDate: '8/22/2025'
+    },
+    {
+      wasteContainerNo: 'WC-009',
+      area: 'Package 4',
+      status: 'Full',
+      startDate: '8/25/2025'
+    },
+    {
+      wasteContainerNo: 'WC-010',
+      area: 'Package 2',
+      status: 'Not Full',
+      startDate: '8/28/2025'
+    },
+    {
+      wasteContainerNo: 'WC-011',
+      area: 'Package 3',
+      status: 'Full',
+      startDate: '8/30/2025'
+    },
+    {
+      wasteContainerNo: 'WC-012',
+      area: 'Package 1',
+      status: 'Not Full',
+      startDate: '9/1/2025'
     }
   ];
 
@@ -185,7 +377,26 @@ const SibolMachinePage: React.FC = () => {
         { key: 'time', label: 'Time' },
         { key: 'personInCharge', label: 'Person in Charge' }
       ];
-      return <Table columns={columns} data={chemicalAdditivesData} emptyMessage="No chemical additives data available" />;
+      
+      // Paginate chemical additives data
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = chemicalAdditivesData.slice(startIndex, endIndex);
+      
+      return (
+        <Table 
+          columns={columns} 
+          data={paginatedData} 
+          emptyMessage="No chemical additives data available"
+          pagination={{
+            currentPage,
+            pageSize,
+            totalItems: chemicalAdditivesData.length,
+            onPageChange: setCurrentPage,
+            onPageSizeChange: handlePageSizeChange
+          }}
+        />
+      );
     } else if (activeTab === 'Machines') {
       const filteredMachines = machines.filter(machine => 
         searchTerm === '' || 
@@ -233,6 +444,11 @@ const SibolMachinePage: React.FC = () => {
         }
       ];
 
+      // Paginate machines data
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedMachines = filteredMachines.slice(startIndex, endIndex);
+
       return (
         <div>
           {error && (
@@ -253,8 +469,15 @@ const SibolMachinePage: React.FC = () => {
           )}
           <Table 
             columns={columns} 
-            data={filteredMachines} 
+            data={paginatedMachines} 
             emptyMessage="No machines found. Click 'Add Machine' to create one."
+            pagination={{
+              currentPage,
+              pageSize,
+              totalItems: filteredMachines.length,
+              onPageChange: setCurrentPage,
+              onPageSizeChange: handlePageSizeChange
+            }}
           />
         </div>
       );
@@ -265,7 +488,26 @@ const SibolMachinePage: React.FC = () => {
         { key: 'status', label: 'Status' },
         { key: 'startDate', label: 'Start Date' }
       ];
-      return <Table columns={columns} data={wasteContainerData} emptyMessage="No waste container data available" />;
+      
+      // Paginate waste container data
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedData = wasteContainerData.slice(startIndex, endIndex);
+      
+      return (
+        <Table 
+          columns={columns} 
+          data={paginatedData} 
+          emptyMessage="No waste container data available"
+          pagination={{
+            currentPage,
+            pageSize,
+            totalItems: wasteContainerData.length,
+            onPageChange: setCurrentPage,
+            onPageSizeChange: handlePageSizeChange
+          }}
+        />
+      );
     }
     return null;
   };
