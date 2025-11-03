@@ -8,6 +8,14 @@ interface Column {
   sortable?: boolean;
 }
 
+interface TablePaginationConfig {
+  currentPage: number;
+  pageSize: number;
+  totalItems: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange?: (pageSize: number) => void;
+}
+
 interface TableProps {
   columns: Column[];
   data: any[];
@@ -20,11 +28,12 @@ interface TableProps {
   enablePagination?: boolean;
   initialPageSize?: number;
   fixedPagination?: boolean;
+  pagination?: TablePaginationConfig;
 }
 
-const Table: React.FC<TableProps> = ({ 
-  columns, 
-  data, 
+const Table: React.FC<TableProps> = ({
+  columns,
+  data,
   onRowClick,
   emptyMessage = "No data available",
   className = "",
@@ -34,25 +43,36 @@ const Table: React.FC<TableProps> = ({
   enablePagination = true,
   initialPageSize = 5,
   fixedPagination = true,
+  pagination,
 }) => {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
 
-  // Calculate pagination
-  const totalItems = data.length;
-  const totalPages = Math.ceil(totalItems / pageSize);
+  const isControlled = Boolean(pagination);
+  const currentPage = isControlled ? pagination!.currentPage : internalPage;
+  const pageSize = isControlled ? pagination!.pageSize : internalPageSize;
+  const totalItems = isControlled ? pagination!.totalItems : data.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const endIndex = startIndex + pageSize;
-  const paginatedData = data.slice(startIndex, endIndex);
+  const paginatedData =
+    enablePagination && !isControlled ? data.slice(startIndex, endIndex) : data;
 
-  // Reset to page 1 when pageSize changes
   const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setCurrentPage(1);
+    if (isControlled) {
+      pagination?.onPageSizeChange?.(newPageSize);
+    } else {
+      setInternalPageSize(newPageSize);
+      setInternalPage(1);
+    }
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    if (isControlled) {
+      pagination?.onPageChange(page);
+    } else {
+      setInternalPage(page);
+    }
   };
 
   return (
