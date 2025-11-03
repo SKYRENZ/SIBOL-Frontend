@@ -5,6 +5,7 @@ import useFilters from "../../hooks/filter/useFilter";
 type FilterPanelProps = {
   types?: string[];
   onFilterChange?: (filters: string[]) => void;
+  className?: string;
 };
 
 const prettify = (key: string) =>
@@ -13,7 +14,7 @@ const prettify = (key: string) =>
     .replace(/[-_]/g, " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
-const FilterPanel: React.FC<FilterPanelProps> = ({ types, onFilterChange }) => {
+const FilterPanel: React.FC<FilterPanelProps> = ({ types, onFilterChange, className = '' }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   
@@ -47,7 +48,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({ types, onFilterChange }) => {
   };
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       {/* Filter Button */}
       <button
         onClick={toggleFilter}
