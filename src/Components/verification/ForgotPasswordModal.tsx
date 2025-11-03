@@ -60,19 +60,15 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
     message: ''
   });
 
-  // show seconds only (padded to 2 digits), e.g. "59", "05"
   const formatSeconds = (s: number) => String(s).padStart(2, '0');
  
-  // Local-only state for confirm password and show/hide toggles
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Ensure hooks run in stable order: declare OTP_LENGTH and inputsRef before any early returns
-  const OTP_LENGTH = 6; // adjust to 5 if your backend expects 5 digits
+  const OTP_LENGTH = 6;
   const inputsRef = useRef<(HTMLInputElement | null)[]>(Array(OTP_LENGTH).fill(null));
 
-  // Reset local states when modal opens
   useEffect(() => {
     if (open) {
       setConfirmPassword('');
@@ -83,7 +79,6 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
 
   if (!open) return null;
 
-  // Wrapper to validate confirm password before calling hook submit
   const handleSubmitNewPassword = async () => {
     if (newPassword !== confirmPassword) {
       setMessageModal({
@@ -106,14 +101,24 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
           </div>
 
           <div className="p-4">
-            {info && (
+            {/* Error Message */}
+            {error && (
+              <div className="mb-3 bg-red-50 border border-red-200 rounded-md px-4 py-3 text-red-800 text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Info Message */}
+            {info && !error && (
               <div className="mb-3">
                 <div className="bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
                   {info}
                 </div>
-                <div className="mt-2 bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
-                  Delivery may take 1–5 minutes. If you don't see the email, please check your spam/junk folder.
-                </div>
+                {step === 'verify' && (
+                  <div className="mt-2 bg-blue-50 border border-blue-100 rounded-md px-4 py-2 text-blue-800 text-sm">
+                    Delivery may take 1–5 minutes. If you don't see the email, please check your spam/junk folder.
+                  </div>
+                )}
               </div>
             )}
 
@@ -137,99 +142,98 @@ export default function ForgotPasswordModal({ open, onClose }: Props) {
                   >
                     {loading ? 'Sending…' : 'Send Reset Code'}
                   </button>
-                  <span className="ml-2 text-xs text-gray-500 font-semibold" aria-live="polite">
-                    {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
-                  </span>
+                  {resendCooldown > 0 && (
+                    <span className="ml-2 text-xs text-gray-500 font-semibold" aria-live="polite">
+                      {formatSeconds(resendCooldown)}
+                    </span>
+                  )}
                 </div>
               </>
             )}
 
-            { 
-              /* replaced verify block to include inline "Didn't get an email? Resend code" and OTP input boxes */
-              step === 'verify' && (
-                <>
-                  <label className="block text-sm font-medium text-black mb-2">Enter {OTP_LENGTH}-digit code</label>
+            {step === 'verify' && (
+              <>
+                <label className="block text-sm font-medium text-black mb-2">Enter {OTP_LENGTH}-digit code</label>
 
-                  <div className="mb-3 text-black">
-                    <div className="flex justify-center">
-                      <div className="flex gap-6">
-                        {Array.from({ length: OTP_LENGTH }).map((_, i) => (
-                          <input
-                            key={i}
-                            ref={(el) => {
-                              (inputsRef.current as Array<HTMLInputElement | null>)[i] = el;
-                            }}
-                            value={(code || '')[i] ?? ''}
-                            onChange={(e) => {
-                              const digit = e.target.value.replace(/\D/g, '').slice(0, 1);
-                              const arr = (code || '').split('').slice(0, OTP_LENGTH);
-                              arr[i] = digit;
-                              const newCode = arr.join('');
-                              setCode(newCode);
-                              if (digit && i < OTP_LENGTH - 1) {
-                                (inputsRef.current as Array<HTMLInputElement | null>)[i + 1]?.focus();
-                              }
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Backspace' && !(code || '')[i] && i > 0) {
-                                (inputsRef.current as Array<HTMLInputElement | null>)[i - 1]?.focus();
-                              }
-                            }}
-                            onPaste={(e) => {
-                              const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
-                              if (pasted.length) {
-                                setCode(pasted);
-                                const nextIndex = Math.min(pasted.length, OTP_LENGTH - 1);
-                                setTimeout(() => {
-                                  (inputsRef.current as Array<HTMLInputElement | null>)[nextIndex]?.focus();
-                                }, 0);
-                              }
-                              e.preventDefault();
-                            }}
-                            inputMode="numeric"
-                            className="w-12 h-12 flex-none text-center text-lg font-medium px-0 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-200 bg-white"
-                            aria-label={`Digit ${i + 1}`}
-                          />
-                        ))}
-                      </div>
+                <div className="mb-3 text-black">
+                  <div className="flex justify-center">
+                    <div className="flex gap-6">
+                      {Array.from({ length: OTP_LENGTH }).map((_, i) => (
+                        <input
+                          key={i}
+                          ref={(el) => {
+                            (inputsRef.current as Array<HTMLInputElement | null>)[i] = el;
+                          }}
+                          value={(code || '')[i] ?? ''}
+                          onChange={(e) => {
+                            const digit = e.target.value.replace(/\D/g, '').slice(0, 1);
+                            const arr = (code || '').split('').slice(0, OTP_LENGTH);
+                            arr[i] = digit;
+                            const newCode = arr.join('');
+                            setCode(newCode);
+                            if (digit && i < OTP_LENGTH - 1) {
+                              (inputsRef.current as Array<HTMLInputElement | null>)[i + 1]?.focus();
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Backspace' && !(code || '')[i] && i > 0) {
+                              (inputsRef.current as Array<HTMLInputElement | null>)[i - 1]?.focus();
+                            }
+                          }}
+                          onPaste={(e) => {
+                            const pasted = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, OTP_LENGTH);
+                            if (pasted.length) {
+                              setCode(pasted);
+                              const nextIndex = Math.min(pasted.length, OTP_LENGTH - 1);
+                              setTimeout(() => {
+                                (inputsRef.current as Array<HTMLInputElement | null>)[nextIndex]?.focus();
+                              }, 0);
+                            }
+                            e.preventDefault();
+                          }}
+                          inputMode="numeric"
+                          className="w-12 h-12 flex-none text-center text-lg font-medium px-0 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-200 bg-white"
+                          aria-label={`Digit ${i + 1}`}
+                        />
+                      ))}
                     </div>
                   </div>
+                </div>
 
-                  {error && <div className="mb-3 bg-red-50 text-red-700 px-3 py-2 rounded text-sm">{error}</div>}
-
-                  <div className="flex items-center mb-5">
-                    <div className="text-xs text-gray-500">Didn't get an email?</div>
-                    <button
-                      type="button"
-                      onClick={sendResetRequest}
-                      disabled={loading || (resendCooldown ?? 0) > 0}
-                      className="text-sm px-3 py-1 rounded-md bg-transparent text-blue-800 hover:text-blue-600 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 hover:ring-0 border-0 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Sending…' : 'Resend code'}
-                    </button>
+                <div className="flex items-center mb-5">
+                  <div className="text-xs text-gray-500">Didn't get an email?</div>
+                  <button
+                    type="button"
+                    onClick={sendResetRequest}
+                    disabled={loading || (resendCooldown ?? 0) > 0}
+                    className="text-sm px-3 py-1 rounded-md bg-transparent text-blue-800 hover:text-blue-600 outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 hover:ring-0 border-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Sending…' : 'Resend code'}
+                  </button>
+                  {resendCooldown > 0 && (
                     <span className="ml-3 text-s text-gray-500 font-bold" aria-live="polite">
-                      {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
+                      {formatSeconds(resendCooldown)}
                     </span>
-                  </div>
+                  )}
+                </div>
 
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => { closeAndReset(); onClose(); }}
-                      className="px-4 py-2 rounded-md bg-gray-100 text-gray-800"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={verifyCode}
-                      disabled={loading}
-                      className="px-4 py-2 rounded-md bg-[#2E523A] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
-                    >
-                      {loading ? 'Verifying…' : 'Verify Code'}
-                    </button>
-                  </div>
-                </>
-              )
-            }
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => { closeAndReset(); onClose(); }}
+                    className="px-4 py-2 rounded-md bg-gray-100 text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={verifyCode}
+                    disabled={loading}
+                    className="px-4 py-2 rounded-md bg-[#2E523A] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                  >
+                    {loading ? 'Verifying…' : 'Verify Code'}
+                  </button>
+                </div>
+              </>
+            )}
 
             {step === 'reset' && (
               <>
