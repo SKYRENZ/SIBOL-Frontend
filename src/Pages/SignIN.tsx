@@ -123,25 +123,6 @@ const Login: React.FC = () => {
             Sign in to your account
           </h1>
 
-          {/* Google Sign In Button */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-3.5 bg-white border-2 border-gray-200 rounded-full hover:bg-gray-50 transition-colors"
-          >
-            <img src={googleIcon} className="w-5 h-5" alt="Google" />
-            <span className="text-gray-700 font-medium text-sm sm:text-base">
-              Continue with Google
-            </span>
-          </button>
-
-          {/* Divider */}
-          <div className="flex items-center gap-3 sm:gap-4 my-5 sm:my-6 text-gray-400 font-semibold text-sm">
-            <div className="flex-1 h-px bg-gray-200"></div>
-            <span>Or</span>
-            <div className="flex-1 h-px bg-gray-200"></div>
-          </div>
-
           {/* Form */}
           <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleSubmit} noValidate>
             <div>
@@ -223,6 +204,25 @@ const Login: React.FC = () => {
               {loading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3 sm:gap-4 my-5 sm:my-6 text-gray-400 font-semibold text-sm">
+            <div className="flex-1 h-px bg-gray-200"></div>
+            <span>Or</span>
+            <div className="flex-1 h-px bg-gray-200"></div>
+          </div>
+
+          {/* Google Sign In Button */}
+          <button
+            type="button"
+            onClick={handleGoogleLogin}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 sm:py-3.5 bg-white border-2 border-gray-200 rounded-full hover:bg-gray-50 transition-colors"
+          >
+            <img src={googleIcon} className="w-5 h-5" alt="Google" />
+            <span className="text-gray-700 font-medium text-sm sm:text-base">
+              Continue with Google
+            </span>
+          </button>
 
           {/* Sign Up Link */}
           <p className="text-center mt-6 sm:mt-8 text-gray-700 text-sm sm:text-base">
