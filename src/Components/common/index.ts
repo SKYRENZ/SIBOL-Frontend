@@ -7,3 +7,4 @@ export { default as Tabs } from './Tabs';
 export { default as AuthLeftPanel } from './AuthLeftPanel';
 export { default as MessageModal } from './MessageModal';
 export { default as Pagination } from './Pagination';
+export { default as ProtectedRoute } from './ProtectedRoute';

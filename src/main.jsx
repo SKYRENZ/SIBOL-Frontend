@@ -12,55 +12,77 @@ import EmailVerification from './Pages/EmailVerification.tsx'
 import AdminPending from './Pages/AdminPending.tsx'
 import Dashboard from './Pages/Dashboard.tsx'
 import Admin from './Pages/Admin.tsx';
-import TestPage from './Pages/TestPage.tsx'; // <-- add this import
+import TestPage from './Pages/TestPage.tsx';
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 import Household from './Pages/Household.tsx';
-
 import MaintenancePage from './Pages/MaintenancePage.tsx';
+import SSOCallback from './Pages/SSOCallback.tsx'; // NEW
+
+// Import ProtectedRoute
+import ProtectedRoute from './Components/common/ProtectedRoute.tsx';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* makes the login page as our main page (starting point) */}
+        {/* Public Routes - No authentication required */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-        
-        {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/email-verification" element={<EmailVerification />} />
         <Route path="/pending-approval" element={<AdminPending />} />
         
-        {/* Protected/Main Application Routes */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/admin" element={<Admin />} />
-        <Route path="/sibol-machines" element={<SibolMachinePage />} />
-        <Route path="/household" element={<Household/>} />
-        <Route path="/maintenance" element={<MaintenancePage />} />
+        {/* SSO Callback Route - NEW */}
+        <Route path="/auth/callback" element={<SSOCallback />} />
         
-        {/* 
-          HOW TO ADD MORE ROUTES IN THE FUTURE:
-          
-          1. Create your new component file in the Pages folder
-          2. Import it at the top of this file
-          3. Add a new Route element below
-          
-          Examples:
-          - For a Profile page: <Route path="/profile" element={<Profile />} />
-          - For Settings page: <Route path="/settings" element={<Settings />} />
-          - For nested routes: <Route path="/users/:id" element={<UserDetail />} />
-          - For a catch-all 404: <Route path="*" element={<NotFound />} />
-          
-          Route Structure:
-          - path="/routename" - defines the URL path (with leading slash)
-          - element={<Component />} - the component to render
-          - Use path="*" for catch-all routes (404 pages)
-          - Use path="/users/:id" for dynamic parameters
-          
-          To change the default page:
-          - Modify the Navigate component's "to" prop on line 15
-          - Example: <Navigate to="/dashboard" replace /> for dashboard as default
-        */}
+        {/* Protected Routes - Authentication required */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/admin" 
+          element={
+            <ProtectedRoute requiredRole={1}>
+              <Admin />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/sibol-machines" 
+          element={
+            <ProtectedRoute>
+              <SibolMachinePage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/household" 
+          element={
+            <ProtectedRoute requiredRole={4}>
+              <Household />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/maintenance" 
+          element={
+            <ProtectedRoute>
+              <MaintenancePage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Catch-all route for 404 */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

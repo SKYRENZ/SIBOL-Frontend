@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
 import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
-import { login as apiLogin } from '../services/authService';
+import { login as apiLogin, isAuthenticated } from '../services/auth';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {
@@ -14,6 +14,17 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [fpOpen, setFpOpen] = useState(false);
+
+  // Check if user is already logged in - but allow SSO redirect
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const hasAuthParams = params.has('token') || params.has('access_token') || params.has('auth');
+    
+    // Only redirect if authenticated AND not coming from SSO
+    if (isAuthenticated() && !hasAuthParams) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
 

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSignUp } from '../hooks/signup/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchJson } from '../services/apiClient';
+import { isAuthenticated } from '../services/auth';
 
 const SignUp: React.FC = () => {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
@@ -39,6 +40,13 @@ const SignUp: React.FC = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Check if user is already logged in
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
