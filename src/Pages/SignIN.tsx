@@ -3,6 +3,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
 import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
 import { login as apiLogin } from '../services/authService';
+import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {
   const navigate = useNavigate()
@@ -55,19 +56,8 @@ const Login: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
-      {/* Left side - Brand/Image section - Hidden on mobile/tablet */}
-      <div 
-        className="hidden lg:flex relative items-center justify-start px-12 xl:px-16 py-16 min-h-screen bg-center bg-no-repeat bg-cover border-r border-gray-200 shadow-[8px_0_20px_-16px_rgba(0,0,0,0.35)]"
-        style={{ backgroundImage: `url(${leftBg})` }}
-      >
-        <div className="w-full max-w-2xl flex flex-col items-start text-left gap-5 ml-12">
-          <img 
-            className="w-64 xl:w-80 h-auto" 
-            src={leftLogo} 
-            alt="SIBOL" 
-          />
-        </div>
-      </div>
+      {/* Left Panel */}
+      <AuthLeftPanel backgroundImage={leftBg} logoImage={leftLogo} />
 
       {/* Right side - Form section */}
       <div className="flex items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-12 lg:py-16">

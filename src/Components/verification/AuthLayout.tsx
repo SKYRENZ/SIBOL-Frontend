@@ -1,4 +1,5 @@
 import React from 'react';
+import AuthLeftPanel from '../common/AuthLeftPanel';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -16,25 +17,18 @@ const AuthLayout: React.FC<AuthLayoutProps> = ({
   showTopLogo = true 
 }) => {
   return (
-    <div className="auth-shell min-h-screen flex">
-      {/* Left Panel */}
-      <div 
-        className="auth-left flex-1 bg-cover bg-center bg-no-repeat flex items-center justify-center"
-        style={{ backgroundImage: `url(${leftBg})` }}
-      >
-        <div className="auth-left-content">
-          <img className="auth-wordmark" src={leftLogo} alt="SIBOL" />
-        </div>
-      </div>
+    <div className="min-h-screen flex bg-white flex-col lg:flex-row">
+      {/* Left Panel - Background image style (no white background) */}
+      <AuthLeftPanel backgroundImage={leftBg} logoImage={leftLogo} />
 
-      {/* Right Panel */}
-      <div className="auth-right flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            {/* Top Logo */}
+      {/* Right Panel - Full width on mobile/tablet, half on desktop */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 bg-gray-50">
+        <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
+          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
+            {/* Top Logo - Show on mobile/tablet, hide on desktop (since left panel shows logo) */}
             {showTopLogo && topLogo && (
-              <div className="text-center mb-8">
-                <img className="mx-auto w-16 h-16" src={topLogo} alt="SIBOL" />
+              <div className="text-center mb-6 lg:hidden">
+                <img className="mx-auto w-12 h-12 sm:w-16 sm:h-16" src={topLogo} alt="SIBOL" />
               </div>
             )}
             

@@ -28,15 +28,15 @@ const CountdownProgress: React.FC<CountdownProgressProps> = ({
   const progress = ((total - countdown) / total) * 100;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 sm:space-y-3">
       <div className="flex items-center justify-center">
-        <span className={`${colors.text} font-bold text-lg`}>
+        <span className={`${colors.text} font-bold text-base sm:text-lg`}>
           {text} {countdown}...
         </span>
       </div>
-      <div className={`w-full ${colors.bg} rounded-full h-3`}>
+      <div className={`w-full ${colors.bg} rounded-full h-2 sm:h-3`}>
         <div 
-          className={`${colors.fill} h-3 rounded-full transition-all duration-1000 ease-linear`}
+          className={`${colors.fill} h-2 sm:h-3 rounded-full transition-all duration-1000 ease-linear`}
           style={{ width: `${progress}%` }}
         ></div>
       </div>
