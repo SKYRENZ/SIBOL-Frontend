@@ -16,7 +16,12 @@ export const PendingMaintenance: React.FC = () => {
   const columns = useMemo(
     () => [
       { key: "Title", label: "Title" },
-      { key: "Priority_Id", label: "Priority" },
+      {
+        key: "PriorityName",
+        label: "Priority",
+        render: (_: any, row: MaintenanceTicket) =>
+          row.PriorityName ?? row.Priority ?? row.Priority_Id ?? "—",
+      },
       {
         key: "Assigned_to",
         label: "Assigned Operator",

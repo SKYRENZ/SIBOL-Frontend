@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "react-hot-toast";
 import Table from "../common/Table";
 import MaintenanceForm from "./MaintenanceForm";
 import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMaintenance";
@@ -12,8 +13,10 @@ interface RequestMaintenanceProps {
 export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdByAccountId }) => {
   const { tickets, loading, error, createTicket, refetch } = useRequestMaintenance();
   const [showForm, setShowForm] = useState(false);
-  const [formMode, setFormMode] = useState<'create' | 'assign'>('create');
+  const [formMode, setFormMode] = useState<"create" | "assign" | "pending">("create");
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
+  const [tablePage, setTablePage] = useState(1);
+  const [assignError, setAssignError] = useState(false);
 
   const columns = useMemo(
     () => [
@@ -22,9 +25,10 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
         label: "Title"
       },
       {
-        key: "Priority_Id",
+        key: "PriorityName",
         label: "Priority",
-        render: (value: any) => value ?? "—",
+        render: (_: any, row: MaintenanceTicket) =>
+          row.PriorityName ?? row.Priority ?? row.Priority_Id ?? "—",
       },
       {
         key: "Request_date",
@@ -43,11 +47,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
         label: "Actions",
         render: (_: any, row: MaintenanceTicket) => (
           <button
-            onClick={() => {
-              setSelectedTicket(row);
-              setFormMode('assign');
-              setShowForm(true);
-            }}
+            onClick={() => handleOpenAssign(row)}
             className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
           >
             View & Accept
@@ -64,17 +64,36 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
     setShowForm(true);
   };
 
+  const handleOpenAssign = (ticket: MaintenanceTicket) => {
+    setSelectedTicket(ticket);
+    setFormMode("assign");
+    setShowForm(true);
+    setAssignError(false);
+  };
+
   const handleFormSubmit = async (formData: any) => {
     try {
       if (formMode === 'create') {
+        const attachmentFolder = formData.file ? `maintenance/${createdByAccountId}` : undefined;
+
         await createTicket({
           title: formData.title,
           details: formData.issue,
           priority: formData.priority,
           created_by: createdByAccountId,
           due_date: formData.dueDate || null,
+          attachment_folder: attachmentFolder,
+        }, {
+          attachment: formData.file,
+          attachmentFolder,
         });
-      } else if (formMode === 'assign' && selectedTicket) {
+      } else if (formMode === "assign" && selectedTicket) {
+        if (!formData.assignedTo) {
+          setAssignError(true);
+          toast.error("Please select an operator before accepting.");
+          return;
+        }
+        setAssignError(false);
         const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
         const staffId = parseInt(formData.staffAccountId, 10);
         const requestId = selectedTicket.Request_Id || selectedTicket.request_id;
@@ -90,6 +109,12 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
     } catch (err: any) {
       console.error("Form error:", err);
     }
+  };
+
+  const handleCloseForm = () => {
+    setShowForm(false);
+    setSelectedTicket(null);
+    setAssignError(false);
   };
 
   return (
@@ -113,13 +138,12 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ createdB
 
       <MaintenanceForm
         isOpen={showForm}
-        onClose={() => {
-          setShowForm(false);
-          setSelectedTicket(null);
-        }}
+        onClose={handleCloseForm}
         onSubmit={handleFormSubmit}
         mode={formMode}
         initialData={selectedTicket}
+        highlightAssigned={assignError}
+        onAssignedChange={() => setAssignError(false)}
       />
     </div>
   );

@@ -3,6 +3,16 @@ import type { MaintenanceTicket, MaintenanceTicketPayload } from "../types/maint
 
 const BASE_URL = "/api/maintenance";
 
+type CreateTicketOptions = {
+  attachment?: File | null;
+  attachmentFolder?: string;
+};
+
+type OperatorAccount = {
+  account_id: number;
+  display_name: string;
+};
+
 export async function listTickets(params?: {
   status?: string;
   assigned_to?: number;
@@ -23,8 +33,40 @@ export async function getTicket(id: number): Promise<MaintenanceTicket> {
   return response.data;
 }
 
-export async function createTicket(payload: MaintenanceTicketPayload): Promise<MaintenanceTicket> {
-  const response = await apiClient.post<MaintenanceTicket>(BASE_URL, payload);
+export async function createTicket(
+  payload: MaintenanceTicketPayload,
+  options?: CreateTicketOptions
+): Promise<MaintenanceTicket> {
+  if (options?.attachment) {
+    const formData = new FormData();
+    formData.append("title", payload.title);
+    if (payload.details) formData.append("details", payload.details);
+    if (payload.priority) formData.append("priority", payload.priority);
+    formData.append("created_by", String(payload.created_by));
+    if (payload.due_date !== undefined) formData.append("due_date", payload.due_date ?? "");
+    const folder = options.attachmentFolder ?? payload.attachment_folder;
+    if (folder) formData.append("attachment_folder", folder);
+    formData.append("attachment", options.attachment);
+
+    const res = await fetch(BASE_URL, {
+      method: "POST",
+      body: formData,
+    });
+
+    if (!res.ok) {
+      const message = await res.text();
+      throw new Error(message || "Failed to create maintenance ticket");
+    }
+
+    return res.json();
+  }
+
+  const body: MaintenanceTicketPayload = {
+    ...payload,
+    attachment_folder: options?.attachmentFolder ?? payload.attachment_folder,
+  };
+
+  const response = await apiClient.post<MaintenanceTicket>(BASE_URL, body);
   return response.data;
 }
 
@@ -99,5 +141,10 @@ export async function verifyCompletion(
 
 export async function cancelTicket(requestId: number, actor_account_id: number) {
   const response = await apiClient.put<MaintenanceTicket>(`${BASE_URL}/${requestId}/cancel`, { actor_account_id });
+  return response.data;
+}
+
+export async function listOperators(): Promise<OperatorAccount[]> {
+  const response = await apiClient.get<OperatorAccount[]>(`${BASE_URL}/operators`);
   return response.data;
 }

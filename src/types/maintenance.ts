@@ -6,6 +6,8 @@ export interface MaintenanceTicket {
   Details?: string | null;
   details?: string | null;
   Priority_Id?: string | number;
+  Priority?: string | number;
+  PriorityName?: string | null;
   priority?: string | number;
   Status?: string | null;
   status?: string | null;
@@ -18,6 +20,10 @@ export interface MaintenanceTicket {
   Request_date?: string;
   created_at?: string;
   Main_stat_id?: number;
+  Attachment?: string | null;
+  attachment?: string | null;
+  Attachment_folder?: string | null;
+  attachment_folder?: string | null;
   Remarks?: string | null;
   remarks?: string | null;
   Updated_at?: string;
@@ -31,4 +37,5 @@ export interface MaintenanceTicketPayload {
   created_by: number;
   due_date?: string | null;
   attachment?: string | null;
+  attachment_folder?: string;
 }

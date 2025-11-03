@@ -8,7 +8,12 @@ export const CompletedMaintenance: React.FC = () => {
   const columns = useMemo(
     () => [
       { key: "Title", label: "Title" },
-      { key: "Priority_Id", label: "Priority" },
+      {
+        key: "PriorityName",
+        label: "Priority",
+        render: (_: any, row) =>
+          row.PriorityName ?? row.Priority ?? row.Priority_Id ?? "—",
+      },
       {
         key: "created_at",
         label: "Date Requested",

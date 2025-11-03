@@ -26,16 +26,22 @@ export function useRequestMaintenance() {
     fetch();
   }, [fetch]);
 
-  const create = useCallback(async (payload: MaintenanceTicketPayload) => {
-    try {
-      const result = await maintenanceService.createTicket(payload);
-      console.log("Created ticket:", result); // Debug log
-      await fetch(); // Refetch to show new ticket
-    } catch (err: any) {
-      console.error("Create error:", err); // Debug log
-      throw err;
-    }
-  }, [fetch]);
+  const create = useCallback(
+    async (
+      payload: MaintenanceTicketPayload,
+      options?: { attachment?: File | null; attachmentFolder?: string }
+    ) => {
+      try {
+        const result = await maintenanceService.createTicket(payload, options);
+        console.log("Created ticket:", result); // Debug log
+        await fetch(); // Refetch to show new ticket
+      } catch (err: any) {
+        console.error("Create error:", err); // Debug log
+        throw err;
+      }
+    },
+    [fetch]
+  );
 
   return { tickets, loading, error, refetch: fetch, createTicket: create };
 }
