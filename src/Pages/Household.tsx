@@ -9,10 +9,12 @@ import RewardTab from "../Components/Household/reward";
 import AddScheduleModal from "../Components/Household/addSchedule";
 import EditScheduleModal from "../Components/Household/editScheduleModal";
 import AddRewardModal from "../Components/Household/addReward";
+import EditRewardModal from "../Components/Household/editReward";
 import LeaderboardTab from "../Components/Household/leaderboard";
 import PointSystem from "../Components/Household/pointSystem";
-import "../types/Household.css";
 import WasteCollectionTab from "../Components/Household/wasteCollection";
+import type { Reward } from "../services/rewardService";
+import "../types/Household.css";
 
 interface RowData {
   maintenance: string;
@@ -34,7 +36,6 @@ const Household: React.FC = () => {
 
   useEffect(() => {
     console.log("activeTab ->", activeTab);
-    // Reset filters when tab changes
     setSelectedFilters([]);
   }, [activeTab]);
 
@@ -42,6 +43,8 @@ const Household: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [rowToEdit, setRowToEdit] = useState<RowData | null>(null);
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
+  const [isEditRewardModalOpen, setIsEditRewardModalOpen] = useState(false);
+  const [rewardToEdit, setRewardToEdit] = useState<Reward | null>(null);
   const [searchValue, setSearchValue] = useState("");
 
   const handleAddSchedule = () => setIsAddModalOpen(true);
@@ -59,13 +62,28 @@ const Household: React.FC = () => {
   const handleAddReward = () => setIsRewardModalOpen(true);
   const handleCloseRewardModal = () => setIsRewardModalOpen(false);
 
+  const handleEditReward = (reward: Reward) => {
+    setRewardToEdit(reward);
+    setIsEditRewardModalOpen(true);
+  };
+
+  const handleCloseEditRewardModal = () => {
+    setIsEditRewardModalOpen(false);
+    setRewardToEdit(null);
+  };
+
   const handleSaveReward = () => {
     console.log("Reward Saved");
     setIsRewardModalOpen(false);
-    setRefreshKey(prev => prev + 1); // Trigger refresh
+    setRefreshKey(prev => prev + 1);
   };
 
-  // Determine filter types based on active tab
+  const handleUpdateReward = () => {
+    console.log("Reward Updated");
+    setIsEditRewardModalOpen(false);
+    setRefreshKey(prev => prev + 1);
+  };
+
   const getFilterTypesByTab = (tab: string): string[] => {
     switch(tab) {
       case 'schedule':
@@ -142,15 +160,21 @@ const Household: React.FC = () => {
   
           {/* Pass filters to child components */}
           {activeTab === "schedule" && <ScheduleTab filters={selectedFilters} />}
-           {activeTab === "wasteCollection" && <WasteCollectionTab />}
-          {activeTab === "reward" && <RewardTab key={refreshKey} filters={selectedFilters} />}
+          {activeTab === "wasteCollection" && <WasteCollectionTab />}
+          {activeTab === "reward" && (
+            <RewardTab 
+              key={refreshKey} 
+              filters={selectedFilters}
+              onEditReward={handleEditReward}
+            />
+          )}
           {activeTab === "leaderboard" && <LeaderboardTab />}
           {activeTab === "claimed" && <ClaimedRewards />}
-            {activeTab === "points" && <PointSystem />}
+          {activeTab === "points" && <PointSystem />}
         </div>
       </div>
 
-      {/* ✅ Modals */}
+      {/* Modals */}
       <AddScheduleModal isOpen={isAddModalOpen} onClose={handleCloseAddModal} />
 
       <EditScheduleModal
@@ -167,6 +191,13 @@ const Household: React.FC = () => {
         isOpen={isRewardModalOpen}
         onClose={handleCloseRewardModal}
         onSave={handleSaveReward}
+      />
+
+      <EditRewardModal
+        isOpen={isEditRewardModalOpen}
+        onClose={handleCloseEditRewardModal}
+        onSave={handleUpdateReward}
+        reward={rewardToEdit}
       />
     </div>
   );

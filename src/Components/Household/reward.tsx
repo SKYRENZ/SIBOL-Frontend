@@ -1,13 +1,14 @@
 import React, { useState } from "react";
 import { useRewards, useArchiveReward } from "../../hooks/household/useRewardHooks";
 import type { Reward } from "../../services/rewardService";
-import { Gift, Archive, RotateCcw, Sparkles } from "lucide-react";
+import { Gift, Archive, RotateCcw, Sparkles, Edit2 } from "lucide-react";
 
 interface RewardTabProps {
   filters: string[];
+  onEditReward: (reward: Reward) => void;
 }
 
-const RewardTab: React.FC<RewardTabProps> = ({ filters }) => {
+const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
   const [showArchived, setShowArchived] = useState(false);
   const { rewards, loading, error, refetch } = useRewards(showArchived);
   const { archiveReward, restoreReward, loading: archiveLoading } = useArchiveReward();
@@ -148,26 +149,38 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters }) => {
                   </div>
                 </div>
 
-                {/* Action Button */}
-                {reward.IsArchived ? (
-                  <button
-                    onClick={() => handleRestore(reward.Reward_id!)}
-                    disabled={archiveLoading}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-xl font-medium text-sm hover:bg-green-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-green-200"
-                  >
-                    <RotateCcw className="w-4 h-4" />
-                    Restore Reward
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleArchive(reward.Reward_id!)}
-                    disabled={archiveLoading}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 rounded-xl font-medium text-sm hover:bg-red-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-200"
-                  >
-                    <Archive className="w-4 h-4" />
-                    Archive Reward
-                  </button>
-                )}
+                {/* Action Buttons */}
+                <div className="flex gap-2">
+                  {!reward.IsArchived && (
+                    <button
+                      onClick={() => onEditReward(reward)}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-50 text-blue-700 rounded-xl font-medium text-sm hover:bg-blue-100 transition-all border border-blue-200"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                      Edit
+                    </button>
+                  )}
+                  
+                  {reward.IsArchived ? (
+                    <button
+                      onClick={() => handleRestore(reward.Reward_id!)}
+                      disabled={archiveLoading}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-xl font-medium text-sm hover:bg-green-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-green-200"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Restore
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleArchive(reward.Reward_id!)}
+                      disabled={archiveLoading}
+                      className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 rounded-xl font-medium text-sm hover:bg-red-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-200"
+                    >
+                      <Archive className="w-4 h-4" />
+                      Archive
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Hover Effect Gradient */}
