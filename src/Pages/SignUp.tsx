@@ -138,8 +138,6 @@ const SignUp: React.FC = () => {
                 <option value="">Select Role</option>
                 <option value="1">Admin</option>
                 <option value="2">Barangay Staff</option>
-                <option value="3">Operator</option>
-                <option value="4">Household</option>
               </select>
               {errors.role && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.role}</div>}
             </div>
