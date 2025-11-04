@@ -570,7 +570,7 @@ const SibolMachinePage: React.FC = () => {
         <div className="max-w-screen-2xl mx-auto">
           {/* Search Bar and Action Buttons */}
           <div className="mb-4 sm:mb-6 flex items-center justify-between gap-2 sm:gap-3 md:gap-4">
-            <div className="min-w-0 flex-1 max-w-xs sm:max-w-sm md:max-w-md">
+            <div className="min-w-0 flex-1 max-w-xs sm:max-w-sm md:max-w-2xl">
               <SearchBar 
                 value={searchTerm} 
                 onChange={setSearchTerm}

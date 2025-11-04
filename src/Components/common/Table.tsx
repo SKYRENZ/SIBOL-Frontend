@@ -226,7 +226,7 @@ const Table: React.FC<TableProps> = ({
       </div>
 
       {/* Tablet Table View - visible on tablet to small desktop */}
-      <div className="hidden lg:block xl:hidden overflow-x-auto rounded-lg border border-gray-200">
+      <div className="hidden lg:block xl:hidden overflow-x-auto border border-gray-200">
         <table className="w-full">
           <thead style={{ backgroundColor: '#AFC8AD9C' }}>
             <tr>
@@ -258,7 +258,7 @@ const Table: React.FC<TableProps> = ({
       </div>
 
       {/* Desktop Table View - visible on large desktop */}
-      <div className="hidden xl:block overflow-x-auto rounded-lg border border-gray-200">
+      <div className="hidden xl:block overflow-x-auto border border-gray-200">
         <table className="w-full">
           <thead style={{ backgroundColor: '#AFC8AD9C' }}>
             <tr>

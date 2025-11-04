@@ -18,7 +18,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 focus:border-transparent transition-all duration-200 pl-7 sm:pl-9 md:pl-10"
+        className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 focus:border-transparent transition-all duration-200 pl-7 sm:pl-9 md:pl-10"
       />
       <svg
         className="absolute left-2 sm:left-3 md:left-3 top-2 sm:top-2.5 md:top-3 w-3.5 h-3.5 sm:w-4 sm:h-4 md:w-5 md:h-5 text-gray-400"
