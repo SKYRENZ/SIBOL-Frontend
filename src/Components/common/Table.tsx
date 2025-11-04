@@ -125,11 +125,14 @@ const Table: React.FC<TableProps> = ({
               className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col"
             >
               {/* Card Header - Primary Value with Label */}
-              <div className="bg-gradient-to-r from-[#2E523A] to-[#3b6b4c] px-4 py-3">
-                <p className="text-xs font-semibold text-green-100 uppercase tracking-wider">
+              <div 
+                className="px-4 py-3"
+                style={{ backgroundColor: '#AFC8AD9C' }}
+              >
+                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
                   {primaryCol.label}
                 </p>
-                <h3 className="text-sm font-bold text-white truncate mt-1">
+                <h3 className="text-sm font-bold text-gray-900 truncate mt-1">
                   {primaryValue}
                 </h3>
               </div>
@@ -225,12 +228,12 @@ const Table: React.FC<TableProps> = ({
       {/* Tablet Table View - visible on tablet to small desktop */}
       <div className="hidden lg:block xl:hidden overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full">
-          <thead className="bg-gradient-to-r from-[#2E523A] to-[#3b6b4c]">
+          <thead style={{ backgroundColor: '#AFC8AD9C' }}>
             <tr>
               {getVisibleColumns("tablet").map((column) => (
                 <th
                   key={column.key}
-                  className="px-3 py-3 text-left text-xs font-semibold text-white whitespace-nowrap"
+                  className="px-3 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap"
                 >
                   {column.label}
                 </th>
@@ -257,12 +260,12 @@ const Table: React.FC<TableProps> = ({
       {/* Desktop Table View - visible on large desktop */}
       <div className="hidden xl:block overflow-x-auto rounded-lg border border-gray-200">
         <table className="w-full">
-          <thead className="bg-gradient-to-r from-[#2E523A] to-[#3b6b4c]">
+          <thead style={{ backgroundColor: '#AFC8AD9C' }}>
             <tr>
               {columns.map((column) => (
                 <th
                   key={column.key}
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-white whitespace-nowrap"
+                  className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap"
                 >
                   {column.label}
                 </th>
@@ -286,63 +289,16 @@ const Table: React.FC<TableProps> = ({
         </table>
       </div>
 
-      {/* Pagination Controls */}
-      {enablePagination && pagination && (
-        <div className="flex flex-col gap-3 pt-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <label
-                htmlFor="pageSize"
-                className="text-xs sm:text-sm text-gray-700 whitespace-nowrap"
-              >
-                Items per page:
-              </label>
-              <select
-                id="pageSize"
-                value={pagination.pageSize}
-                onChange={(e) =>
-                  pagination.onPageSizeChange?.(parseInt(e.target.value))
-                }
-                className="px-2 py-1 text-xs sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={15}>15</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button
-                onClick={() =>
-                  pagination.onPageChange(Math.max(1, pagination.currentPage - 1))
-                }
-                disabled={pagination.currentPage === 1}
-                className="px-2 py-1 text-xs sm:text-sm rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                ← Prev
-              </button>
-
-              <span className="text-xs sm:text-sm text-gray-700 px-2 whitespace-nowrap">
-                {pagination.currentPage} / {totalPages}
-              </span>
-
-              <button
-                onClick={() =>
-                  pagination.onPageChange(Math.min(totalPages, pagination.currentPage + 1))
-                }
-                disabled={pagination.currentPage === totalPages}
-                className="px-2 py-1 text-xs sm:text-sm rounded-lg border border-gray-300 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-              >
-                Next →
-              </button>
-            </div>
-          </div>
-
-          <div className="text-xs sm:text-sm text-gray-600 text-center sm:text-left">
-            Total: {pagination.totalItems} items
-          </div>
-        </div>
+{enablePagination && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageSizeChange={handlePageSizeChange}
+          fixed={fixedPagination}
+        />
       )}
     </div>
   );

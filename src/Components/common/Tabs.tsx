@@ -43,10 +43,10 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange }) => {
             key={tab.id}
             onClick={() => onTabChange(tab.id)}
             className={`
-              px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap
+              px-4 py-2 rounded-[20px] text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap focus:outline-none
               ${
                 activeTab === tab.id
-                  ? "bg-[#2E523A] text-white"
+                  ? "bg-[#2E523A] text-white shadow-sm"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }
             `}
@@ -62,7 +62,7 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange }) => {
           ref={buttonRef}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="
-            p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200
+            p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200 focus:outline-none
           "
           aria-label="Toggle menu"
         >
@@ -99,7 +99,7 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange }) => {
                   setMobileMenuOpen(false);
                 }}
                 className={`
-                  w-full text-left px-3 py-2 text-xs font-medium transition-all duration-200 first:rounded-t-lg last:rounded-b-lg
+                  w-full text-left px-3 py-2 text-xs font-medium transition-all duration-200 first:rounded-t-lg last:rounded-b-lg focus:outline-none
                   ${
                     activeTab === tab.id
                       ? "bg-[#2E523A] text-white"
