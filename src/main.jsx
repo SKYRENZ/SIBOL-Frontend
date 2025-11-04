@@ -26,7 +26,7 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* makes the login page as our main page (starting point) */}
+        {/* Landing Page - Public route that redirects if authenticated */}
         <Route path="/" element={<Landingpage />} />
         
         {/* Authentication Routes */}
@@ -38,7 +38,7 @@ createRoot(document.getElementById('root')).render(
         {/* SSO Callback Route */}
         <Route path="/auth/callback" element={<SSOCallback />} />
         
-        {/* Protected Routes - Authentication required (NO ROLE RESTRICTIONS) */}
+        {/* Protected Routes - Authentication required */}
         <Route 
           path="/dashboard" 
           element={
@@ -84,8 +84,8 @@ createRoot(document.getElementById('root')).render(
           } 
         />
 
-        {/* Catch-all route for 404 */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all route - redirects to landing page instead of login */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

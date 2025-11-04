@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, Leaf, Recycle, Zap, Mail, Phone, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin } from 'lucide-react';
+import { isAuthenticated } from '../services/auth';
 
 const Landingpage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +13,13 @@ const Landingpage: React.FC = () => {
     subject: '',
     message: ''
   });
+
+  // Redirect authenticated users to dashboard
+  useEffect(() => {
+    if (isAuthenticated()) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [navigate]);
 
   const carouselSlides = [
     { 
@@ -193,7 +201,7 @@ const Landingpage: React.FC = () => {
           <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-center text-gray-900 dark:text-gray-900 mb-2">
             Check Our Features
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-600 max-w-2xl mx-auto mb-6 sm:mb-8 md:mb-10 text-xs sm:text-sm md:text-base">
+          <p className="text-center text-gray-600 dark:text-gray-600 max-w-2xl mx-auto mb-6 sm:mb-8 md:mb-10 lg:mb-24 text-xs sm:text-sm md:text-base lg:text-lg">
             Our SIBOL Project will help your community grow with innovation. Your trash can be energy that flows through your community.
           </p>
 
@@ -245,14 +253,14 @@ const Landingpage: React.FC = () => {
                   className="absolute left-2 sm:left-3 md:left-4 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white/90 dark:bg-white/90 hover:bg-white dark:hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 z-30"
                   aria-label="Previous slide"
                 >
-                  <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 dark:text-gray-800" />
+                  <Recycle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 dark:text-gray-800" />
                 </button>
                 <button
                   onClick={nextSlide}
                   className="absolute right-2 sm:right-3 md:right-4 top-1/2 -translate-y-1/2 w-7 h-7 sm:w-8 sm:h-8 md:w-9 md:h-9 bg-white/90 dark:bg-white/90 hover:bg-white dark:hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 z-30"
                   aria-label="Next slide"
                 >
-                  <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 dark:text-gray-800" />
+                  <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-800 dark:text-gray-800" />
                 </button>
               </div>
 
