@@ -1,27 +1,21 @@
 export interface MaintenanceTicket {
   Request_Id?: number;
   request_id?: number;
-  Title?: string;
-  title?: string;
-  Details?: string | null;
-  details?: string | null;
-  Priority_Id?: string | number;
-  priority?: string | number;
-  Status?: string | null;
-  status?: string | null;
-  Assigned_to?: number | null;
-  assigned_to?: number | null;
-  Created_by?: number;
-  created_by?: number;
+  Title: string;
+  Details: string;
+  Priority_Id: number;
+  Created_by: number;
+  Assigned_to: number | null;
+  Request_date: string;
   Due_date?: string | null;
-  due_date?: string | null;
-  Request_date?: string;
-  created_at?: string;
-  Main_stat_id?: number;
-  Remarks?: string | null;
-  remarks?: string | null;
-  Updated_at?: string;
-  updated_at?: string;
+  Main_stat_id: number;
+  Attachment?: string | null;
+  Remarks?: string;
+  
+  // Properties from JOINs
+  Priority?: string;
+  Status?: string;
+  AssignedOperatorName?: string; // Add this new property
 }
 
 export interface MaintenanceTicketPayload {

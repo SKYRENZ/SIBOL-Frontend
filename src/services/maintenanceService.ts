@@ -24,6 +24,7 @@ export async function getTicket(id: number): Promise<MaintenanceTicket> {
 }
 
 export async function createTicket(payload: MaintenanceTicketPayload): Promise<MaintenanceTicket> {
+  console.log("Creating ticket with payload:", payload); // Debug log
   const response = await apiClient.post<MaintenanceTicket>(BASE_URL, payload);
   return response.data;
 }
@@ -38,19 +39,9 @@ export async function acceptAndAssign(
     assign_to: assignToAccountId,
   };
   
-  console.log("Sending body:", body); // Debug
-  
-  const res = await fetch(`/api/maintenance/${requestId}/accept`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`${res.status}: ${text}`);
-  }
-  return res.json();
+  console.log("Accept & Assign - Request ID:", requestId, "Body:", body);
+  const response = await apiClient.put(`${BASE_URL}/${requestId}/accept`, body);
+  return response.data;
 }
 
 export async function markOnGoing(requestId: number, operator_account_id: number) {
@@ -62,39 +53,27 @@ export async function addRemarks(
   requestId: number,
   remarks: string
 ): Promise<any> {
-  const res = await fetch(`${BASE_URL}/${requestId}/remarks`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ remarks }),
-  });
-  if (!res.ok) throw new Error('Failed to add remarks');
-  return res.json();
+  console.log("Adding remarks to request:", requestId, "Remarks:", remarks);
+  const response = await apiClient.put(`${BASE_URL}/${requestId}/remarks`, { remarks });
+  return response.data;
 }
 
 export async function markForVerification(
   requestId: number,
   operator_account_id: number
 ): Promise<any> {
-  const res = await fetch(`${BASE_URL}/${requestId}/mark-for-verification`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ operator_account_id }),
-  });
-  if (!res.ok) throw new Error('Failed to mark for verification');
-  return res.json();
+  console.log("Marking for verification:", requestId, "Operator:", operator_account_id);
+  const response = await apiClient.put(`${BASE_URL}/${requestId}/mark-for-verification`, { operator_account_id });
+  return response.data;
 }
 
 export async function verifyCompletion(
   requestId: number,
   staff_account_id: number
 ): Promise<any> {
-  const res = await fetch(`${BASE_URL}/${requestId}/verify-completion`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ staff_account_id }),
-  });
-  if (!res.ok) throw new Error('Failed to verify completion');
-  return res.json();
+  console.log("Verifying completion:", requestId, "Staff:", staff_account_id);
+  const response = await apiClient.put(`${BASE_URL}/${requestId}/verify-completion`, { staff_account_id });
+  return response.data;
 }
 
 export async function cancelTicket(requestId: number, actor_account_id: number) {

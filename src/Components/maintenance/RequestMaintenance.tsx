@@ -1,26 +1,16 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import Table from "../common/Table";
-import MaintenanceForm from "./MaintenanceForm";
 import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMaintenance";
-import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 
 interface RequestMaintenanceProps {
-  createdByAccountId: number;
-  onCreateRequest?: () => void;
-  showForm?: boolean;
-  onFormClose?: () => void;
+  onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
 }
 
 export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ 
-  createdByAccountId, 
-  onCreateRequest, 
-  showForm = false, 
-  onFormClose 
+  onOpenForm 
 }) => {
-  const { tickets, loading, error, createTicket, refetch } = useRequestMaintenance();
-  const [formMode, setFormMode] = useState<'create' | 'assign'>('create');
-  const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
+  const { tickets, loading, error } = useRequestMaintenance();
 
   const columns = useMemo(
     () => [
@@ -29,7 +19,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         label: "Title"
       },
       {
-        key: "Priority_Id",
+        key: "Priority",
         label: "Priority",
         render: (value: any) => value ?? "—",
       },
@@ -50,11 +40,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         label: "Actions",
         render: (_: any, row: MaintenanceTicket) => (
           <button
-            onClick={() => {
-              setSelectedTicket(row);
-              setFormMode('assign');
-              setShowForm(true);
-            }}
+            onClick={() => onOpenForm('assign', row)}
             className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
           >
             View & Accept
@@ -62,62 +48,17 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         ),
       },
     ],
-    []
+    [onOpenForm]
   );
 
-  const handleCreateClick = () => {
-    setFormMode('create');
-    setSelectedTicket(null);
-    setShowForm(true);
-  };
-
-  const handleFormSubmit = async (formData: any) => {
-    try {
-      if (formMode === 'create') {
-        await createTicket({
-          title: formData.title,
-          details: formData.issue,
-          priority: formData.priority,
-          created_by: createdByAccountId,
-          due_date: formData.dueDate || null,
-        });
-      } else if (formMode === 'assign' && selectedTicket) {
-        const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
-        const staffId = parseInt(formData.staffAccountId, 10);
-        const requestId = selectedTicket.Request_Id || selectedTicket.request_id;
-        
-        if (!requestId) throw new Error("Request ID not found");
-        
-        await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
-      }
-      
-      setShowForm(false);
-      setSelectedTicket(null);
-      await refetch();
-    } catch (err: any) {
-      console.error("Form error:", err);
-    }
-  };
-
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Table
         columns={columns}
         data={tickets}
         emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
-      />
-
-      <MaintenanceForm
-        isOpen={showForm}
-        onClose={() => {
-          onFormClose?.();
-          setSelectedTicket(null);
-        }}
-        onSubmit={handleFormSubmit}
-        mode={formMode}
-        initialData={selectedTicket}
       />
     </div>
   );

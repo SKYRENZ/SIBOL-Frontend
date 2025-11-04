@@ -6,6 +6,9 @@ import FilterPanel from "../Components/common/filterPanel";
 import { RequestMaintenance } from "../Components/maintenance/RequestMaintenance";
 import { PendingMaintenance } from "../Components/maintenance/PendingMaintenance";
 import { CompletedMaintenance } from "../Components/maintenance/CompletedMaintenance";
+import MaintenanceForm from "../Components/maintenance/MaintenanceForm"; // Import MaintenanceForm
+import * as maintenanceService from "../services/maintenanceService"; // Import maintenanceService
+import type { MaintenanceTicket } from "../types/maintenance"; // Import MaintenanceTicket type
 import "../types/Household.css";
 
 const MaintenancePage: React.FC = () => {
@@ -13,16 +16,19 @@ const MaintenancePage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [, setSelectedFilters] = useState<string[]>([]);
   const [createdByAccountId, setCreatedByAccountId] = useState<number | null>(null);
-  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  
+  // State for the modal, lifted up to this parent component
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<'create' | 'assign' | 'pending'>('create');
+  const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
     if (user) {
       try {
         const userData = JSON.parse(user);
-        console.log("User data from localStorage:", userData); // Debug
         const accountId = userData.Account_id ?? userData.account_id;
-        console.log("Extracted account_id:", accountId); // Debug
         setCreatedByAccountId(accountId || 1);
       } catch (err) {
         console.error("Failed to parse user data:", err);
@@ -33,6 +39,56 @@ const MaintenancePage: React.FC = () => {
       setCreatedByAccountId(1);
     }
   }, []);
+
+  const handleOpenForm = (mode: 'create' | 'assign' | 'pending', ticket: MaintenanceTicket | null = null) => {
+    setFormMode(mode);
+    setSelectedTicket(ticket);
+    setIsFormOpen(true);
+    setSubmitError(null);
+  };
+
+  const handleCloseForm = () => {
+    setIsFormOpen(false);
+    setSelectedTicket(null);
+    setSubmitError(null);
+  };
+
+  const handleFormSubmit = async (formData: any) => {
+    try {
+      setSubmitError(null);
+      const requestId = selectedTicket?.Request_Id || selectedTicket?.request_id;
+
+      if (formMode === 'create') {
+        await maintenanceService.createTicket({
+          title: formData.title,
+          details: formData.issue,
+          priority: formData.priority,
+          created_by: createdByAccountId!,
+          due_date: formData.dueDate || null,
+          attachment: formData.file ? formData.file.name : null,
+        });
+      } else if (formMode === 'assign' && requestId) {
+        const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
+        const staffId = parseInt(formData.staffAccountId, 10);
+        await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
+      } else if (formMode === 'pending' && requestId) {
+        if (formData.remarks?.trim()) {
+          await maintenanceService.addRemarks(requestId, formData.remarks);
+        }
+      }
+      
+      handleCloseForm();
+      // You might need a way to trigger a refetch in the active tab component
+      // For now, a page reload is a simple way to see the result
+      window.location.reload();
+
+    } catch (err: any) {
+      console.error("Form submission error:", err);
+      const errorMessage = err.response?.data?.message || err.message || "Failed to submit form";
+      setSubmitError(errorMessage); // This error can be shown inside the modal
+      alert(`Error: ${errorMessage}`);
+    }
+  };
 
   const tabsConfig = useMemo(
     () => [
@@ -48,15 +104,12 @@ const MaintenancePage: React.FC = () => {
     
     switch (activeTab) {
       case "Pending Maintenance":
-        return <PendingMaintenance />;
+        return <PendingMaintenance onOpenForm={handleOpenForm} />;
       case "Complete Maintenance":
-        return <CompletedMaintenance />;
+        return <CompletedMaintenance onOpenForm={handleOpenForm} />;
       default:
         return <RequestMaintenance 
-          createdByAccountId={createdByAccountId} 
-          onCreateRequest={() => setShowMaintenanceForm(true)}
-          showForm={showMaintenanceForm}
-          onFormClose={() => setShowMaintenanceForm(false)}
+          onOpenForm={handleOpenForm as (mode: 'assign', ticket: MaintenanceTicket) => void}
         />;
     }
   };
@@ -90,7 +143,7 @@ const MaintenancePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="w-full px-4 sm:px-6 py-6 sm:py-8">
+      <main className="w-full px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-screen-2xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
             <div className="flex-1 max-w-2xl">
@@ -98,13 +151,12 @@ const MaintenancePage: React.FC = () => {
                 value={searchTerm}
                 onChange={setSearchTerm}
                 placeholder="Search maintenance..."
-                className="w-full"
               />
             </div>
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
               {activeTab === 'Request Maintenance' && (
                 <button
-                  onClick={() => setShowMaintenanceForm(true)}
+                  onClick={() => handleOpenForm('create')}
                   className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap w-full sm:w-auto text-center"
                 >
                   New Maintenance Request
@@ -122,7 +174,17 @@ const MaintenancePage: React.FC = () => {
             {renderActiveTab()}
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Render the modal at the top level of the page */}
+      <MaintenanceForm
+        isOpen={isFormOpen}
+        onClose={handleCloseForm}
+        onSubmit={handleFormSubmit}
+        mode={formMode}
+        initialData={selectedTicket}
+        submitError={submitError}
+      />
     </div>
   );
 };
