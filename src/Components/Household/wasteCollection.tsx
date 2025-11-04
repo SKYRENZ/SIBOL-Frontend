@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import SearchBar from "../common/SearchBar";
-import { X, Clock } from "lucide-react";
+import { X, Clock, MapPin } from "lucide-react";
+import WasteCollectionMap from "./WasteCollectionMap";
 
 interface WasteData {
   id: number;
@@ -9,6 +10,8 @@ interface WasteData {
   area: string;
   date: string;
   time: string;
+  latitude: number;
+  longitude: number;
   images: string[];
   history: { date: string; weight: string; operator: string }[];
 }
@@ -16,6 +19,7 @@ interface WasteData {
 const WasteCollectionTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedWaste, setSelectedWaste] = useState<WasteData | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   const wasteData: WasteData[] = [
     {
@@ -25,6 +29,8 @@ const WasteCollectionTab: React.FC = () => {
       area: "Petunia",
       date: "Oct 29, 2025",
       time: "11:50 AM",
+      latitude: 14.6760, // Example: Quezon City coordinates
+      longitude: 121.0437,
       images: [
         "https://placehold.co/300x200?text=Waste+1",
         "https://placehold.co/300x200?text=Waste+2",
@@ -44,6 +50,8 @@ const WasteCollectionTab: React.FC = () => {
       area: "Congressional",
       date: "Oct 29, 2025",
       time: "01:50 AM",
+      latitude: 14.6840,
+      longitude: 121.0500,
       images: [
         "https://placehold.co/300x200?text=Waste+3",
         "https://placehold.co/300x200?text=Waste+4",
@@ -85,11 +93,16 @@ const WasteCollectionTab: React.FC = () => {
           <div
             key={item.id}
             onClick={() => setSelectedWaste(item)}
-            className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 cursor-pointer hover:shadow-md transition flex flex-col justify-between"
+            onMouseEnter={() => setHoveredCard(item.id)}
+            onMouseLeave={() => setHoveredCard(null)}
+            className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 cursor-pointer hover:shadow-lg hover:scale-105 transition-all duration-300 flex flex-col justify-between relative overflow-hidden"
           >
             <div className="flex justify-between items-start">
               <div>
-                <p className="font-semibold text-[#355842] text-sm">{item.area}</p>
+                <p className="font-semibold text-[#355842] text-sm flex items-center gap-1">
+                  <MapPin size={14} />
+                  {item.area}
+                </p>
                 <p className="text-sm text-[#355842]/80">{item.weight}kg</p>
                 <div className="w-full h-3 bg-gray-100 rounded-full overflow-hidden mt-2">
                   <div
@@ -107,6 +120,15 @@ const WasteCollectionTab: React.FC = () => {
                 <p className="font-semibold text-[#355842] mt-3">{item.name}</p>
               </div>
             </div>
+
+            {/* Hover Effect - Show Quick Preview */}
+            {hoveredCard === item.id && (
+              <div className="absolute inset-0 bg-[#355842]/95 text-white p-4 flex flex-col justify-center items-center gap-2 transition-opacity duration-300">
+                <MapPin size={32} />
+                <p className="text-sm font-semibold">Click to view details</p>
+                <p className="text-xs opacity-80">Location & Collection Logs</p>
+              </div>
+            )}
           </div>
         ))}
 
@@ -120,11 +142,11 @@ const WasteCollectionTab: React.FC = () => {
       {/* Modal */}
       {selectedWaste && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-[90%] sm:w-[80%] md:w-[60%] lg:w-[40%] max-h-[80vh] bg-white rounded-3xl shadow-xl flex flex-col overflow-hidden">
+          <div className="relative w-[90%] sm:w-[80%] md:w-[70%] lg:w-[50%] max-h-[85vh] bg-white rounded-3xl shadow-xl flex flex-col overflow-hidden">
             {/* Close Button */}
             <button
               onClick={() => setSelectedWaste(null)}
-              className="absolute top-4 right-4 text-gray-600 hover:text-gray-800 bg-gray-100 rounded-full p-2 transition"
+              className="absolute top-4 right-4 z-10 text-gray-600 hover:text-gray-800 bg-gray-100 rounded-full p-2 transition"
             >
               <X size={18} />
             </button>
@@ -140,6 +162,19 @@ const WasteCollectionTab: React.FC = () => {
                   <span className="font-semibold">Area:</span>{" "}
                   <span className="font-bold text-[#355842]">{selectedWaste.area}</span>
                 </p>
+              </div>
+
+              {/* Map */}
+              <div className="mt-6">
+                <h3 className="text-sm font-semibold text-[#355842] mb-3 flex items-center gap-2">
+                  <MapPin size={16} /> Collection Location
+                </h3>
+                <WasteCollectionMap
+                  latitude={selectedWaste.latitude}
+                  longitude={selectedWaste.longitude}
+                  area={selectedWaste.area}
+                  weight={selectedWaste.weight}
+                />
               </div>
 
               {/* Uploaded Images */}
