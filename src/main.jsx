@@ -15,6 +15,7 @@ import Admin from './Pages/Admin.tsx';
 import TestPage from './Pages/TestPage.tsx';
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 import Household from './Pages/Household.tsx';
+import Landingpage from './Pages/Landingpage.tsx';
 import MaintenancePage from './Pages/MaintenancePage.tsx';
 import SSOCallback from './Pages/SSOCallback.tsx';
 
@@ -25,8 +26,10 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Public Routes - No authentication required */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* makes the login page as our main page (starting point) */}
+        <Route path="/" element={<Landingpage />} />
+        
+        {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/email-verification" element={<EmailVerification />} />

@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Leaf, Recycle, Zap, Mail, Phone, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -591,4 +589,3 @@ const Landingpage: React.FC = () => {
 };
 
 export default Landingpage;
->>>>>>> Stashed changes
