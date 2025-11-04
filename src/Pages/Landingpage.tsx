@@ -3,6 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin } from 'lucide-react';
 import { isAuthenticated } from '../services/auth';
 
+// Import images
+import SibolWordLogo from '../assets/images/SIBOLWORDLOGO.png';
+import LandingBG from '../assets/images/LandingBG.png';
+import Photo1 from '../assets/images/photo.png';
+import Photo2 from '../assets/images/photo2.png';
+import Photo3 from '../assets/images/photo3.png';
+import Photo4 from '../assets/images/photo4.png';
+import Photo5 from '../assets/images/photo5.png';
+import Photo7 from '../assets/images/photo7.png';
+import SibolLogoBulb from '../assets/images/SIBOLOGOBULB.png';
+
 const Landingpage: React.FC = () => {
   const navigate = useNavigate();
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
@@ -23,7 +34,7 @@ const Landingpage: React.FC = () => {
 
   const carouselSlides = [
     { 
-      src: '/src/assets/images/photo.png', 
+      src: Photo1,  // Changed
       alt: 'Smart Food Waste Collection',
       emoji: '🌱',
       title: 'Smart Food Waste Collection',
@@ -31,7 +42,7 @@ const Landingpage: React.FC = () => {
       description: 'SIBOL gathers and processes household food waste from the pilot barangay, preparing it for anaerobic digestion. Every scrap collected becomes part of a sustainable energy cycle.'
     },
     { 
-      src: '/src/assets/images/photo2.png', 
+      src: Photo2,  // Changed
       alt: 'Continuous Anaerobic Digestion',
       emoji: '⚙️',
       title: 'Continuous Anaerobic Digestion',
@@ -39,7 +50,7 @@ const Landingpage: React.FC = () => {
       description: 'Through continuous digestion, food waste is transformed into biogas. The system monitors temperature and retention time to ensure stable, efficient, and eco-friendly energy generation.'
     },
     { 
-      src: '/src/assets/images/photo3.png', 
+      src: Photo3,  // Changed
       alt: 'Biogas-to-Electricity Conversion',
       emoji: '⚡',
       title: 'Biogas-to-Electricity Conversion',
@@ -47,7 +58,7 @@ const Landingpage: React.FC = () => {
       description: 'Generated biogas is converted into usable electricity through small generators, powering households within the pilot barangay and showcasing the potential of renewable community energy.'
     },
     { 
-      src: '/src/assets/images/photo4.png', 
+      src: Photo4,  // Changed
       alt: 'IoT Monitoring & Smart Dashboard',
       emoji: '📡',
       title: 'IoT Monitoring & Smart Dashboard',
@@ -55,7 +66,7 @@ const Landingpage: React.FC = () => {
       description: 'IoT sensors track real-time parameters—temperature, pH, gas flow—and feed them into an interactive dashboard that visualizes performance, energy output, and system health at a glance.'
     },
     { 
-      src: '/src/assets/images/photo5.png', 
+      src: Photo5,  // Changed
       alt: 'AI Optimization & Maintenance',
       emoji: '🤖',
       title: 'AI Optimization & Maintenance',
@@ -63,7 +74,7 @@ const Landingpage: React.FC = () => {
       description: 'AI continuously analyzes system data to optimize digestion processes, predict potential issues, and automate alerts—keeping SIBOL running efficiently with minimal human intervention.'
     },
     { 
-      src: '/src/assets/images/photo7.png', 
+      src: Photo7,  // Changed
       alt: 'User Support & Security',
       emoji: '💬',
       title: 'User Support & Security',
@@ -140,7 +151,7 @@ const Landingpage: React.FC = () => {
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-[15px] py-2.5 sm:py-3.5 md:py-4 lg:py-5 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-3.5">
             <img 
-              src="/src/assets/images/SIBOLWORDLOGO.png" 
+              src={SibolWordLogo}  // Changed
               alt="SIBOL Logo" 
               className="h-7 sm:h-8 md:h-9 lg:h-[43px]"
             />
@@ -159,7 +170,7 @@ const Landingpage: React.FC = () => {
         {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="/src/assets/images/LandingBG.png" 
+            src={LandingBG}  // Changed
             alt="Background" 
             className="w-full h-full object-cover"
           />
@@ -594,7 +605,7 @@ const Landingpage: React.FC = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 sm:gap-2.5 lg:gap-[7.6px] mb-3 sm:mb-4 lg:mb-[15.2px]">
             <img 
-              src="/src/assets/images/SIBOLOGOBULB.png" 
+              src={SibolLogoBulb}  // Changed
               alt="SIBOL Logo" 
               className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-[30.4px] lg:w-[30.4px]"
             />
