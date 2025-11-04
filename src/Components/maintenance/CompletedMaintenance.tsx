@@ -1,32 +1,55 @@
 import { useMemo } from "react";
 import Table from "../common/Table";
 import { useCompletedMaintenance } from "../../hooks/maintenance/useCompletedMaintenance";
+import type { MaintenanceTicket } from "../../types/maintenance";
 
-export const CompletedMaintenance: React.FC = () => {
+interface CompletedMaintenanceProps {
+  onOpenForm: (mode: "pending", ticket: MaintenanceTicket) => void;
+}
+
+export const CompletedMaintenance: React.FC<CompletedMaintenanceProps> = ({
+  onOpenForm,
+}) => {
   const { tickets, loading, error } = useCompletedMaintenance();
 
   const columns = useMemo(
     () => [
       { key: "Title", label: "Title" },
-      { key: "Priority_Id", label: "Priority" },
       {
-        key: "created_at",
+        key: "Priority",
+        label: "Priority",
+        render: (_: any, row: MaintenanceTicket) => row.Priority ?? "—",
+      },
+      {
+        key: "Request_date",
         label: "Date Requested",
         render: (value: string | undefined) =>
           value ? new Date(value).toLocaleDateString() : "—",
       },
       {
-        key: "updated_at",
+        key: "Completed_at",
         label: "Date Completed",
         render: (value: string | undefined) =>
           value ? new Date(value).toLocaleDateString() : "—",
       },
+      {
+        key: "actions",
+        label: "Actions",
+        render: (_: any, row: MaintenanceTicket) => (
+          <button
+            onClick={() => onOpenForm("pending", row)}
+            className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
+          >
+            View Details
+          </button>
+        ),
+      },
     ],
-    []
+    [onOpenForm]
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 p-4">
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Table
         columns={columns}

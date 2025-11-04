@@ -23,10 +23,23 @@ const FormModal: React.FC<FormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-40 z-[100] p-4">
+    <div
+      className="flex items-center justify-center p-4"
+      style={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: "100vw",
+        height: "100vh",
+        backgroundColor: "rgba(0, 0, 0, 0.4)",
+        zIndex: 999999,
+      }}
+    >
       <div 
-        className="bg-white rounded-lg shadow-xl max-w-xl w-full mx-auto p-6 relative border border-gray-200"
-        style={{ maxWidth: width }}
+        className="relative bg-white rounded-lg shadow-2xl w-full mx-auto p-6 border border-gray-200 max-h-[90vh] overflow-y-auto"
+        style={{ maxWidth: width, zIndex: 1000000 }}
       >
         {/* Close Button */}
         <button
@@ -53,7 +66,7 @@ const FormModal: React.FC<FormModalProps> = ({
 
         <hr className="border-gray-200 mb-4" />
 
-        {/* Form Content - ensure white background */}
+        {/* Form Content */}
         <div className="space-y-4 bg-white">
           {children}
         </div>

@@ -1,28 +1,32 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 
 export function usePendingMaintenance() {
   const [tickets, setTickets] = useState<MaintenanceTicket[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetch = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const fetchTickets = useCallback(async () => {
     try {
-      const data = await maintenanceService.listTickets({ status: "Pending" });
+      setLoading(true);
+      setError(null);
+      // Fetch tickets with status "On-going" OR "For Verification"
+      const data = await maintenanceService.listTickets({
+        status: "On-going,For Verification",
+      });
       setTickets(data);
     } catch (err: any) {
-      setError(err.message || "Failed to load pending maintenance");
+      console.error("Fetch error:", err);
+      setError(err.message || "Failed to fetch pending maintenance tickets.");
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetch();
-  }, [fetch]);
+    fetchTickets();
+  }, [fetchTickets]);
 
-  return { tickets, loading, error, refetch: fetch };
+  return { tickets, loading, error, refetch: fetchTickets };
 }
