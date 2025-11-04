@@ -1,7 +1,7 @@
 const API_URL =
   import.meta.env.VITE_API_URL ??
   import.meta.env.VITE_API_BASE_URL ??
-  'http://localhost:5000';  // Changed default from production to localhost
+  'http://localhost:5000';
 
 export { API_URL };
 
@@ -36,10 +36,13 @@ function normalizeUrl(path: string) {
 export async function apiFetch(path: string, opts: RequestInit = {}) {
   const url = normalizeUrl(path);
   const defaultHeaders: Record<string,string> = {};
-  // attach token from localStorage if present
+  
+  // ✅ FIXED: attach token from localStorage if present
   try {
     const token = localStorage.getItem('token');
-    if (token) defaultHeaders['Authorization'] = `Bearer ${token}`;
+    if (token) {
+      defaultHeaders['Authorization'] = `Bearer ${token}`;
+    }
   } catch {
     // ignore in non-browser env
   }
@@ -52,9 +55,6 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   }
 
   const headers = mergeHeaders(defaultHeaders, opts.headers);
-
-  // debug (kept for development)
-  // eslint-disable-next-line no-console
 
   const merged: RequestInit = {
     credentials: 'include',
@@ -86,6 +86,7 @@ export async function fetchJson<T = any>(path: string, opts: RequestInit = {}, t
       const error: any = new Error(msg);
       error.status = res.status;
       error.payload = payload;
+      error.data = payload; // ✅ ADDED: for compatibility with error.data?.message
       throw error;
     }
 

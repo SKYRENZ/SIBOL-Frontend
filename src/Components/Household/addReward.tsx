@@ -1,205 +1,257 @@
 import React, { useState } from "react";
-import { Award, Upload, Image, X } from "lucide-react";
+import { X } from "lucide-react";
+import { useCreateReward } from "../../hooks/household/useRewardHooks";
 
 interface AddRewardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: any) => void;
+  onSave: () => void;
 }
 
-const AddRewardModal: React.FC<AddRewardModalProps> = ({
-  isOpen,
-  onClose,
-  onSave,
-}) => {
+const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave }) => {
+  const { createReward, loading, error } = useCreateReward();
+  
   const [formData, setFormData] = useState({
-    reward: "",
-    status: "Available",
-    eligibility: "",
-    images: [] as File[],
+    Item: "",
+    Description: "",
+    Points_cost: "",
+    Quantity: "",
   });
 
-  if (!isOpen) return null;
-
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    month: "2-digit",
-    day: "2-digit",
-    year: "numeric",
+  const [errors, setErrors] = useState({
+    Item: "",
+    Points_cost: "",
+    Quantity: "",
   });
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const validFiles = files.filter((file) =>
-      ["image/png", "image/jpeg"].includes(file.type)
-    );
+  const validateForm = (): boolean => {
+    const newErrors = {
+      Item: "",
+      Points_cost: "",
+      Quantity: "",
+    };
 
-    if (validFiles.length !== files.length) {
-      alert("Only PNG and JPEG files are allowed.");
+    if (!formData.Item.trim()) {
+      newErrors.Item = "Reward name is required";
     }
 
-    setFormData((prev) => ({
-      ...prev,
-      images: [...prev.images, ...validFiles],
-    }));
+    const pointsCost = Number(formData.Points_cost);
+    if (!formData.Points_cost || pointsCost <= 0) {
+      newErrors.Points_cost = "Points cost must be greater than 0";
+    }
+
+    const quantity = Number(formData.Quantity);
+    if (!formData.Quantity || quantity <= 0) {
+      newErrors.Quantity = "Quantity must be greater than 0";
+    }
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some((err) => err !== "");
   };
 
-  const removeImage = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      images: prev.images.filter((_, i) => i !== index),
-    }));
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    try {
+      await createReward({
+        Item: formData.Item.trim(),
+        Description: formData.Description.trim() || undefined,
+        Points_cost: Number(formData.Points_cost),
+        Quantity: Number(formData.Quantity),
+      });
+
+      setFormData({
+        Item: "",
+        Description: "",
+        Points_cost: "",
+        Quantity: "",
+      });
+      
+      onSave();
+      onClose();
+    } catch (err) {
+      console.error("Failed to create reward:", err);
+    }
   };
 
-  const handleSave = () => {
-    onSave(formData);
+  const handleClose = () => {
+    setFormData({
+      Item: "",
+      Description: "",
+      Points_cost: "",
+      Quantity: "",
+    });
+    setErrors({
+      Item: "",
+      Points_cost: "",
+      Quantity: "",
+    });
     onClose();
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-lg w-full max-w-3xl relative border border-gray-200">
-        {/* ❌ Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 bg-[#355842] text-white rounded-full p-1 hover:bg-[#2e4a36] transition"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* 🏆 Header */}
-        <div className="flex items-start justify-between px-8 pt-8">
-          <div className="flex items-start gap-3">
-            <Award className="w-10 h-10 text-[#355842]" />
-            <div>
-              <h2 className="text-2xl font-semibold text-[#355842]">Rewards</h2>
-              <p className="text-[#355842]/80 text-sm">
-                Give back to your community with rewards!
-              </p>
-            </div>
-          </div>
-          <p className="text-gray-400 text-sm font-medium mt-1">
-            Date Added: {currentDate}
-          </p>
-        </div>
-
-        {/* 📋 Form Content */}
-        <div className="px-8 pb-8 pt-6 flex gap-8">
-          {/* Left Form */}
-          <div className="flex-1 flex flex-col gap-4">
-            {/* Reward */}
-            <div>
-              <label className="block text-[#355842] font-medium mb-1 text-sm">
-                Reward
-              </label>
-              <input
-                type="text"
-                name="reward"
-                value={formData.reward}
-                onChange={handleChange}
-                placeholder="e.g. 1kg of Rice"
-                className="w-full border border-[#355842] rounded-md px-3 py-2 text-sm text-[#355842] bg-white placeholder-gray-400 focus:ring-2 focus:ring-[#AFC8AD] focus:outline-none"
-              />
-            </div>
-
-            {/* Status */}
-            <div>
-              <label className="block text-[#355842] font-medium mb-1 text-sm">
-                Status
-              </label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleChange}
-                className="w-full border border-[#355842] rounded-md px-3 py-2 text-sm text-[#355842] bg-white focus:ring-2 focus:ring-[#AFC8AD] focus:outline-none appearance-none"
-              >
-                <option value="Available">Available</option>
-                <option value="Not Available">Not Available</option>
-              </select>
-            </div>
-
-            {/* Eligibility */}
-            <div>
-              <label className="block text-[#355842] font-medium mb-1 text-sm">
-                Eligibility
-              </label>
-              <input
-                type="text"
-                name="eligibility"
-                value={formData.eligibility}
-                onChange={handleChange}
-                placeholder="e.g. 200 Points"
-                className="w-full border border-[#355842] rounded-md px-3 py-2 text-sm text-[#355842] bg-white placeholder-gray-400 focus:ring-2 focus:ring-[#AFC8AD] focus:outline-none"
-              />
-            </div>
-          </div>
-
-          {/* 📷 Upload Section */}
-          <div className="flex-1 flex flex-col items-center justify-start border border-dashed border-[#AFC8AD] rounded-xl p-6 text-center relative">
-            <Upload className="w-10 h-10 text-[#355842] mb-3" />
-            <p className="text-[#355842] font-medium text-sm">
-              Click to Upload or drag & drop file
-            </p>
-            <p className="text-xs text-gray-500 mb-3">
-              PNG or JPEG only — max file size 10MB
-            </p>
-
-            <input
-              type="file"
-              id="reward-image"
-              accept=".png, .jpeg"
-              multiple
-              onChange={handleImageUpload}
-              className="hidden"
-            />
-
-            <label
-              htmlFor="reward-image"
-              className="cursor-pointer px-4 py-1.5 border border-[#355842] text-[#355842] text-sm rounded-md hover:bg-[#355842] hover:text-white transition"
-            >
-              Choose File
-            </label>
-
-            {/* Uploaded Files List */}
-            {formData.images.length > 0 && (
-              <div className="mt-4 w-full flex flex-col gap-2">
-                {formData.images.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between border border-[#D8E3D8] rounded-md px-3 py-2 text-sm text-[#355842] bg-[#F8FAF8]"
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <Image className="w-4 h-4 text-[#355842] flex-shrink-0" />
-                      <span className="truncate">{file.name}</span>
-                    </div>
-                    <button
-                      onClick={() => removeImage(index)}
-                      className="text-gray-400 hover:text-red-500 text-xs font-semibold"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* 💾 Save Button */}
-        <div className="flex justify-center pb-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-5 bg-gradient-to-r from-[#355842] to-[#2e4a36]">
+          <h2 className="text-xl font-bold text-white">Add New Reward</h2>
           <button
-            onClick={handleSave}
-            className="bg-[#355842] text-white font-medium px-12 py-2.5 rounded-md hover:bg-[#2e4a36] transition"
+            onClick={handleClose}
+            className="text-white/80 hover:text-white transition-colors"
+            disabled={loading}
           >
-            Save
+            <X className="w-6 h-6" />
           </button>
         </div>
+
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Server Error */}
+          {error && (
+            <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded-r text-sm">
+              <p className="font-medium">Authentication required</p>
+              <p className="text-xs mt-1">{error}</p>
+            </div>
+          )}
+
+          {/* Reward Name */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Reward Name <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              name="Item"
+              value={formData.Item}
+              onChange={handleChange}
+              placeholder="e.g., Eco Bag, Water Bottle"
+              className={`w-full px-4 py-3 border-2 rounded-xl text-sm transition-all ${
+                errors.Item
+                  ? "border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                  : "border-gray-200 focus:border-[#355842] focus:ring-4 focus:ring-green-50"
+              } outline-none`}
+              disabled={loading}
+            />
+            {errors.Item && (
+              <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                <span>⚠</span> {errors.Item}
+              </p>
+            )}
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Description
+            </label>
+            <textarea
+              name="Description"
+              value={formData.Description}
+              onChange={handleChange}
+              placeholder="Optional description"
+              rows={3}
+              className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:border-[#355842] focus:ring-4 focus:ring-green-50 outline-none resize-none transition-all"
+              disabled={loading}
+            />
+          </div>
+
+          {/* Points Cost & Quantity Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* Points Cost */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Points Cost <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="Points_cost"
+                value={formData.Points_cost}
+                onChange={handleChange}
+                placeholder="100"
+                min="1"
+                className={`w-full px-4 py-3 border-2 rounded-xl text-sm transition-all ${
+                  errors.Points_cost
+                    ? "border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                    : "border-gray-200 focus:border-[#355842] focus:ring-4 focus:ring-green-50"
+                } outline-none`}
+                disabled={loading}
+              />
+              {errors.Points_cost && (
+                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                  <span>⚠</span> {errors.Points_cost}
+                </p>
+              )}
+            </div>
+
+            {/* Quantity */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Quantity <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="Quantity"
+                value={formData.Quantity}
+                onChange={handleChange}
+                placeholder="50"
+                min="1"
+                className={`w-full px-4 py-3 border-2 rounded-xl text-sm transition-all ${
+                  errors.Quantity
+                    ? "border-red-400 focus:border-red-500 focus:ring-4 focus:ring-red-100"
+                    : "border-gray-200 focus:border-[#355842] focus:ring-4 focus:ring-green-50"
+                } outline-none`}
+                disabled={loading}
+              />
+              {errors.Quantity && (
+                <p className="text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                  <span>⚠</span> {errors.Quantity}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="px-5 py-2.5 border-2 border-gray-300 rounded-xl text-gray-700 font-medium hover:bg-gray-50 transition-all"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-5 py-2.5 bg-gradient-to-r from-[#355842] to-[#2e4a36] text-white font-medium rounded-xl hover:shadow-lg hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Adding...
+                </span>
+              ) : (
+                "Add Reward"
+              )}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

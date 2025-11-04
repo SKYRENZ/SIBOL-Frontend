@@ -26,6 +26,7 @@ interface RowData {
 const Household: React.FC = () => {
   const [activeTab, setActiveTab] = useState("schedule");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0);
   
   useEffect(() => {
     console.log("Household mounted");
@@ -58,9 +59,10 @@ const Household: React.FC = () => {
   const handleAddReward = () => setIsRewardModalOpen(true);
   const handleCloseRewardModal = () => setIsRewardModalOpen(false);
 
-  const handleSaveReward = (data: any) => {
-    console.log("Reward Saved:", data);
+  const handleSaveReward = () => {
+    console.log("Reward Saved");
     setIsRewardModalOpen(false);
+    setRefreshKey(prev => prev + 1); // Trigger refresh
   };
 
   // Determine filter types based on active tab
@@ -141,7 +143,7 @@ const Household: React.FC = () => {
           {/* Pass filters to child components */}
           {activeTab === "schedule" && <ScheduleTab filters={selectedFilters} />}
            {activeTab === "wasteCollection" && <WasteCollectionTab />}
-          {activeTab === "reward" && <RewardTab filters={selectedFilters} />}
+          {activeTab === "reward" && <RewardTab key={refreshKey} filters={selectedFilters} />}
           {activeTab === "leaderboard" && <LeaderboardTab />}
           {activeTab === "claimed" && <ClaimedRewards />}
             {activeTab === "points" && <PointSystem />}
