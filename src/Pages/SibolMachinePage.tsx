@@ -41,8 +41,8 @@ const SibolMachinePage: React.FC = () => {
 
   // Sample data for Chemical Additives
   const chemicalAdditivesData = [
-    { chemicalInput: 'Ca(OCl)₂', stage: 'Pre-treatment', value: '50', units: 'g', date: '2025-10-28', time: '09:00', personInCharge: 'John Doe' },
-    { chemicalInput: 'NaOH', stage: 'Hydrolysis', value: '100', units: 'ml', date: '2025-10-28', time: '11:30', personInCharge: 'Jane Smith' },
+    { additiveInput: 'Cow Manure', stage: 'Pre-treatment', value: '50', units: 'g', date: '2025-10-28', time: '09:00', personInCharge: 'John Doe' },
+    { additiveInput: 'NaOH', stage: 'Hydrolysis', value: '100', units: 'ml', date: '2025-10-28', time: '11:30', personInCharge: 'Jane Smith' },
   ];
 
   const tabsConfig = [
@@ -156,7 +156,7 @@ const SibolMachinePage: React.FC = () => {
     }
     if (activeTab === 'Chemical Additives') {
       const columns = [
-        { key: 'chemicalInput', label: 'Chemical Input' },
+        { key: 'additiveInput', label: 'Additive Input' },
         { key: 'stage', label: 'Stage' },
         { key: 'value', label: 'Value' },
         { key: 'units', label: 'Units' },
