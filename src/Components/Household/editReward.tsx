@@ -1,15 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Gift, ImageIcon } from "lucide-react";
-import { useCreateReward } from "../../hooks/household/useRewardHooks";
+import { useUpdateReward } from "../../hooks/household/useRewardHooks";
+import type { Reward } from "../../services/rewardService";
 
-interface AddRewardModalProps {
+interface EditRewardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: () => void;
+  reward: Reward | null;
 }
 
-const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave }) => {
-  const { createReward, loading, error } = useCreateReward();
+const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSave, reward }) => {
+  const { updateReward, loading, error } = useUpdateReward();
   
   const [formData, setFormData] = useState({
     Item: "",
@@ -27,6 +29,21 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
   // Image preview state (simulation only)
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  // Populate form when reward changes
+  useEffect(() => {
+    if (reward) {
+      setFormData({
+        Item: reward.Item || "",
+        Description: reward.Description || "",
+        Points_cost: String(reward.Points_cost || ""),
+        Quantity: String(reward.Quantity || ""),
+      });
+      // Set existing image if available
+      setImagePreview(reward.Image_url || null);
+      setSelectedFile(null);
+    }
+  }, [reward]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -96,48 +113,32 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateForm()) return;
+    if (!validateForm() || !reward?.Reward_id) return;
 
     try {
-      // Create reward first
-      const result = await createReward({
+      await updateReward(reward.Reward_id, {
         Item: formData.Item.trim(),
         Description: formData.Description.trim() || undefined,
         Points_cost: Number(formData.Points_cost),
         Quantity: Number(formData.Quantity),
       });
 
-      // Store image in localStorage with reward ID
-      if (selectedFile && imagePreview && result) {
+      // Update image in localStorage if new image was selected
+      if (selectedFile && imagePreview) {
         const rewardImages = JSON.parse(localStorage.getItem('rewardImages') || '{}');
-        rewardImages[result.Reward_id] = imagePreview; // Store base64 image
+        rewardImages[reward.Reward_id] = imagePreview;
         localStorage.setItem('rewardImages', JSON.stringify(rewardImages));
-        console.log('Image saved to localStorage for reward ID:', result.Reward_id);
+        console.log('Image updated in localStorage for reward ID:', reward.Reward_id);
       }
 
-      setFormData({
-        Item: "",
-        Description: "",
-        Points_cost: "",
-        Quantity: "",
-      });
-      setImagePreview(null);
-      setSelectedFile(null);
-      
       onSave();
       onClose();
     } catch (err) {
-      console.error("Failed to create reward:", err);
+      console.error("Failed to update reward:", err);
     }
   };
 
   const handleClose = () => {
-    setFormData({
-      Item: "",
-      Description: "",
-      Points_cost: "",
-      Quantity: "",
-    });
     setErrors({
       Item: "",
       Points_cost: "",
@@ -148,7 +149,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !reward) return null;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
@@ -161,7 +162,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
                 <Gift className="w-6 h-6 text-[#2d5f4a]" />
               </div>
               <div>
-                <h2 className="text-2xl font-semibold text-[#2d5f4a]">Rewards</h2>
+                <h2 className="text-2xl font-semibold text-[#2d5f4a]">Edit Reward</h2>
               </div>
             </div>
             <button
@@ -325,8 +326,8 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
             </div>
           </div>
 
-          {/* Save Button */}
-          <div className="flex justify-end mt-8">
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-3 mt-8">
             <button
               type="submit"
               className="px-8 py-3 bg-[#2d5f4a] hover:bg-[#234a39] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
@@ -338,10 +339,10 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Saving...
+                  Updating...
                 </span>
               ) : (
-                "Save"
+                "Update Reward"
               )}
             </button>
           </div>
@@ -351,4 +352,4 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
   );
 };
 
-export default AddRewardModal;
+export default EditRewardModal;
