@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isAuthenticated } from "../services/auth";
+import { isAuthenticated, isFirstLogin, getUser } from "../services/auth";
 import Header from "../Components/Header";
 import ProcessPanel from "../Components/dashboard/ProcessPanel";
 import TotalWastePanel from "../Components/TotalWastePanel";
 import CollectionSchedule from "../Components/CollectionSchedule";
 import EnergyChart from "../Components/EnergyChart";
+import ChangePasswordModal from "../Components/verification/ChangePasswordModal";
 
 const Dashboard: React.FC = () => {
   const [barangay] = useState("Barangay 176 - E");
   const [currentDate, setCurrentDate] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   // 🔐 Auth check - redirect if not authenticated
   useEffect(() => {
@@ -88,6 +90,30 @@ const Dashboard: React.FC = () => {
     }
   }, [location, navigate]);
 
+  // 🔑 Check first login with detailed logging
+  useEffect(() => {
+    console.log('🔍 Dashboard - Checking first login status...');
+    console.log('📋 Is authenticated:', isAuthenticated());
+    
+    const user = getUser();
+    console.log('👤 User from localStorage:', user);
+    console.log('🔑 IsFirstLogin value:', user?.IsFirstLogin);
+    console.log('🔑 IsFirstLogin type:', typeof user?.IsFirstLogin);
+    
+    const firstLogin = isFirstLogin();
+    console.log('✅ isFirstLogin() result:', firstLogin);
+
+    if (isAuthenticated() && firstLogin) {
+      console.log('🚀 SHOULD SHOW PASSWORD MODAL');
+      setShowPasswordModal(true);
+    } else {
+      console.log('❌ Not showing password modal:', {
+        authenticated: isAuthenticated(),
+        firstLogin: firstLogin
+      });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
@@ -136,6 +162,24 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
       </main>
+
+      {/* ✅ Password Change Modal - OUTSIDE main, INSIDE root div */}
+      <ChangePasswordModal
+        open={showPasswordModal}
+        onClose={() => {
+          console.log('❌ User tried to close modal (blocked for first login)');
+        }} // Empty - force user to change password
+        onSuccess={() => {
+          console.log('✅ Password changed successfully');
+          setShowPasswordModal(false);
+          // Update user data to reflect password change
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          user.IsFirstLogin = 0;
+          localStorage.setItem('user', JSON.stringify(user));
+          console.log('📝 Updated user in localStorage:', user);
+        }}
+        isFirstLogin={true}
+      />
     </div>
   );
 };

@@ -19,9 +19,17 @@ export type AuthResponse = {
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const res = await api.post('/api/auth/login', { username, password });
   const data = res.data as any;
+  
+  console.log('📥 Login response received:', data); // ✅ ADD THIS
+  
   const token = data.token ?? data.accessToken;
   if (token) localStorage.setItem('token', token);
-  if (data.user) localStorage.setItem('user', JSON.stringify(data.user));
+  
+  if (data.user) {
+    console.log('💾 Storing user in localStorage:', data.user); // ✅ ADD THIS
+    localStorage.setItem('user', JSON.stringify(data.user));
+  }
+  
   return data;
 }
 
@@ -107,4 +115,32 @@ export function getToken(): string | null {
 
 export function isAuthenticated(): boolean {
   return !!getToken();
+}
+
+export async function changePassword(currentPassword: string, newPassword: string) {
+  const res = await api.post('/api/auth/change-password', { currentPassword, newPassword });
+  return res.data;
+}
+
+export function isFirstLogin(): boolean {
+  try {
+    const user = getUser();
+    console.log('🔍 isFirstLogin check:');
+    console.log('  - User object:', user);
+    console.log('  - IsFirstLogin value:', user?.IsFirstLogin);
+    console.log('  - IsFirstLogin === 1:', user?.IsFirstLogin === 1);
+    console.log('  - IsFirstLogin === true:', user?.IsFirstLogin === true);
+    console.log('  - IsFirstLogin == 1 (loose):', user?.IsFirstLogin == 1);
+    
+    // Check both number 1 and boolean true, also handle string "1"
+    const result = user?.IsFirstLogin === 1 || 
+                   user?.IsFirstLogin === true || 
+                   user?.IsFirstLogin === '1';
+    
+    console.log('  - Final result:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error in isFirstLogin:', error);
+    return false;
+  }
 }
