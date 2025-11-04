@@ -16,6 +16,7 @@ import Admin from './Pages/Admin.tsx';
 import TestPage from './Pages/TestPage.tsx';
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 import Household from './Pages/Household.tsx';
+import Landingpage from './Pages/Landingpage.tsx';
 import MaintenancePage from './Pages/MaintenancePage.tsx';
 import SSOCallback from './Pages/SSOCallback.tsx';
 
@@ -26,8 +27,10 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* Public Routes - No authentication required */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        {/* Landing Page - Public route that redirects if authenticated */}
+        <Route path="/" element={<Landingpage />} />
+        
+        {/* Authentication Routes */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<SignUp />} />
         <Route path="/email-verification" element={<EmailVerification />} />
@@ -36,7 +39,7 @@ createRoot(document.getElementById('root')).render(
         {/* SSO Callback Route */}
         <Route path="/auth/callback" element={<SSOCallback />} />
         
-        {/* Protected Routes - Authentication required (NO ROLE RESTRICTIONS) */}
+        {/* Protected Routes - Authentication required */}
         <Route 
           path="/dashboard" 
           element={
@@ -82,8 +85,8 @@ createRoot(document.getElementById('root')).render(
           } 
         />
 
-        {/* Catch-all route for 404 */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Catch-all route - redirects to landing page instead of login */}
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

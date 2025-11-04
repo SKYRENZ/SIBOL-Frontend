@@ -65,11 +65,30 @@ export async function verifyToken(): Promise<boolean> {
   }
 }
 
-export function logout() {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  // Use replace to prevent going back to authenticated pages
-  window.location.replace('/login');
+export async function logout() {
+  try {
+    // Clear local storage
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    // Clear session storage as well
+    sessionStorage.clear();
+    
+    // Call backend logout if using sessions (non-blocking)
+    try {
+      await api.post('/api/auth/logout');
+    } catch (e) {
+      console.warn('Backend logout failed (non-blocking):', e);
+    }
+    
+    // Force navigate to login and clear history
+    window.location.replace('/login');
+    
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Force redirect even on error
+    window.location.replace('/login');
+  }
 }
 
 export function getUser(): User | null {
