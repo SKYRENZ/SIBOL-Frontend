@@ -46,13 +46,13 @@ const StatusCard: React.FC<StatusCardProps> = ({
   };
 
   return (
-    <div className={`border rounded-lg p-6 mb-6 ${getCardStyles()}`}>
+    <div className={`border rounded-lg p-4 sm:p-6 mb-4 sm:mb-6 ${getCardStyles()}`}>
       <div className="text-center">
-        {icon && <div className="text-4xl mb-4">{icon}</div>}
-        <h3 className={`text-lg font-semibold mb-3 ${getTitleColor()}`}>
+        {icon && <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">{icon}</div>}
+        <h3 className={`text-base sm:text-lg font-semibold mb-2 sm:mb-3 ${getTitleColor()}`}>
           {title}
         </h3>
-        {message && <p className="text-sm mb-4">{message}</p>}
+        {message && <p className="text-xs sm:text-sm mb-3 sm:mb-4">{message}</p>}
         {children}
       </div>
     </div>

@@ -38,11 +38,11 @@ const ActionButton: React.FC<ActionButtonProps> = ({
   const getSizeClasses = () => {
     switch (size) {
       case 'sm':
-        return 'py-2 px-3 text-sm';
+        return 'py-1.5 px-3 text-xs sm:text-sm';
       case 'lg':
-        return 'py-4 px-6 text-lg';
+        return 'py-3 px-5 text-base sm:text-lg';
       default:
-        return 'py-3 px-4';
+        return 'py-2.5 px-4 text-sm sm:text-base';
     }
   };
 

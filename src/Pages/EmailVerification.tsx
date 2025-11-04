@@ -20,7 +20,6 @@ const EmailVerification: React.FC = () => {
     console.log('EmailVerification: raw params', { token, user, auth });
 
     if (token) {
-      // persist token so verification hook / API can use it
       localStorage.setItem('token', token);
     }
     if (user) {
@@ -33,8 +32,6 @@ const EmailVerification: React.FC = () => {
     }
 
     if (token) {
-      // only clean URL here — DO NOT navigate away immediately.
-      // let useEmailVerification() perform the verification and redirect on success.
       window.history.replaceState({}, '', location.pathname + (location.hash || ''));
       console.log('EmailVerification: token stored, awaiting verification hook');
     } else if (auth === 'fail') {
@@ -43,25 +40,20 @@ const EmailVerification: React.FC = () => {
   }, [location, navigate]);
 
   const {
-    // State
     status,
     message,
     email,
     isResending,
     countdown,
     resendCooldown,
-    
-    // Assets
+    resendMessage,
     topLogo,
     leftBg,
     leftLogo,
-    
-    // Actions
     handleResendEmail,
     goBackToLogin,
   } = useEmailVerification();
 
-  // seconds-only format, padded to 2 digits
   const formatSeconds = (s: number) => String(s).padStart(2, '0');
 
   const renderContent = () => {
@@ -70,8 +62,12 @@ const EmailVerification: React.FC = () => {
         return (
           <div className="text-center">
             <LoadingSpinner size="lg" />
-            <h2 className="text-2xl font-bold text-gray-800 mb-4 mt-8">Verifying your email...</h2>
-            <p className="text-gray-600">Please wait while we verify your email address.</p>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 mt-6 sm:mt-8">
+              Verifying your email...
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600">
+              Please wait while we verify your email address.
+            </p>
             <StatusCard 
               type="info" 
               title="🔍 Checking verification token..." 
@@ -82,11 +78,19 @@ const EmailVerification: React.FC = () => {
       case 'success':
         return (
           <div className="text-center">
-            <div className="text-6xl mb-6 animate-bounce">✅</div>
-            <h2 className="text-2xl font-bold text-green-600 mb-4">Email Verified Successfully!</h2>
-            <p className="text-gray-600 mb-6">Your email has been verified. Redirecting to admin approval...</p>
+            <div className="text-4xl sm:text-6xl mb-4 sm:mb-6 animate-bounce">✅</div>
+            <h2 className="text-xl sm:text-2xl font-bold text-green-600 mb-3 sm:mb-4">
+              Email Verified Successfully!
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+              Your email has been verified. Redirecting to admin approval...
+            </p>
             
-            <StatusCard type="success" title="🎉 Verification Complete!" message="Taking you to the admin approval page...">
+            <StatusCard 
+              type="success" 
+              title="🎉 Verification Complete!" 
+              message="Taking you to the admin approval page..."
+            >
               <CountdownProgress countdown={countdown} total={3} />
             </StatusCard>
           </div>
@@ -95,9 +99,11 @@ const EmailVerification: React.FC = () => {
       case 'error':
         return (
           <div className="text-center">
-            <div className="text-6xl mb-6">❌</div>
-            <h2 className="text-2xl font-bold text-red-600 mb-4">Email Verification Failed</h2>
-            <p className="text-gray-600 mb-6">{message}</p>
+            <div className="text-4xl sm:text-6xl mb-4 sm:mb-6">❌</div>
+            <h2 className="text-xl sm:text-2xl font-bold text-red-600 mb-3 sm:mb-4">
+              Email Verification Failed
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">{message}</p>
             
             <StatusCard 
               type="error" 
@@ -106,13 +112,30 @@ const EmailVerification: React.FC = () => {
             
             {email && (
               <StatusCard type="info" title="Need a new verification email?">
+                {resendMessage && (
+                  <div className={`mb-3 p-3 rounded-lg text-sm ${
+                    resendMessage.includes('error') || resendMessage.includes('Network')
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    {resendMessage}
+                  </div>
+                )}
                 <ActionButton
                   onClick={handleResendEmail}
                   loading={isResending}
                   fullWidth
+                  disabled={isResending || (resendCooldown ?? 0) > 0}
                 >
-                  Resend Verification Email
+                  {isResending ? 'Sending...' : 'Resend Verification Email'}
                 </ActionButton>
+                {resendCooldown > 0 && (
+                  <div className="text-center mt-2">
+                    <span className="text-sm text-gray-600">
+                      Resend available in {formatSeconds(resendCooldown)}
+                    </span>
+                  </div>
+                )}
               </StatusCard>
             )}
             
@@ -129,11 +152,19 @@ const EmailVerification: React.FC = () => {
       default: // waiting state
         return (
           <div className="text-center">
-            <div className="text-6xl mb-6 animate-pulse">📧</div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Check Your Email</h2>
-            <p className="text-gray-600 mb-2">We've sent a verification email to</p>
-            <p className="text-blue-600 font-semibold mb-6 break-words bg-blue-50 p-3 rounded-lg">{email}</p>
-            <p className="text-gray-600 mb-8">Please click the verification link in your email to continue.</p>
+            <div className="text-4xl sm:text-6xl mb-4 sm:mb-6 animate-pulse">📧</div>
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4">
+              Check Your Email
+            </h2>
+            <p className="text-sm sm:text-base text-gray-600 mb-2">
+              We've sent a verification email to
+            </p>
+            <p className="text-sm sm:text-base text-blue-600 font-semibold mb-4 sm:mb-6 break-words bg-blue-50 p-2 sm:p-3 rounded-lg">
+              {email}
+            </p>
+            <p className="text-sm sm:text-base text-gray-600 mb-6 sm:mb-8">
+              Please click the verification link in your email to continue.
+            </p>
             
             <StatusCard 
               type="warning" 
@@ -142,22 +173,32 @@ const EmailVerification: React.FC = () => {
             
             {email && (
               <StatusCard type="info" title="Didn't receive the email?">
-                <div className="space-y-4">
+                {resendMessage && (
+                  <div className={`mb-3 p-3 rounded-lg text-sm ${
+                    resendMessage.includes('error') || resendMessage.includes('Network')
+                      ? 'bg-red-50 text-red-700 border border-red-200'
+                      : 'bg-green-50 text-green-700 border border-green-200'
+                  }`}>
+                    {resendMessage}
+                  </div>
+                )}
+                <div className="space-y-3 sm:space-y-4">
                   <ActionButton
                     onClick={handleResendEmail}
                     loading={isResending}
                     fullWidth
                     disabled={isResending || (resendCooldown ?? 0) > 0}
                   >
-                    Resend Verification Email
+                    {isResending ? 'Sending...' : 'Resend Verification Email'}
                   </ActionButton>
 
-                  {/* Cooldown shown below the button (seconds only, bold) */}
-                  <div className="text-center">
-                    <span className="text-xl text-blue-600 font-bold mt-1 block" aria-live="polite">
-                      {(resendCooldown ?? 0) > 0 ? formatSeconds(resendCooldown) : ''}
-                    </span>
-                  </div>
+                  {resendCooldown > 0 && (
+                    <div className="text-center">
+                      <span className="text-sm text-gray-600">
+                        Resend available in <span className="font-bold text-blue-600">{formatSeconds(resendCooldown)}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
               </StatusCard>
             )}
@@ -177,7 +218,8 @@ const EmailVerification: React.FC = () => {
   return (
     <AuthLayout 
       leftBg={leftBg} 
-      leftLogo={leftLogo} 
+      leftLogo={leftLogo}
+      topLogo={topLogo}
     >
       {renderContent()}
     </AuthLayout>
