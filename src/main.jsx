@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import './tailwind.css'
 import './index.css'
+import 'leaflet/dist/leaflet.css';
 
 // Import your page components
 import Login from './Pages/SignIN.tsx'

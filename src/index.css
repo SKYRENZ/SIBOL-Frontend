@@ -110,3 +110,9 @@ input:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 30px white inset !important;
   -webkit-text-fill-color: #111827 !important;
 }
+
+/* Custom Leaflet DivIcon style for transparent background */
+.leaflet-div-icon-transparent {
+  background: transparent;
+  border: none;
+}

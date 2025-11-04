@@ -47,7 +47,8 @@ const EditScheduleModal: React.FC<EditScheduleModalProps> = ({
     // load area list once (used to map IDs -> names and populate select)
     const loadAreas = async () => {
       try {
-        const list = await areaService.getAllAreas();
+        const response = await areaService.getAllAreas();
+        const list = response.data; // Extract the data array
         setAreas(list);
         const map: Record<string, string> = {};
         list.forEach(a => {

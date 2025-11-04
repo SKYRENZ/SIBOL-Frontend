@@ -14,7 +14,8 @@ export function useAreas() {
     setLoading(true);
     setError(null);
     try {
-      const list = await areaService.getAllAreas();
+      const response = await areaService.getAllAreas();
+      const list = response.data; // Extract the data array
       setAreas(list);
       const map: Record<string, string> = {};
       list.forEach(a => { map[String(a.Area_id)] = a.Area_Name; });
@@ -44,7 +45,8 @@ export function useSchedules() {
     setError(null);
     try {
       // First load areas to get the mapping
-      const areaList = await areaService.getAllAreas();
+      const areaResponse = await areaService.getAllAreas();
+      const areaList = areaResponse.data; // Extract the data array
       const areaMap: Record<number | string, string> = {};
       areaList.forEach(a => { 
         areaMap[a.Area_id] = a.Area_Name; 
