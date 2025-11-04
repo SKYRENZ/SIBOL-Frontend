@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Gift } from "lucide-react";
+import { X, Gift, ImageIcon } from "lucide-react";
 import { useCreateReward } from "../../hooks/household/useRewardHooks";
 
 interface AddRewardModalProps {
@@ -24,6 +24,10 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     Quantity: "",
   });
 
+  // Image preview state (simulation only)
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -31,6 +35,37 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     if (errors[name as keyof typeof errors]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+
+      // Validate file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
+        return;
+      }
+
+      setSelectedFile(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImagePreview(null);
+    setSelectedFile(null);
   };
 
   const validateForm = (): boolean => {
@@ -64,12 +99,21 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     if (!validateForm()) return;
 
     try {
-      await createReward({
+      // Create reward first
+      const result = await createReward({
         Item: formData.Item.trim(),
         Description: formData.Description.trim() || undefined,
         Points_cost: Number(formData.Points_cost),
         Quantity: Number(formData.Quantity),
       });
+
+      // Store image in localStorage with reward ID
+      if (selectedFile && imagePreview && result) {
+        const rewardImages = JSON.parse(localStorage.getItem('rewardImages') || '{}');
+        rewardImages[result.Reward_id] = imagePreview; // Store base64 image
+        localStorage.setItem('rewardImages', JSON.stringify(rewardImages));
+        console.log('Image saved to localStorage for reward ID:', result.Reward_id);
+      }
 
       setFormData({
         Item: "",
@@ -77,6 +121,8 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
         Points_cost: "",
         Quantity: "",
       });
+      setImagePreview(null);
+      setSelectedFile(null);
       
       onSave();
       onClose();
@@ -97,6 +143,8 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
       Points_cost: "",
       Quantity: "",
     });
+    setImagePreview(null);
+    setSelectedFile(null);
     onClose();
   };
 
@@ -231,27 +279,49 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Reward Image
               </label>
-              <div className="flex-1 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center p-8 hover:border-gray-400 transition-colors cursor-pointer">
-                <div className="w-16 h-16 mb-4 text-gray-400">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="17 8 12 3 7 8" />
-                    <line x1="12" y1="3" x2="12" y2="15" />
-                  </svg>
+              
+              {imagePreview ? (
+                // Image Preview
+                <div className="flex-1 border-2 border-gray-300 rounded-2xl overflow-hidden relative group">
+                  <img 
+                    src={imagePreview} 
+                    alt="Preview" 
+                    className="w-full h-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all flex items-center justify-center">
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                    >
+                      Remove Image
+                    </button>
+                  </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700 mb-1">
-                  Click to Upload or drag & drop file
-                </p>
-                <p className="text-xs text-gray-500 mb-4">
-                  PNG or JPEG only — max file size 10MB
-                </p>
-                <button
-                  type="button"
-                  className="px-5 py-2 bg-[#2d5f4a] hover:bg-[#234a39] text-white rounded-lg text-sm font-medium transition-colors"
-                >
-                  Choose File
-                </button>
-              </div>
+              ) : (
+                // Upload Area
+                <label className="flex-1 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center p-8 hover:border-gray-400 transition-colors cursor-pointer">
+                  <input
+                    type="file"
+                    accept="image/png, image/jpeg, image/jpg"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    disabled={loading}
+                  />
+                  <div className="w-16 h-16 mb-4 text-gray-400">
+                    <ImageIcon className="w-16 h-16" />
+                  </div>
+                  <p className="text-sm font-medium text-gray-700 mb-1">
+                    Click to Upload or drag & drop file
+                  </p>
+                  <p className="text-xs text-gray-500 mb-4">
+                    PNG or JPEG only — max file size 10MB
+                  </p>
+                  <span className="px-5 py-2 bg-[#2d5f4a] hover:bg-[#234a39] text-white rounded-lg text-sm font-medium transition-colors">
+                    Choose File
+                  </span>
+                </label>
+              )}
             </div>
           </div>
 
