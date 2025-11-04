@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useRewards, useArchiveReward } from "../../hooks/household/useRewardHooks";
 import type { Reward } from "../../services/rewardService";
-import { Gift, Archive, RotateCcw, Sparkles, Edit2 } from "lucide-react";
+import { Gift, Archive, RotateCcw, Sparkles, Edit2, ImageIcon } from "lucide-react";
 
 interface RewardTabProps {
   filters: string[];
@@ -19,8 +19,9 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
     try {
       await archiveReward(id);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to archive reward:", err);
+      alert(err?.message || 'Failed to archive reward');
     }
   };
 
@@ -28,8 +29,9 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
     try {
       await restoreReward(id);
       refetch();
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to restore reward:", err);
+      alert(err?.message || 'Failed to restore reward');
     }
   };
 
@@ -111,9 +113,20 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
 
               {/* Card Content */}
               <div className="p-6">
-                {/* Icon */}
-                <div className="w-16 h-16 mb-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
-                  <Gift className="w-8 h-8 text-green-600" />
+                {/* Image Placeholder */}
+                <div className="w-full h-40 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center overflow-hidden">
+                  {reward.Image_url ? (
+                    <img 
+                      src={reward.Image_url} 
+                      alt={reward.Item}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <ImageIcon className="w-12 h-12 mb-2" />
+                      <span className="text-xs font-medium">No Image</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Reward Name */}

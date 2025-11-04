@@ -6,25 +6,30 @@ export interface Reward {
   Description?: string;
   Points_cost: number;
   Quantity: number;
-  IsArchived?: number;
+  Image_url?: string;
+  IsArchived?: boolean;
+  Created_at?: string;
+  Updated_at?: string;
 }
 
 export interface RewardTransaction {
-  Reward_transaction_id?: number;
+  Transaction_id?: number;
+  User_id: number;
   Reward_id: number;
-  Account_id: number;
-  Quantity: number;
-  Total_points: number;
-  Redemption_code?: string;
-  Status: 'Pending' | 'Redeemed';
-  Created_at?: string;
+  Points_spent: number;
+  Quantity_redeemed: number;
+  Status: 'pending' | 'approved' | 'rejected';
   Redeemed_at?: string;
+  Updated_at?: string;
+  // Joined fields
+  Item?: string;
+  Fullname?: string;
+  Email?: string;
 }
 
 export interface RedeemRewardPayload {
-  account_id: number;
-  reward_id: number;
-  quantity: number;
+  Reward_id: number;
+  Quantity_redeemed: number;
 }
 
 export interface RedeemRewardResponse {
