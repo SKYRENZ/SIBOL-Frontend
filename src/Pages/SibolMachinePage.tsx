@@ -41,13 +41,13 @@ const SibolMachinePage: React.FC = () => {
 
   // Sample data for Chemical Additives
   const chemicalAdditivesData = [
-    { chemicalInput: 'Ca(OCl)₂', stage: 'Pre-treatment', value: '50', units: 'g', date: '2025-10-28', time: '09:00', personInCharge: 'John Doe' },
-    { chemicalInput: 'NaOH', stage: 'Hydrolysis', value: '100', units: 'ml', date: '2025-10-28', time: '11:30', personInCharge: 'Jane Smith' },
+    { additiveInput: 'Cow Manure', stage: 'Pre-treatment', value: '50', units: 'g', date: '2025-10-28', time: '09:00', personInCharge: 'John Doe' },
+    { additiveInput: 'NaOH', stage: 'Hydrolysis', value: '100', units: 'ml', date: '2025-10-28', time: '11:30', personInCharge: 'Jane Smith' },
   ];
 
   const tabsConfig = [
     { id: 'Machines', label: 'Machines' },
-    { id: 'Chemical Additives', label: 'Chemical Additives' },
+    { id: 'Chemical Additives', label: 'Additives' },
     { id: 'Waste Container', label: 'Waste Container' },
     { id: 'Analytics', label: 'Analytics' }
   ];
@@ -156,7 +156,7 @@ const SibolMachinePage: React.FC = () => {
     }
     if (activeTab === 'Chemical Additives') {
       const columns = [
-        { key: 'chemicalInput', label: 'Chemical Input' },
+        { key: 'additiveInput', label: 'Additive Input' },
         { key: 'stage', label: 'Stage' },
         { key: 'value', label: 'Value' },
         { key: 'units', label: 'Units' },
@@ -217,14 +217,16 @@ const SibolMachinePage: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex space-x-3">
+          <div className="flex space-x-3">
+            {(activeTab === 'Machines' || activeTab === 'Waste Container') && (
               <button 
                 onClick={openAddForm}
                 className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium"
               >
                 {activeTab === 'Waste Container' ? 'Add Container' : 'Add Machine'}
               </button>
-            </div>
+            )}
+          </div>
           </div>
           {renderContent()}
         </div>

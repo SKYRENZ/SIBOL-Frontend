@@ -31,12 +31,27 @@ const MachineTab: React.FC<MachineTabProps> = ({ machines, loading, error, searc
     {
       key: 'status_name',
       label: 'Status',
-      render: (value: string | undefined) => (
-        <span className={`px-2 py-1 text-xs rounded-full ${value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
-          {value || 'No Status'}
-        </span>
-      )
-    },
+      render: (value: string | undefined) => {
+        const status = value?.toLowerCase();
+
+        const statusClasses: Record<string, string> = {
+          'active': 'bg-green-100 text-green-800',
+          'inactive': 'bg-red-100 text-red-800',
+          'under maintenance': 'bg-yellow-100 text-yellow-800',
+          'no status': 'bg-gray-100 text-gray-800'
+        };
+
+        const badgeClass =
+          statusClasses[status ?? 'no status'] ?? statusClasses['no status'];
+
+        return (
+          <span className={`px-2 py-1 text-xs rounded-full capitalize ${badgeClass}`}>
+            {value || 'No Status'}
+          </span>
+        );
+      }
+    }
+    ,
     {
       key: 'machine_id',
       label: 'Actions',
