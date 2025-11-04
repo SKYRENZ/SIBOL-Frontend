@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { isAuthenticated } from "../services/auth";
 import Header from "../Components/Header";
 import ProcessPanel from "../Components/dashboard/ProcessPanel";
 import TotalWastePanel from "../Components/TotalWastePanel";
@@ -11,6 +12,29 @@ const Dashboard: React.FC = () => {
   const [currentDate, setCurrentDate] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 🔐 Auth check - redirect if not authenticated
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate('/login', { replace: true });
+    }
+  }, [navigate]);
+
+  // Prevent back/forward navigation issues
+  useEffect(() => {
+    window.history.pushState(null, '', window.location.href);
+    
+    const handlePopState = () => {
+      if (!isAuthenticated()) {
+        navigate('/login', { replace: true });
+      } else {
+        window.history.pushState(null, '', window.location.href);
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [navigate]);
 
   // 🕓 Date updater
   useEffect(() => {

@@ -179,14 +179,17 @@ const Landingpage: React.FC = () => {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 sm:gap-5 md:gap-6">
               <button
-                onClick={handleGetStarted}
-                className="px-8 sm:px-10 md:px-12 lg:px-14 py-4 sm:py-5 md:py-6 bg-[#2D5F2E] dark:bg-[#2D5F2E] text-white dark:text-white rounded-xl hover:bg-[#234A23] dark:hover:bg-[#234A23] transition-all duration-200 font-semibold text-base sm:text-lg md:text-xl shadow-lg hover:shadow-xl hover:scale-105"
+                onClick={() => navigate('/signup')}
+                className="px-6 sm:px-7 md:px-8 lg:px-10 py-3 sm:py-3.5 md:py-4 bg-[#5F8D4E] text-white rounded-full font-semibold text-base sm:text-lg hover:bg-[#4a6d3d] transition-colors shadow-lg hover:shadow-xl"
               >
                 Get Started
               </button>
               <button
-                onClick={handleLearnMore}
-                className="px-8 sm:px-10 md:px-12 lg:px-14 py-4 sm:py-5 md:py-6 border-2 border-[#2D5F2E] dark:border-[#2D5F2E] text-[#2D5F2E] dark:text-[#2D5F2E] rounded-xl hover:bg-[#2D5F2E] dark:hover:bg-[#2D5F2E] hover:text-white dark:hover:text-white transition-all duration-200 font-semibold text-base sm:text-lg md:text-xl shadow-md hover:shadow-lg hover:scale-105"
+                onClick={() => {
+                  const howItWorksSection = document.getElementById('how-it-works');
+                  howItWorksSection?.scrollIntoView({ behavior: 'smooth' });
+                }}
+                className="px-6 sm:px-7 md:px-8 lg:px-10 py-3 sm:py-3.5 md:py-4 bg-white text-[#5F8D4E] border-2 border-[#5F8D4E] rounded-full font-semibold text-base sm:text-lg hover:bg-[#5F8D4E] hover:text-white transition-colors shadow-lg hover:shadow-xl"
               >
                 Learn More
               </button>
@@ -418,29 +421,39 @@ const Landingpage: React.FC = () => {
       </section>
 
       {/* FAQ Section */}
-      <section className="py-16 sm:py-20 md:py-24 lg:py-28 px-4 sm:px-6 md:px-8 lg:px-12 bg-white">
-        <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
-          <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-center text-gray-900 mb-8 sm:mb-12 md:mb-16 lg:mb-20">
+      <section className="py-16 sm:py-20 md:py-24 lg:py-28 px-4 sm:px-6 md:px-8 lg:px-12 bg-gray-50">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl text-black font-bold text-center mb-3 sm:mb-4">
             Frequently Asked Questions
           </h2>
-
-          <div className="bg-[#E8F5E9] rounded-xl sm:rounded-2xl lg:rounded-[19px] p-4 sm:p-6 md:p-8 lg:p-[30.4px] space-y-3 sm:space-y-4 lg:space-y-[15.2px]">
+          <p className="text-gray-600 text-center mb-10 sm:mb-12 md:mb-16 text-base sm:text-lg">
+            Find answers to common questions about SIBOL
+          </p>
+          
+          <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className="bg-white rounded-lg sm:rounded-xl lg:rounded-[15.2px] overflow-hidden">
+              <div
+                key={index}
+                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              >
                 <button
-                  onClick={() => toggleFAQ(index)}
-                  className="w-full px-4 sm:px-5 md:px-6 lg:px-[22.8px] py-3 sm:py-4 lg:py-[15.2px] flex items-center justify-between text-left hover:bg-gray-50 transition-colors duration-200"
+                  onClick={() => setOpenFAQ(openFAQ === index ? null : index)}
+                  className="w-full px-5 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 flex justify-between items-center text-left bg-white hover:bg-gray-50 transition-colors outline-none focus:outline-none border-none"
                 >
-                  <span className="font-semibold text-gray-900 text-sm sm:text-base lg:text-[15.2px] pr-4">{faq.question}</span>
+                  <span className="font-semibold text-gray-900 text-base sm:text-lg pr-4">
+                    {faq.question}
+                  </span>
                   <ChevronDown
-                    className={`w-4 h-4 sm:w-5 sm:h-5 lg:w-[19px] lg:h-[19px] text-gray-600 transition-transform duration-300 flex-shrink-0 ${
+                    className={`w-5 h-5 sm:w-6 sm:h-6 flex-shrink-0 text-[#88AB8E] transition-transform duration-200 ${
                       openFAQ === index ? 'rotate-180' : ''
                     }`}
                   />
                 </button>
                 {openFAQ === index && (
-                  <div className="px-4 sm:px-5 md:px-6 lg:px-[22.8px] pb-3 sm:pb-4 lg:pb-[15.2px] text-gray-600 leading-relaxed text-sm sm:text-base lg:text-[14.25px]">
-                    {faq.answer}
+                  <div className="px-5 sm:px-6 md:px-8 pb-4 sm:pb-5 md:pb-6 bg-white">
+                    <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                      {faq.answer}
+                    </p>
                   </div>
                 )}
               </div>
