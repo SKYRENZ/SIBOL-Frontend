@@ -9,15 +9,21 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Routes, Route } from 'react-router-dom';
 import '@testing-library/jest-dom';
 
-// mock the actual service module used by the component
-vi.mock('../services/authService', () => ({
-  login: vi.fn()
+// Mock the correct service module that SignIN.tsx actually imports
+vi.mock('../services/auth', () => ({
+  login: vi.fn(),
+  isAuthenticated: vi.fn(() => false), // Mock isAuthenticated to return false
+  getToken: vi.fn(() => null),
+  getUser: vi.fn(() => null),
+  logout: vi.fn(),
+  register: vi.fn(),
+  verifyToken: vi.fn()
 }));
 
-import * as auth from '../services/authService';
+import * as auth from '../services/auth';
 import SignIN from '../Pages/SignIN';
 
-const mockLogin = (auth as any).login as Mock;
+const mockLogin = auth.login as Mock;
 
 describe('SignIN (frontend)', () => {
   afterEach(() => {
@@ -26,30 +32,44 @@ describe('SignIN (frontend)', () => {
   });
 
   it('calls auth.login and navigates to dashboard on success', async () => {
-    mockLogin.mockResolvedValue({ user: { Username: 'john.doe' } });
+    const mockUser = { Account_id: 1, Username: 'john.doe', Roles: 1 };
+    const mockToken = 'test-token-123';
+    
+    mockLogin.mockResolvedValue({ 
+      user: mockUser,
+      token: mockToken
+    });
 
     render(
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<SignIN />} />
-          <Route path="/dashboard" element={<div>Dashboard</div>} />
+          <Route path="/dashboard" element={<div>Dashboard Page</div>} />
         </Routes>
       </MemoryRouter>
     );
 
-    await userEvent.type(screen.getByPlaceholderText(/enter your username/i), 'john.doe');
-    await userEvent.type(screen.getByPlaceholderText(/enter your password/i), 'SIBOL12345');
-    await userEvent.click(screen.getByRole('button', { name: /^Sign in$/i }));
+    const usernameInput = screen.getByPlaceholderText(/enter your username/i);
+    const passwordInput = screen.getByPlaceholderText(/enter your password/i);
+    const signInButton = screen.getByRole('button', { name: /^Sign in$/i });
+
+    await userEvent.type(usernameInput, 'john.doe');
+    await userEvent.type(passwordInput, 'SIBOL12345');
+    await userEvent.click(signInButton);
 
     await waitFor(() => {
-      expect(screen.getByText('Dashboard')).toBeInTheDocument();
+      expect(screen.getByText('Dashboard Page')).toBeInTheDocument();
     });
 
     expect(mockLogin).toHaveBeenCalledWith('john.doe', 'SIBOL12345');
+    expect(localStorage.getItem('token')).toBe(mockToken);
+    expect(localStorage.getItem('user')).toBe(JSON.stringify(mockUser));
   });
 
   it('shows error message on failed login', async () => {
-    mockLogin.mockRejectedValue({ response: { data: { message: 'Invalid credentials' } } });
+    const errorMessage = 'Invalid credentials';
+    
+    mockLogin.mockRejectedValue(new Error(errorMessage));
 
     render(
       <MemoryRouter>
@@ -57,14 +77,18 @@ describe('SignIN (frontend)', () => {
       </MemoryRouter>
     );
 
-    await userEvent.type(screen.getByPlaceholderText(/enter your username/i), 'bad.user');
-    await userEvent.type(screen.getByPlaceholderText(/enter your password/i), 'wrong');
-    await userEvent.click(screen.getByRole('button', { name: /^Sign in$/i }));
+    const usernameInput = screen.getByPlaceholderText(/enter your username/i);
+    const passwordInput = screen.getByPlaceholderText(/enter your password/i);
+    const signInButton = screen.getByRole('button', { name: /^Sign in$/i });
+
+    await userEvent.type(usernameInput, 'bad.user');
+    await userEvent.type(passwordInput, 'wrong');
+    await userEvent.click(signInButton);
 
     await waitFor(() => {
-      // component may render a generic "Login failed" message or the server message.
       expect(screen.getByText(/invalid credentials|login failed/i)).toBeInTheDocument();
     });
+    
     expect(mockLogin).toHaveBeenCalledWith('bad.user', 'wrong');
   });
 });

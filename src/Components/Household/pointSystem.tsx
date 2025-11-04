@@ -278,8 +278,8 @@ const PointSystem = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="col-span-1 md:col-span-2">
-            {/* scroll container capped to 5 rows */}
-            <div style={{ maxHeight: containerMaxHeight, overflowY: "auto", borderRadius: 8, border: "1px solid #e6efe6" }}>
+            {/* Table with pagination - no scroll needed */}
+            <div style={{ borderRadius: 8, border: "1px solid #e6efe6" }}>
               <Table
                 columns={columns}
                 data={sortedEntries}
@@ -287,6 +287,9 @@ const PointSystem = () => {
                 sortBy={sortBy}
                 sortDir={sortDir}
                 onSort={handleSort}
+                enablePagination={true}
+                initialPageSize={5}
+                fixedPagination={false}
               />
             </div>
           </div>

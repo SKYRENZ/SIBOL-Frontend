@@ -12,6 +12,7 @@ import AddRewardModal from "../Components/Household/addReward";
 import LeaderboardTab from "../Components/Household/leaderboard";
 import PointSystem from "../Components/Household/pointSystem";
 import "../types/Household.css";
+import WasteCollectionTab from "../Components/Household/wasteCollection";
 
 interface RowData {
   maintenance: string;
@@ -97,8 +98,11 @@ const Household: React.FC = () => {
       
       {/* Sub Navigation Bar */}
       <div className="w-full bg-white shadow-sm">
-        <div style={{ height: '60px' }} aria-hidden />
-        <div className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm">
+        <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
+        <div
+          className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm"
+          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
+        >
           <div className="max-w-screen-2xl mx-auto">
             <HouseholdTabs activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
@@ -136,12 +140,11 @@ const Household: React.FC = () => {
   
           {/* Pass filters to child components */}
           {activeTab === "schedule" && <ScheduleTab filters={selectedFilters} />}
+           {activeTab === "wasteCollection" && <WasteCollectionTab />}
           {activeTab === "reward" && <RewardTab filters={selectedFilters} />}
           {activeTab === "leaderboard" && <LeaderboardTab />}
           {activeTab === "claimed" && <ClaimedRewards />}
-  
-          {/* render Point System tab */}
-          {activeTab === "points" && <PointSystem />}
+            {activeTab === "points" && <PointSystem />}
         </div>
       </div>
 

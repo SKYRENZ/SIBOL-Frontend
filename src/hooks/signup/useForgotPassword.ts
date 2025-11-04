@@ -58,24 +58,33 @@ export function useForgotPassword(initialEmail = '') {
 
   const sendResetRequest = useCallback(async () => {
     setError(null);
-    // prevent resending while cooldown active
+    setInfo(null);
+    
+    // Prevent resending while cooldown active
     if (resendAvailableAt && Date.now() < resendAvailableAt) {
       return setError(`Please wait ${Math.ceil((resendAvailableAt - Date.now()) / 1000)}s before resending.`);
     }
-    if (!emailValid) return setError('Please enter a valid email.');
+    
+    if (!emailValid) {
+      return setError('Please enter a valid email address.');
+    }
+    
     setLoading(true);
     try {
       const data = await fetchJson('/api/auth/forgot-password', {
         method: 'POST',
         body: JSON.stringify({ email })
       });
-      setInfo(data?.debugCode ? `Debug code: ${data.debugCode}` : 'Reset code sent. Check your email.');
-      // start cooldown
+      
+      setInfo(data?.message || 'Reset code sent. Check your email.');
+      
+      // Start cooldown
       setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
       setResendCooldown(COOLDOWN_SECONDS);
       setStep('verify');
     } catch (err: any) {
-      setError(err?.message ?? 'Failed to request reset');
+      // Display the error message from backend
+      setError(err?.message || 'Failed to send reset code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -83,17 +92,23 @@ export function useForgotPassword(initialEmail = '') {
 
   const verifyCode = useCallback(async () => {
     setError(null);
-    if (!codeValid) return setError('Code must be a 6-digit number.');
+    setInfo(null);
+    
+    if (!codeValid) {
+      return setError('Code must be a 6-digit number.');
+    }
+    
     setLoading(true);
     try {
-      await fetchJson('/api/auth/verify-reset-code', {
+      const data = await fetchJson('/api/auth/verify-reset-code', {
         method: 'POST',
         body: JSON.stringify({ email, code })
       });
-      setInfo('Code verified. Enter your new password.');
+      
+      setInfo(data?.message || 'Code verified. Enter your new password.');
       setStep('reset');
     } catch (err: any) {
-      setError(err?.message ?? 'Invalid code');
+      setError(err?.message || 'Invalid or expired code. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -101,17 +116,23 @@ export function useForgotPassword(initialEmail = '') {
 
   const submitNewPassword = useCallback(async () => {
     setError(null);
-    if (!passwordValid) return setError('Password must be at least 8 chars and include upper, lower, number, and symbol.');
+    setInfo(null);
+    
+    if (!passwordValid) {
+      return setError('Password must be at least 8 characters and include uppercase, lowercase, number, and symbol.');
+    }
+    
     setLoading(true);
     try {
-      await fetchJson('/api/auth/reset-password', {
+      const data = await fetchJson('/api/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify({ email, code, newPassword })
       });
-      setInfo('Password reset successfully. You can now sign in with your new password.');
+      
+      setInfo(data?.message || 'Password reset successfully. You can now sign in with your new password.');
       setStep('done');
     } catch (err: any) {
-      setError(err?.message ?? 'Failed to reset password');
+      setError(err?.message || 'Failed to reset password. Please try again.');
     } finally {
       setLoading(false);
     }
