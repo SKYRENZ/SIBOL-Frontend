@@ -108,12 +108,92 @@ const Pagination: React.FC<PaginationProps> = ({
 
   return (
     <div className={`w-full bg-white border-t border-gray-200 shadow-lg ${fixed ? "fixed bottom-0 left-0 right-0 z-10" : ""}`}>
-      {/* Results indicator and rows per page selector */}
-      <div className="flex items-center justify-between py-4 px-6 bg-gray-50 border-b border-gray-200">
+      {/* Single row with results, pagination controls, and rows per page selector */}
+      <div className="flex items-center justify-between py-4 px-6 bg-white">
+        {/* Results indicator */}
         <div className="text-sm text-gray-700">
           Showing <span className="font-bold text-[#2E523A]">{startItem}-{endItem}</span> of <span className="font-bold text-[#2E523A]">{totalItems}</span> results
         </div>
         
+        {/* Pagination controls centered */}
+        <div className="flex items-center justify-center gap-3">
+          <button
+            onClick={handleFirst}
+            disabled={currentPage === 1 || totalPages <= 1}
+            className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
+              currentPage === 1 || totalPages <= 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
+            }`}
+            aria-label="First page"
+          >
+            <span className="flex items-center justify-center text-2xl leading-none">«</span>
+          </button>
+
+          <button
+            onClick={handlePrevious}
+            disabled={currentPage === 1 || totalPages <= 1}
+            className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
+              currentPage === 1 || totalPages <= 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
+            }`}
+            aria-label="Previous page"
+          >
+            <span className="flex items-center justify-center text-2xl leading-none">‹</span>
+          </button>
+
+          {pageNumbers.map((page, index) => (
+            <React.Fragment key={index}>
+              {page === '...' ? (
+                <span className="flex items-center justify-center w-10 h-10 text-gray-500 font-bold text-lg">...</span>
+              ) : (
+                <button
+                  onClick={() => handlePageClick(page)}
+                  disabled={totalPages <= 1}
+                  className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 font-semibold text-sm transition-all duration-200 shadow-sm ${
+                    currentPage === page
+                      ? 'bg-[#2E523A] border-[#2E523A] text-white shadow-lg'
+                      : totalPages <= 1
+                      ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-white border-gray-400 text-gray-700 hover:bg-[#2E523A]/10 hover:border-[#2E523A] hover:text-[#2E523A] hover:shadow-md active:scale-95'
+                  }`}
+                  aria-label={`Page ${page}`}
+                  aria-current={currentPage === page ? 'page' : undefined}
+                >
+                  {page}
+                </button>
+              )}
+            </React.Fragment>
+          ))}
+
+          <button
+            onClick={handleNext}
+            disabled={currentPage === totalPages || totalPages <= 1}
+            className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
+              currentPage === totalPages || totalPages <= 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
+            }`}
+            aria-label="Next page"
+          >
+            <span className="flex items-center justify-center text-2xl leading-none">›</span>
+          </button>
+
+          <button
+            onClick={handleLast}
+            disabled={currentPage === totalPages || totalPages <= 1}
+            className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
+              currentPage === totalPages || totalPages <= 1
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
+                : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
+            }`}
+            aria-label="Last page"
+          >
+            <span className="flex items-center justify-center text-2xl leading-none">»</span>
+          </button>
+        </div>
+
         {/* Rows per page selector */}
         {onPageSizeChange && (
           <div className="flex items-center gap-2">
@@ -131,89 +211,6 @@ const Pagination: React.FC<PaginationProps> = ({
             </select>
           </div>
         )}
-      </div>
-
-      {/* Pagination controls centered */}
-      <div className="flex items-center justify-center gap-3 py-5 px-6 bg-white">
-        <button
-          onClick={handleFirst}
-          disabled={currentPage === 1 || totalPages <= 1}
-          className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
-            currentPage === 1 || totalPages <= 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-              : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
-          }`}
-          aria-label="First page"
-        >
-          <span className="flex items-center justify-center text-2xl leading-none">«</span>
-        </button>
-
-        <button
-          onClick={handlePrevious}
-          disabled={currentPage === 1 || totalPages <= 1}
-          className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
-            currentPage === 1 || totalPages <= 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-              : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
-          }`}
-          aria-label="Previous page"
-        >
-          <span className="flex items-center justify-center text-2xl leading-none">‹</span>
-        </button>
-
-        {/* Page Numbers */}
-        {pageNumbers.map((page, index) => (
-          <React.Fragment key={index}>
-            {page === '...' ? (
-              <span className="flex items-center justify-center w-10 h-10 text-gray-500 font-bold text-lg">
-                ...
-              </span>
-            ) : (
-              <button
-                onClick={() => handlePageClick(page)}
-                disabled={totalPages <= 1}
-                className={`flex items-center justify-center w-10 h-10 rounded-lg border-2 font-semibold text-sm transition-all duration-200 shadow-sm ${
-                  currentPage === page
-                    ? 'bg-[#2E523A] border-[#2E523A] text-white shadow-lg'
-                    : totalPages <= 1
-                    ? 'bg-gray-100 border-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-white border-gray-400 text-gray-700 hover:bg-[#2E523A]/10 hover:border-[#2E523A] hover:text-[#2E523A] hover:shadow-md active:scale-95'
-                }`}
-                aria-label={`Page ${page}`}
-                aria-current={currentPage === page ? 'page' : undefined}
-              >
-                {page}
-              </button>
-            )}
-          </React.Fragment>
-        ))}
-
-        {/* Next Button */}
-        <button
-          onClick={handleNext}
-          disabled={currentPage === totalPages || totalPages <= 1}
-          className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
-            currentPage === totalPages || totalPages <= 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-              : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
-          }`}
-          aria-label="Next page"
-        >
-          <span className="flex items-center justify-center text-2xl leading-none">›</span>
-        </button>
-
-        <button
-          onClick={handleLast}
-          disabled={currentPage === totalPages || totalPages <= 1}
-          className={`flex items-center justify-center w-11 h-11 rounded-lg border-2 border-transparent transition-all ${
-            currentPage === totalPages || totalPages <= 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-              : 'bg-white text-gray-900 hover:bg-[#2E523A]/10 hover:text-[#2E523A] hover:border-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#2E523A]/30'
-          }`}
-          aria-label="Last page"
-        >
-          <span className="flex items-center justify-center text-2xl leading-none">»</span>
-        </button>
       </div>
     </div>
   );
