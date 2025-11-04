@@ -3,17 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin } from 'lucide-react';
 import { isAuthenticated } from '../services/auth';
 
-// Import images
-import SibolWordLogo from '../assets/images/SIBOLWORDLOGO.png';
-import LandingBG from '../assets/images/LandingBG.png';
-import Photo1 from '../assets/images/photo.png';
-import Photo2 from '../assets/images/photo2.png';
-import Photo3 from '../assets/images/photo3.png';
-import Photo4 from '../assets/images/photo4.png';
-import Photo5 from '../assets/images/photo5.png';
-import Photo7 from '../assets/images/photo7.png';
-import SibolLogoBulb from '../assets/images/SIBOLOGOBULB.png';
-
 const Landingpage: React.FC = () => {
   const navigate = useNavigate();
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
@@ -25,6 +14,17 @@ const Landingpage: React.FC = () => {
     message: ''
   });
 
+  // Import images using new URL()
+  const SibolWordLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
+  const LandingBG = new URL('../assets/images/LandingBG.png', import.meta.url).href;
+  const Photo1 = new URL('../assets/images/photo.png', import.meta.url).href;
+  const Photo2 = new URL('../assets/images/photo2.png', import.meta.url).href;
+  const Photo3 = new URL('../assets/images/photo3.png', import.meta.url).href;
+  const Photo4 = new URL('../assets/images/photo4.png', import.meta.url).href;
+  const Photo5 = new URL('../assets/images/photo5.png', import.meta.url).href;
+  const Photo7 = new URL('../assets/images/photo7.png', import.meta.url).href;
+  const SibolLogoBulb = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
+
   // Redirect authenticated users to dashboard
   useEffect(() => {
     if (isAuthenticated()) {
@@ -34,7 +34,7 @@ const Landingpage: React.FC = () => {
 
   const carouselSlides = [
     { 
-      src: Photo1,  // Changed
+      src: Photo1,
       alt: 'Smart Food Waste Collection',
       emoji: '🌱',
       title: 'Smart Food Waste Collection',
@@ -42,7 +42,7 @@ const Landingpage: React.FC = () => {
       description: 'SIBOL gathers and processes household food waste from the pilot barangay, preparing it for anaerobic digestion. Every scrap collected becomes part of a sustainable energy cycle.'
     },
     { 
-      src: Photo2,  // Changed
+      src: Photo2,
       alt: 'Continuous Anaerobic Digestion',
       emoji: '⚙️',
       title: 'Continuous Anaerobic Digestion',
@@ -50,7 +50,7 @@ const Landingpage: React.FC = () => {
       description: 'Through continuous digestion, food waste is transformed into biogas. The system monitors temperature and retention time to ensure stable, efficient, and eco-friendly energy generation.'
     },
     { 
-      src: Photo3,  // Changed
+      src: Photo3,
       alt: 'Biogas-to-Electricity Conversion',
       emoji: '⚡',
       title: 'Biogas-to-Electricity Conversion',
@@ -58,7 +58,7 @@ const Landingpage: React.FC = () => {
       description: 'Generated biogas is converted into usable electricity through small generators, powering households within the pilot barangay and showcasing the potential of renewable community energy.'
     },
     { 
-      src: Photo4,  // Changed
+      src: Photo4,
       alt: 'IoT Monitoring & Smart Dashboard',
       emoji: '📡',
       title: 'IoT Monitoring & Smart Dashboard',
@@ -66,7 +66,7 @@ const Landingpage: React.FC = () => {
       description: 'IoT sensors track real-time parameters—temperature, pH, gas flow—and feed them into an interactive dashboard that visualizes performance, energy output, and system health at a glance.'
     },
     { 
-      src: Photo5,  // Changed
+      src: Photo5,
       alt: 'AI Optimization & Maintenance',
       emoji: '🤖',
       title: 'AI Optimization & Maintenance',
@@ -74,7 +74,7 @@ const Landingpage: React.FC = () => {
       description: 'AI continuously analyzes system data to optimize digestion processes, predict potential issues, and automate alerts—keeping SIBOL running efficiently with minimal human intervention.'
     },
     { 
-      src: Photo7,  // Changed
+      src: Photo7,
       alt: 'User Support & Security',
       emoji: '💬',
       title: 'User Support & Security',
@@ -146,12 +146,12 @@ const Landingpage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-white dark:bg-white">
-      {/* Header - White, 15% smaller with SIBOL word logo */}
+      {/* Header */}
       <header className="fixed top-0 left-0 right-0 bg-white dark:bg-white backdrop-blur-sm z-50 shadow-md border-b border-gray-100 dark:border-gray-100">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-[15px] py-2.5 sm:py-3.5 md:py-4 lg:py-5 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-3.5">
             <img 
-              src={SibolWordLogo}  // Changed
+              src={SibolWordLogo}
               alt="SIBOL Logo" 
               className="h-7 sm:h-8 md:h-9 lg:h-[43px]"
             />
@@ -165,12 +165,11 @@ const Landingpage: React.FC = () => {
         </div>
       </header>
 
-      {/* Hero Section - Fully visible with proper spacing */}
+      {/* Hero Section */}
       <section className="pt-24 sm:pt-26 md:pt-29 lg:pt-32 pb-12 sm:pb-16 md:pb-20 lg:pb-24 px-4 sm:px-6 md:px-8 lg:px-12 relative overflow-hidden min-h-screen flex items-center">
-        {/* Background Image */}
         <div className="absolute inset-0 z-0">
           <img 
-            src={LandingBG}  // Changed
+            src={LandingBG}
             alt="Background" 
             className="w-full h-full object-cover"
           />
@@ -605,7 +604,7 @@ const Landingpage: React.FC = () => {
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 sm:gap-2.5 lg:gap-[7.6px] mb-3 sm:mb-4 lg:mb-[15.2px]">
             <img 
-              src={SibolLogoBulb}  // Changed
+              src={SibolLogoBulb}
               alt="SIBOL Logo" 
               className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-[30.4px] lg:w-[30.4px]"
             />
