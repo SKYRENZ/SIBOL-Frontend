@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useRewards, useArchiveReward } from "../../hooks/household/useRewardHooks";
 import type { Reward } from "../../services/rewardService";
+import { Gift, Archive, RotateCcw, Sparkles } from "lucide-react";
 
 interface RewardTabProps {
   filters: string[];
@@ -49,7 +50,7 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters }) => {
 
   if (error) {
     return (
-      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+      <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
         {error}
       </div>
     );
@@ -58,101 +59,123 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters }) => {
   return (
     <div>
       {/* Toggle Archived */}
-      <div className="flex justify-end mb-4">
-        <label className="flex items-center gap-2 cursor-pointer">
+      <div className="flex justify-end mb-6">
+        <label className="flex items-center gap-2 cursor-pointer group">
           <input
             type="checkbox"
             checked={showArchived}
             onChange={(e) => setShowArchived(e.target.checked)}
-            className="rounded border-gray-300"
+            className="w-4 h-4 rounded border-gray-300 text-green-600 focus:ring-2 focus:ring-green-500 focus:ring-offset-0 transition"
           />
-          <span className="text-sm text-gray-700">Show Archived</span>
+          <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
+            Show Archived Rewards
+          </span>
         </label>
       </div>
 
-      {/* Rewards Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Reward
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Description
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Points Cost
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Quantity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Status
-              </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {filteredData.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                  No rewards found
-                </td>
-              </tr>
-            ) : (
-              filteredData.map((reward) => (
-                <tr key={reward.Reward_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {reward.Item}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {reward.Description || "-"}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {reward.Points_cost} pts
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {reward.Quantity}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {reward.IsArchived ? (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">
-                        Archived
-                      </span>
-                    ) : (
-                      <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                        Active
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    {reward.IsArchived ? (
-                      <button
-                        onClick={() => handleRestore(reward.Reward_id!)}
-                        disabled={archiveLoading}
-                        className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                      >
-                        Restore
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleArchive(reward.Reward_id!)}
-                        disabled={archiveLoading}
-                        className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                      >
-                        Archive
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Rewards Grid */}
+      {filteredData.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl border-2 border-dashed border-gray-300">
+          <Gift className="w-16 h-16 text-gray-400 mb-4" />
+          <p className="text-gray-500 text-lg font-medium">No rewards found</p>
+          <p className="text-gray-400 text-sm mt-1">
+            {showArchived ? "No archived rewards yet" : "Click 'Add Reward' to create one"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {filteredData.map((reward) => (
+            <div
+              key={reward.Reward_id}
+              className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-2 ${
+                reward.IsArchived 
+                  ? 'border-gray-200 opacity-75' 
+                  : 'border-transparent hover:border-green-100'
+              }`}
+            >
+              {/* Status Badge */}
+              <div className="absolute top-4 right-4 z-10">
+                {reward.IsArchived ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-300">
+                    <Archive className="w-3 h-3" />
+                    Archived
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-300">
+                    <Sparkles className="w-3 h-3" />
+                    Active
+                  </span>
+                )}
+              </div>
+
+              {/* Card Content */}
+              <div className="p-6">
+                {/* Icon */}
+                <div className="w-16 h-16 mb-4 bg-gradient-to-br from-green-100 to-green-200 rounded-2xl flex items-center justify-center">
+                  <Gift className="w-8 h-8 text-green-600" />
+                </div>
+
+                {/* Reward Name */}
+                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2 min-h-[3.5rem]">
+                  {reward.Item}
+                </h3>
+
+                {/* Description */}
+                {reward.Description && (
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[2.5rem]">
+                    {reward.Description}
+                  </p>
+                )}
+
+                {/* Points & Quantity */}
+                <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-100">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                      Points Cost
+                    </p>
+                    <p className="text-2xl font-bold text-green-600">
+                      {reward.Points_cost}
+                      <span className="text-sm text-gray-500 font-normal ml-1">pts</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 uppercase tracking-wide font-medium mb-1">
+                      Available
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {reward.Quantity}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Button */}
+                {reward.IsArchived ? (
+                  <button
+                    onClick={() => handleRestore(reward.Reward_id!)}
+                    disabled={archiveLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-green-50 text-green-700 rounded-xl font-medium text-sm hover:bg-green-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-green-200"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Restore Reward
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleArchive(reward.Reward_id!)}
+                    disabled={archiveLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 text-red-700 rounded-xl font-medium text-sm hover:bg-red-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-red-200"
+                  >
+                    <Archive className="w-4 h-4" />
+                    Archive Reward
+                  </button>
+                )}
+              </div>
+
+              {/* Hover Effect Gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-green-50/0 via-green-50/0 to-green-100/0 group-hover:from-green-50/20 group-hover:via-green-50/10 group-hover:to-green-100/20 transition-all duration-300 pointer-events-none rounded-2xl" />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
