@@ -1,4 +1,3 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 import { fetchJson } from './apiClient';
 
 export interface Machine {
@@ -18,6 +17,7 @@ export interface MachineStatus {
 export interface Area {
   Area_id: number;
   Area_Name: string;
+  Full_Address?: string; // Add optional address field
 }
 
 export interface UpdateMachineRequest {
@@ -59,6 +59,15 @@ export const getMachineStatuses = async (): Promise<MachineStatus[]> => {
 
 // Get areas
 export const getAreas = async (): Promise<Area[]> => {
-  const data = await fetchJson('/api/machines/areas');
+  const data = await fetchJson('/api/areas'); // Assuming you have an /api/areas endpoint
   return data?.data ?? data ?? [];
+};
+
+// Create a new area
+export const createArea = async (areaName: string, fullAddress: string): Promise<Area> => {
+    const data = await fetchJson('/api/areas', {
+        method: 'POST',
+        body: JSON.stringify({ areaName, fullAddress }),
+    });
+    return data;
 };

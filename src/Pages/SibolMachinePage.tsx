@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
 import * as machineService from '../services/machineService';
-import type { Machine, Area } from '../services/machineService';
-import { useMachine } from '../hooks/sibolMachine/useMachine';
+import type { Machine } from '../services/machineService';
+import { useMachine } from '../hooks/sibolMachine/useMachine'; // Correctly using your existing hook
+import { useMachinesData } from '../hooks/sibolMachine/useMachinesData';
+import { useWasteContainers } from '../hooks/sibolMachine/useWasteContainers';
 import Tabs from '../Components/common/Tabs';
 import SearchBar from '../Components/common/SearchBar';
-import Table from '../Components/common/Table';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
 import '../types/Household.css';
+import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
+import MachineTab from '../Components/SibolMachine/MachineTab';
+import Table from '../Components/common/Table';
 
 const SibolMachinePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Chemical Additives');
+  const [activeTab, setActiveTab] = useState('Machines');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedMachine, setSelectedMachine] = useState('SIBOL Machine 1');
-  
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10); // Items per page
+  const [pageSize, setPageSize] = useState(10);
   
+  // Your existing hook for form state
   const { 
     showAddForm, 
     showEditForm,
@@ -31,18 +33,32 @@ const SibolMachinePage: React.FC = () => {
     setFormData 
   } = useMachine();
 
-  // ✅ Add state for real machine data
-  const [machines, setMachines] = useState<Machine[]>([]);
-  const [areas, setAreas] = useState<Area[]>([]);
-  const [machineStatuses, setMachineStatuses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // New hooks for data fetching
+  const machinesHook = useMachinesData();
+  const containersHook = useWasteContainers();
+
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
 
-  // ✅ Load data when Machines tab is active
+  // Sample data for Chemical Additives
+  const chemicalAdditivesData = [
+    { chemicalInput: 'Ca(OCl)₂', stage: 'Pre-treatment', value: '50', units: 'g', date: '2025-10-28', time: '09:00', personInCharge: 'John Doe' },
+    { chemicalInput: 'NaOH', stage: 'Hydrolysis', value: '100', units: 'ml', date: '2025-10-28', time: '11:30', personInCharge: 'Jane Smith' },
+  ];
+
+  const tabsConfig = [
+    { id: 'Machines', label: 'Machines' },
+    { id: 'Chemical Additives', label: 'Chemical Additives' },
+    { id: 'Waste Container', label: 'Waste Container' },
+    { id: 'Analytics', label: 'Analytics' }
+  ];
+
+  // Load data based on the active tab
   useEffect(() => {
     if (activeTab === 'Machines') {
-      loadMachineData();
+      machinesHook.fetchMachineData();
+    }
+    if (activeTab === 'Waste Container') {
+      containersHook.fetchContainers();
     }
   }, [activeTab]);
 
@@ -57,262 +73,13 @@ const SibolMachinePage: React.FC = () => {
     setCurrentPage(1); // Reset to first page when changing page size
   };
 
-  const loadMachineData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [machinesData, areasData, statusesData] = await Promise.all([
-        machineService.getAllMachines(),
-        machineService.getAreas(),
-        machineService.getMachineStatuses()
-      ]);
-      setMachines(machinesData);
-      setAreas(areasData);
-      setMachineStatuses(statusesData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load machine data');
-      console.error('❌ Load machine data error:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Sample data for Chemical Additives
-  const chemicalAdditivesData = [
-    {
-      chemicalInput: 'Water',
-      stage: '2',
-      value: '20',
-      units: 'liters',
-      date: '8/27/25',
-      time: '09:39AM',
-      personInCharge: 'Maintenance#32'
-    },
-    {
-      chemicalInput: 'Water',
-      stage: '2',
-      value: '10',
-      units: 'ounces',
-      date: '8/27/25',
-      time: '10:40AM',
-      personInCharge: 'Maintenance#54'
-    },
-    {
-      chemicalInput: 'Sodium Hydroxide',
-      stage: '1',
-      value: '15',
-      units: 'liters',
-      date: '8/28/25',
-      time: '08:15AM',
-      personInCharge: 'Maintenance#12'
-    },
-    {
-      chemicalInput: 'Hydrochloric Acid',
-      stage: '3',
-      value: '5',
-      units: 'liters',
-      date: '8/28/25',
-      time: '11:20AM',
-      personInCharge: 'Maintenance#45'
-    },
-    {
-      chemicalInput: 'Chlorine',
-      stage: '2',
-      value: '8',
-      units: 'liters',
-      date: '8/29/25',
-      time: '09:00AM',
-      personInCharge: 'Maintenance#23'
-    },
-    {
-      chemicalInput: 'Water',
-      stage: '1',
-      value: '25',
-      units: 'liters',
-      date: '8/29/25',
-      time: '02:30PM',
-      personInCharge: 'Maintenance#32'
-    },
-    {
-      chemicalInput: 'Sulfuric Acid',
-      stage: '3',
-      value: '12',
-      units: 'liters',
-      date: '8/30/25',
-      time: '10:45AM',
-      personInCharge: 'Maintenance#67'
-    },
-    {
-      chemicalInput: 'Ammonia',
-      stage: '2',
-      value: '18',
-      units: 'liters',
-      date: '8/30/25',
-      time: '03:15PM',
-      personInCharge: 'Maintenance#54'
-    },
-    {
-      chemicalInput: 'Sodium Hypochlorite',
-      stage: '1',
-      value: '22',
-      units: 'liters',
-      date: '8/31/25',
-      time: '08:30AM',
-      personInCharge: 'Maintenance#12'
-    },
-    {
-      chemicalInput: 'Water',
-      stage: '3',
-      value: '30',
-      units: 'liters',
-      date: '8/31/25',
-      time: '01:00PM',
-      personInCharge: 'Maintenance#45'
-    },
-    {
-      chemicalInput: 'Phosphoric Acid',
-      stage: '2',
-      value: '7',
-      units: 'liters',
-      date: '9/1/25',
-      time: '09:20AM',
-      personInCharge: 'Maintenance#23'
-    },
-    {
-      chemicalInput: 'Calcium Chloride',
-      stage: '1',
-      value: '14',
-      units: 'liters',
-      date: '9/1/25',
-      time: '11:45AM',
-      personInCharge: 'Maintenance#32'
-    },
-    {
-      chemicalInput: 'Water',
-      stage: '2',
-      value: '19',
-      units: 'liters',
-      date: '9/2/25',
-      time: '08:00AM',
-      personInCharge: 'Maintenance#67'
-    },
-    {
-      chemicalInput: 'Potassium Hydroxide',
-      stage: '3',
-      value: '11',
-      units: 'liters',
-      date: '9/2/25',
-      time: '02:20PM',
-      personInCharge: 'Maintenance#54'
-    },
-    {
-      chemicalInput: 'Nitric Acid',
-      stage: '1',
-      value: '9',
-      units: 'liters',
-      date: '9/3/25',
-      time: '10:10AM',
-      personInCharge: 'Maintenance#12'
-    }
-  ];
-
-  // Sample data for Waste Container
-  const wasteContainerData = [
-    {
-      wasteContainerNo: 'WC-001',
-      area: 'Package 1',
-      status: 'Full',
-      startDate: '8/1/2025'
-    },
-    {
-      wasteContainerNo: 'WC-002',
-      area: 'Package 2',
-      status: 'Not Full',
-      startDate: '8/15/2025'
-    },
-    {
-      wasteContainerNo: 'WC-003',
-      area: 'Package 3',
-      status: 'Full',
-      startDate: '8/5/2025'
-    },
-    {
-      wasteContainerNo: 'WC-004',
-      area: 'Package 1',
-      status: 'Not Full',
-      startDate: '8/10/2025'
-    },
-    {
-      wasteContainerNo: 'WC-005',
-      area: 'Package 4',
-      status: 'Full',
-      startDate: '8/12/2025'
-    },
-    {
-      wasteContainerNo: 'WC-006',
-      area: 'Package 2',
-      status: 'Not Full',
-      startDate: '8/18/2025'
-    },
-    {
-      wasteContainerNo: 'WC-007',
-      area: 'Package 3',
-      status: 'Full',
-      startDate: '8/20/2025'
-    },
-    {
-      wasteContainerNo: 'WC-008',
-      area: 'Package 1',
-      status: 'Not Full',
-      startDate: '8/22/2025'
-    },
-    {
-      wasteContainerNo: 'WC-009',
-      area: 'Package 4',
-      status: 'Full',
-      startDate: '8/25/2025'
-    },
-    {
-      wasteContainerNo: 'WC-010',
-      area: 'Package 2',
-      status: 'Not Full',
-      startDate: '8/28/2025'
-    },
-    {
-      wasteContainerNo: 'WC-011',
-      area: 'Package 3',
-      status: 'Full',
-      startDate: '8/30/2025'
-    },
-    {
-      wasteContainerNo: 'WC-012',
-      area: 'Package 1',
-      status: 'Not Full',
-      startDate: '9/1/2025'
-    }
-  ];
-
-  const tabsConfig = [
-    { id: 'Process Panels', label: 'Process Panels' },
-    { id: 'Chemical Additives', label: 'Chemical Additives' },
-    { id: 'Machines', label: 'Machines' },
-    { id: 'Waste Container', label: 'Waste Container' },
-    { id: 'Analytics', label: 'Analytics' }
-  ];
-  const staticAreas = ['Package 1', 'Package 2', 'Package 3', 'Package 4'];
-  const sibolMachines = Array.from({ length: 120305 }, (_, i) => `SIBOL Machine ${i + 1}`);
-
-  const generateMachineNo = () => {
-    return Math.floor(Math.random() * 1000) + 1;
-  };
-
   // ✅ Handle edit machine button click
   const handleEditMachine = (machine: Machine) => {
     setEditingMachine(machine);
     setFormData({
       area: machine.Area_id.toString(),
-      startDate: '',
-      name: machine.Name, // ✅ This is correct
+      startDate: '', // Not used in machine edit
+      name: machine.Name,
       status: machine.status_id?.toString() || ''
     });
     openEditForm();
@@ -320,53 +87,73 @@ const SibolMachinePage: React.FC = () => {
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    const isEditing = showEditForm && editingMachine;
+
     if (activeTab === 'Machines') {
-      if (showEditForm && editingMachine) {
-        // ✅ Handle machine edit
-        try {
-          setLoading(true);
-          
-          // ✅ Fix: Use formData.name directly, fallback to original only if empty
-          const updatedName = formData.name?.trim() || editingMachine.Name;
-          
+      try {
+        if (isEditing) {
           await machineService.updateMachine(editingMachine.machine_id, {
-            name: updatedName,
+            name: formData.name?.trim() || editingMachine.Name,
             areaId: parseInt(formData.area),
             status: formData.status ? parseInt(formData.status) : undefined
           });
-          await loadMachineData(); // Reload data
-          closeEditForm();
-          setEditingMachine(null);
-          alert('Machine updated successfully!');
-        } catch (err) {
-          alert(`Failed to update machine: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        } finally {
-          setLoading(false);
+        } else {
+          await machineService.createMachine(parseInt(formData.area));
         }
+        await machinesHook.fetchMachineData();
+        isEditing ? closeEditForm() : closeAddForm();
+        alert(`Machine ${isEditing ? 'updated' : 'created'} successfully!`);
+      } catch (err) {
+        alert(`Failed to ${isEditing ? 'update' : 'create'} machine: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    } else if (activeTab === 'Waste Container') {
+      const success = await containersHook.createContainer({
+        container_name: formData.name || '',
+        area_id: parseInt(formData.area),
+        deployment_date: formData.startDate,
+      });
+      if (success) {
+        closeAddForm();
+        alert('Waste container created successfully!');
       } else {
-        // ✅ Handle real machine creation (unchanged)
-        try {
-          setLoading(true);
-          const areaId = parseInt(formData.area);
-          await machineService.createMachine(areaId);
-          await loadMachineData(); // Reload data
-          closeAddForm();
-          alert('Machine created successfully!');
-        } catch (err) {
-          alert(`Failed to create machine: ${err instanceof Error ? err.message : 'Unknown error'}`);
-        } finally {
-          setLoading(false);
-        }
+        alert(`Failed to create container: ${containersHook.error}`);
       }
     } else {
-      // Handle other tabs (existing logic)
-      console.log('Form submitted:', { machineNo: generateMachineNo(), ...formData });
+      // Handle other tabs
+      console.log('Form submitted for other tab:', { ...formData });
       closeAddForm();
     }
   };
 
-  const renderTable = () => {
+  const renderContent = () => {
+    if (activeTab === 'Machines') {
+      return (
+        <MachineTab
+          machines={machinesHook.machines}
+          loading={machinesHook.loading}
+          error={machinesHook.error}
+          searchTerm={searchTerm}
+          onEdit={handleEditMachine}
+          pagination={{
+            currentPage,
+            pageSize,
+            totalItems: machinesHook.machines.length,
+            onPageChange: setCurrentPage,
+            onPageSizeChange: setPageSize,
+          }}
+        />
+      );
+    }
+    if (activeTab === 'Waste Container') {
+      return (
+        <WasteContainerTab
+          containers={containersHook.wasteContainers}
+          loading={containersHook.loading}
+          error={containersHook.error}
+          searchTerm={searchTerm}
+        />
+      );
+    }
     if (activeTab === 'Chemical Additives') {
       const columns = [
         { key: 'chemicalInput', label: 'Chemical Input' },
@@ -377,12 +164,9 @@ const SibolMachinePage: React.FC = () => {
         { key: 'time', label: 'Time' },
         { key: 'personInCharge', label: 'Person in Charge' }
       ];
-      
-      // Paginate chemical additives data
       const startIndex = (currentPage - 1) * pageSize;
       const endIndex = startIndex + pageSize;
       const paginatedData = chemicalAdditivesData.slice(startIndex, endIndex);
-      
       return (
         <Table 
           columns={columns} 
@@ -397,119 +181,9 @@ const SibolMachinePage: React.FC = () => {
           }}
         />
       );
-    } else if (activeTab === 'Machines') {
-      const filteredMachines = machines.filter(machine => 
-        searchTerm === '' || 
-        machine.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        machine.Area_Name?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-
-      const columns = [
-        { 
-          key: 'machine_id', 
-          label: 'Machine ID',
-          render: (value: number) => `#${value}`
-        },
-        { key: 'Name', label: 'Machine Name' },
-        { 
-          key: 'Area_Name', 
-          label: 'Area',
-          render: (value: string | undefined, row: Machine) => value || `Area ${row.Area_id}`
-        },
-        { 
-          key: 'status_name', 
-          label: 'Status',
-          render: (value: string | undefined) => (
-            <span className={`px-2 py-1 text-xs rounded-full ${
-              value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-            }`}>
-              {value || 'No Status'}
-            </span>
-          )
-        },
-        { 
-          key: 'machine_id', 
-          label: 'Actions',
-          render: (_: any, row: Machine) => (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                handleEditMachine(row);
-              }}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-xs font-medium transition-all duration-200 focus:outline-none"
-            >
-              Edit
-            </button>
-          )
-        }
-      ];
-
-      // Paginate machines data
-      const startIndex = (currentPage - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedMachines = filteredMachines.slice(startIndex, endIndex);
-
-      return (
-        <div>
-          {error && (
-            <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-              ❌ {error}
-              <button 
-                onClick={() => setError(null)}
-                className="float-right text-red-700 hover:text-red-900"
-              >
-                ×
-              </button>
-            </div>
-          )}
-          {loading && (
-            <div className="text-center py-8 text-gray-500">
-              🔄 Loading machines...
-            </div>
-          )}
-          <Table 
-            columns={columns} 
-            data={paginatedMachines} 
-            emptyMessage="No machines found. Click 'Add Machine' to create one."
-            pagination={{
-              currentPage,
-              pageSize,
-              totalItems: filteredMachines.length,
-              onPageChange: setCurrentPage,
-              onPageSizeChange: handlePageSizeChange
-            }}
-          />
-        </div>
-      );
-    } else if (activeTab === 'Waste Container') {
-      const columns = [
-        { key: 'wasteContainerNo', label: 'Waste Container No' },
-        { key: 'area', label: 'Area' },
-        { key: 'status', label: 'Status' },
-        { key: 'startDate', label: 'Start Date' }
-      ];
-      
-      // Paginate waste container data
-      const startIndex = (currentPage - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedData = wasteContainerData.slice(startIndex, endIndex);
-      
-      return (
-        <Table 
-          columns={columns} 
-          data={paginatedData} 
-          emptyMessage="No waste container data available"
-          pagination={{
-            currentPage,
-            pageSize,
-            totalItems: wasteContainerData.length,
-            onPageChange: setCurrentPage,
-            onPageSizeChange: handlePageSizeChange
-          }}
-        />
-      );
     }
-    return null;
+    // Placeholder for other tabs
+    return <div className="text-center py-10">Content for {activeTab}</div>;
   };
 
   return (
@@ -526,37 +200,6 @@ const SibolMachinePage: React.FC = () => {
           <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
             {/* Tabs */}
             <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
-
-            {/* Right side buttons */}
-            <div className="flex items-center space-x-3">
-              {activeTab !== 'Machines' && (
-                <div className="relative">
-                  <select
-                    value={selectedMachine}
-                    onChange={(e) => setSelectedMachine(e.target.value)}
-                    className="px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 appearance-none pr-8 cursor-pointer bg-white border border-gray-200"
-                  >
-                    {sibolMachines.slice(0, 100).map((machine) => (
-                      <option key={machine} value={machine} className="bg-white text-gray-900">
-                        {machine}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
-                    <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                </div>
-              )}
-
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
-                 <span>Filter by</span>
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                 </svg>
-               </button>
-            </div>
           </div>
         </div>
       </div>
@@ -575,145 +218,79 @@ const SibolMachinePage: React.FC = () => {
 
             {/* Action Buttons */}
             <div className="flex space-x-3">
-            <button 
-              onClick={openAddForm}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40"
-            >
-              {activeTab === 'Chemical Additives' ? 'Add Chemical' : 'Add Machine'}
-            </button>
-            {activeTab !== 'Machines' && (
-              <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40">
-                 <span>Filter by</span>
-                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                 </svg>
-               </button>
-            )}
+              <button 
+                onClick={openAddForm}
+                className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium"
+              >
+                {activeTab === 'Waste Container' ? 'Add Container' : 'Add Machine'}
+              </button>
+            </div>
           </div>
-        </div>
-
-          {/* Data Table */}
-          {renderTable()}
+          {renderContent()}
         </div>
       </div>
 
-      {/* Add Machine Form Modal */}
+      {/* Add/Edit Modals */}
       <FormModal
-        isOpen={showAddForm}
-        onClose={closeAddForm}
-        title={`Add ${activeTab === 'Chemical Additives' ? 'Chemical' : 'Machine'}`}
-        subtitle={`Fill out the form to add a new ${activeTab === 'Chemical Additives' ? 'chemical' : 'machine'}`}
+        isOpen={showAddForm || showEditForm}
+        onClose={showEditForm ? closeEditForm : closeAddForm}
+        title={showEditForm ? `Edit Machine #${editingMachine?.machine_id}` : `Add ${activeTab === 'Waste Container' ? 'Container' : 'Machine'}`}
         width="500px"
       >
         <form onSubmit={handleSubmitForm} className="space-y-4">
+          {(activeTab === 'Waste Container' || showEditForm) && (
+            <FormField
+              label={activeTab === 'Waste Container' ? "Container Name" : "Machine Name"}
+              name="name"
+              type="text"
+              placeholder={activeTab === 'Waste Container' ? "e.g., WC-101" : "e.g., SIBOL-M-001"}
+              value={formData.name}
+              onChange={(e) => updateFormField('name', e.target.value)}
+              required
+            />
+          )}
           <FormField
             label="Area"
             name="area"
             type="select"
             value={formData.area}
             onChange={(e) => updateFormField('area', e.target.value)}
-            options={(activeTab === 'Machines' ? areas : staticAreas.map((area, index) => ({ Area_id: index + 1, Area_Name: area }))).map((area) => ({
+            options={machinesHook.areas.map((area) => ({
               value: area.Area_id.toString(),
               label: area.Area_Name
             }))}
             required
           />
-          <FormField
-            label="Start Date"
-            name="startDate"
-            type="date"
-            value={formData.startDate}
-            onChange={(e) => updateFormField('startDate', e.target.value)}
-            required
-          />
-          <div className="flex justify-center pt-2">
-            <button
-              type="button"
-              onClick={closeAddForm}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-all duration-200 mr-3 focus:outline-none"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 disabled:opacity-50"
-            >
-              {loading ? 'Creating...' : `Add ${activeTab === 'Chemical Additives' ? 'Chemical' : 'Machine'}`}
-            </button>
-          </div>
-        </form>
-      </FormModal>
-
-      {/* Edit Machine Form Modal */}
-      {editingMachine && (
-        <FormModal
-          isOpen={showEditForm}
-          onClose={() => {
-            closeEditForm();
-            setEditingMachine(null);
-          }}
-          title={`Edit Machine #${editingMachine.machine_id}`}
-          subtitle="Update machine information"
-          width="500px"
-        >
-          <form onSubmit={handleSubmitForm} className="space-y-4">
+          {activeTab === 'Waste Container' && !showEditForm && (
             <FormField
-              label="Machine Name"
-              name="name"
-              type="text"
-              value={formData.name || ''}
-              onChange={(e) => updateFormField('name', e.target.value)}
+              label="Deployment Date"
+              name="startDate"
+              type="date"
+              value={formData.startDate}
+              onChange={(e) => updateFormField('startDate', e.target.value)}
               required
             />
-            <FormField
-              label="Area"
-              name="area"
-              type="select"
-              value={formData.area}
-              onChange={(e) => updateFormField('area', e.target.value)}
-              options={areas.map((area) => ({
-                value: area.Area_id.toString(),
-                label: area.Area_Name
-              }))}
-              required
-            />
+          )}
+          {showEditForm && (
             <FormField
               label="Status"
               name="status"
               type="select"
               value={formData.status}
               onChange={(e) => updateFormField('status', e.target.value)}
-              options={[
-                { value: '', label: 'No Status' },
-                ...machineStatuses.map((status) => ({
-                  value: status.Mach_status_id.toString(),
-                  label: status.Status
-                }))
-              ]}
+              options={machinesHook.machineStatuses.map((s) => ({ value: s.Mach_status_id.toString(), label: s.Status }))}
             />
-            <div className="flex justify-center pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  closeEditForm();
-                  setEditingMachine(null);
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-all duration-200 mr-3 focus:outline-none"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 disabled:opacity-50"
-              >
-                {loading ? 'Updating...' : 'Update Machine'}
-              </button>
-            </div>
-          </form>
-        </FormModal>
-      )}
+          )}
+          <div className="flex justify-center pt-2">
+            <button type="button" onClick={showEditForm ? closeEditForm : closeAddForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-3">
+              Cancel
+            </button>
+            <button type="submit" disabled={machinesHook.loading || containersHook.loading} className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50">
+              {machinesHook.loading || containersHook.loading ? 'Saving...' : (showEditForm ? 'Update Machine' : 'Add')}
+            </button>
+          </div>
+        </form>
+      </FormModal>
     </div>
   );
 };
