@@ -53,8 +53,8 @@ const FormModal: React.FC<FormModalProps> = ({
 
         <hr className="border-gray-200 mb-4" />
 
-        {/* Form Content */}
-        <div className="space-y-4">
+        {/* Form Content - ensure white background */}
+        <div className="space-y-4 bg-white">
           {children}
         </div>
       </div>
