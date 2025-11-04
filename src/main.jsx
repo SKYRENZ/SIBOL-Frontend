@@ -16,7 +16,7 @@ import TestPage from './Pages/TestPage.tsx';
 import SibolMachinePage from './Pages/SibolMachinePage.tsx';
 import Household from './Pages/Household.tsx';
 import MaintenancePage from './Pages/MaintenancePage.tsx';
-import SSOCallback from './Pages/SSOCallback.tsx'; // NEW
+import SSOCallback from './Pages/SSOCallback.tsx';
 
 // Import ProtectedRoute
 import ProtectedRoute from './Components/common/ProtectedRoute.tsx';
@@ -32,10 +32,10 @@ createRoot(document.getElementById('root')).render(
         <Route path="/email-verification" element={<EmailVerification />} />
         <Route path="/pending-approval" element={<AdminPending />} />
         
-        {/* SSO Callback Route - NEW */}
+        {/* SSO Callback Route */}
         <Route path="/auth/callback" element={<SSOCallback />} />
         
-        {/* Protected Routes - Authentication required */}
+        {/* Protected Routes - Authentication required (NO ROLE RESTRICTIONS) */}
         <Route 
           path="/dashboard" 
           element={
@@ -48,7 +48,7 @@ createRoot(document.getElementById('root')).render(
         <Route 
           path="/admin" 
           element={
-            <ProtectedRoute requiredRole={1}>
+            <ProtectedRoute>
               <Admin />
             </ProtectedRoute>
           } 
@@ -66,7 +66,7 @@ createRoot(document.getElementById('root')).render(
         <Route 
           path="/household" 
           element={
-            <ProtectedRoute requiredRole={4}>
+            <ProtectedRoute>
               <Household />
             </ProtectedRoute>
           } 
