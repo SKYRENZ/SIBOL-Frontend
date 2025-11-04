@@ -13,6 +13,7 @@
   "dependencies": {
     "axios": "^1.12.2",
     "chart.js": "^4.5.1",
+    "cors": "^2.8.5",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.546.0",
     "react": "^19.1.1",
