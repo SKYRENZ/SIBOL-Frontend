@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import SearchBar from "../common/SearchBar";
-import { X, MapPin, Calendar, Trash2, History, Weight, List, Table, FileDown, Printer } from "lucide-react"; // Add new icons
+import { X, MapPin, Calendar, Trash2, History, Weight, List, Table, FileDown, Printer, Sparkles } from "lucide-react";
 import WasteCollectionMap from "./WasteCollectionMap";
 import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
@@ -8,10 +8,13 @@ import { useWasteContainers } from "../../hooks/sibolMachine/useWasteContainers"
 import { getAreaLogs } from "../../services/wasteContainerService";
 import type { WasteContainer, AreaLog } from "../../services/wasteContainerService";
 import wasteIcon from './wasteIcon';
+import lilyImage from '../../assets/images/lili.png';
+import InfoModal from '../common/InfoModal';
+import CustomScrollbar from '../common/CustomScrollbar';
 
 // Import export libraries
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable'; // Changed import
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 const WasteCollectionTab: React.FC = () => {
@@ -19,7 +22,8 @@ const WasteCollectionTab: React.FC = () => {
   const [selectedWaste, setSelectedWaste] = useState<WasteContainer | null>(null);
   const [logs, setLogs] = useState<AreaLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
-  const [logViewMode, setLogViewMode] = useState<'timeline' | 'table'>('timeline'); // State for view mode
+  const [logViewMode, setLogViewMode] = useState<'timeline' | 'table'>('timeline');
+  const [showInfoModal, setShowInfoModal] = useState(false);
   
   const { wasteContainers, loading, error, fetchContainers } = useWasteContainers();
 
@@ -52,10 +56,10 @@ const WasteCollectionTab: React.FC = () => {
   // --- EXPORT FUNCTIONS ---
   const exportToPDF = () => {
     if (!selectedWaste) return;
-    const doc = new jsPDF(); // Create a standard jsPDF instance
+    const doc = new jsPDF();
     doc.text(`Waste Input History for ${selectedWaste.area_name}`, 14, 15);
     
-    autoTable(doc, { // Call autoTable as a function, passing the doc
+    autoTable(doc, {
       startY: 20,
       head: [['Date', 'Time', 'Weight (kg)', 'Operator']],
       body: logs.map(log => [log.date, log.time, Number(log.weight).toFixed(2), log.operator_name]),
@@ -87,7 +91,7 @@ const WasteCollectionTab: React.FC = () => {
       .includes(searchTerm.toLowerCase())
   );
 
-  const mapCenter: [number, number] = [14.656, 120.982]; // Centered on Caloocan
+  const mapCenter: [number, number] = [14.656, 120.982];
 
   if (loading) {
     return <div className="p-8 text-center">Loading map data...</div>;
@@ -97,98 +101,288 @@ const WasteCollectionTab: React.FC = () => {
     return <div className="p-8 text-center text-red-500">Error: {error}</div>;
   }
 
-  return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      {/* Search Bar */}
-      <div className="mb-6">
-        <div className="max-w-sm">
-          <SearchBar
-            value={searchTerm}
-            onChange={setSearchTerm}
-            placeholder="Search by container, area..."
-            className="w-full"
-          />
+  // Modal Content Component
+  const InfoModalContent = () => (
+    <div className="space-y-5">
+      {/* Welcome Section */}
+      <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+        <div className="flex items-start gap-3">
+          <div className="bg-green-100 p-2 rounded-lg flex-shrink-0">
+            <Sparkles size={20} className="text-[#355842]" />
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-800 mb-2">Welcome to Waste Collection!</h3>
+            <p className="text-sm text-gray-600 leading-relaxed">
+              This interactive map helps you track and monitor all waste container locations across your area. 
+              Discover real-time data, collection history, and detailed information about each container.
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Main Map View */}
-      <div className="h-[65vh] w-full rounded-2xl shadow-lg overflow-hidden relative z-0 border border-gray-200/50">
-        <MapContainer
-          center={mapCenter}
-          zoom={13}
-          style={{ height: "100%", width: "100%" }}
-        >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+      {/* Features */}
+      <div className="space-y-3">
+        <h3 className="font-bold text-gray-800 flex items-center gap-2">
+          <span className="text-[#355842]">✨</span> Key Features
+        </h3>
+        
+        <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
+          <div className="flex items-start gap-3">
+            <MapPin size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">Interactive Map View</p>
+              <p className="text-xs text-gray-600 mt-1">
+                Explore container locations with zoom, pan, and click-to-view details functionality.
+              </p>
+            </div>
+          </div>
+        </div>
 
-          {filteredData.map((item) => (
-            <Marker
-              key={item.container_id}
-              position={[item.latitude, item.longitude]}
-              icon={wasteIcon}
-              eventHandlers={{
-                click: () => {
-                  setSelectedWaste(item);
-                },
-              }}
-            >
-              <Tooltip>
-                <div className="w-72 p-2">
-                  <div className="flex items-start gap-3">
-                    <div className="pt-1">
-                      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#355842]">
-                        <path d="M9 2L8 3H4V5H20V3H16L15 2H9ZM5 7V21C5 22.1 5.9 23 7 23H17C18.1 23 19 22.1 19 21V7H5ZM9 9H11V21H9V9ZM13 9H15V21H13V9Z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <div className="grid grid-cols-2 gap-x-2">
-                        <p className="font-semibold text-[#355842] text-sm truncate flex items-center">
-                          <MapPin size={14} className="mr-1 flex-shrink-0" />
-                          {item.area_name}
-                        </p>
-                        <p className="text-xs text-[#355842]/90 text-right font-medium">
-                          {item.status}
-                        </p>
-                      </div>
-                      <p className="font-semibold text-[#355842] text-lg text-left truncate mt-2">
-                        {item.container_name}
-                      </p>
-                    </div>
-                  </div>
-                  <p className="text-center text-xs text-gray-400 pt-2 mt-2 border-t border-gray-200">
-                    Click marker for more details
-                  </p>
-                </div>
-              </Tooltip>
-            </Marker>
-          ))}
+        <div className="bg-purple-50 rounded-xl p-4 border border-purple-100">
+          <div className="flex items-start gap-3">
+            <History size={18} className="text-purple-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">Collection History</p>
+              <p className="text-xs text-gray-600 mt-1">
+                View detailed waste input logs with dates, times, weights, and operator information.
+              </p>
+            </div>
+          </div>
+        </div>
 
-        </MapContainer>
+        <div className="bg-green-50 rounded-xl p-4 border border-green-100">
+          <div className="flex items-start gap-3">
+            <FileDown size={18} className="text-green-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">Export Reports</p>
+              <p className="text-xs text-gray-600 mt-1">
+                Download collection data in Excel or PDF format for your records and analysis.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-yellow-50 rounded-xl p-4 border border-yellow-100">
+          <div className="flex items-start gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+            </svg>
+            <div>
+              <p className="font-semibold text-gray-800 text-sm">Smart Search</p>
+              <p className="text-xs text-gray-600 mt-1">
+                Quickly find containers by name, area, or deployment date using the search bar.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {filteredData.length === 0 && !loading && (
-        <p className="col-span-full text-center text-gray-500 italic py-10">
-          No waste containers found.
-        </p>
-      )}
+      {/* How to Use */}
+      <div className="bg-gradient-to-br from-[#355842]/5 to-[#4a7c5d]/5 rounded-xl p-5 border border-[#355842]/20">
+        <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <span className="text-lg">💡</span> How to Use
+        </h3>
+        <ol className="space-y-2 text-sm text-gray-700">
+          <li className="flex items-start gap-2">
+            <span className="font-semibold text-[#355842] flex-shrink-0">1.</span>
+            <span>Click on any marker on the map to view container details</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-semibold text-[#355842] flex-shrink-0">2.</span>
+            <span>Use the search bar to filter containers by location or name</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-semibold text-[#355842] flex-shrink-0">3.</span>
+            <span>View collection history in timeline or table format</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="font-semibold text-[#355842] flex-shrink-0">4.</span>
+            <span>Export data for reporting and analysis purposes</span>
+          </li>
+        </ol>
+      </div>
 
-      {/* Modal */}
+      {/* Footer */}
+      <div className="text-center pt-3">
+        <p className="text-xs text-gray-500">
+          Need help? Contact your system administrator for support.
+        </p>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-2 sm:p-2 lg:p-3">
+      {/* Main Layout - Left Sidebar and Right Map */}
+      <div className="flex gap-4 h-[calc(100vh-240px)]">
+        {/* Left Side - Search and Legends */}
+        <div className="w-80 flex flex-col gap-3">
+          {/* Search Box */}
+          <div className="bg-white rounded-xl shadow-md p-3">
+            <SearchBar
+              value={searchTerm}
+              onChange={setSearchTerm}
+              placeholder="Search by container, area..."
+              className="w-full"
+            />
+          </div>
+
+          {/* Legends */}
+          <div className="bg-white rounded-xl shadow-md p-4 flex-1 overflow-hidden flex flex-col">
+            <h3 className="text-base font-bold text-gray-800 mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z" />
+              </svg>
+              Map Legends
+            </h3>
+            <div className="space-y-2.5">
+              <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="w-8 h-8 bg-[#355842] rounded-lg flex items-center justify-center shadow-sm">
+                  <Trash2 size={18} className="text-white" />
+                </div>
+                <span className="text-sm font-medium text-gray-700">Active Container</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="w-8 h-8 bg-blue-500 rounded-lg shadow-sm"></div>
+                <span className="text-sm font-medium text-gray-700">Placeholder 1</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="w-8 h-8 bg-yellow-500 rounded-lg shadow-sm"></div>
+                <span className="text-sm font-medium text-gray-700">Placeholder 2</span>
+              </div>
+              <div className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <div className="w-8 h-8 bg-red-500 rounded-lg shadow-sm"></div>
+                <span className="text-sm font-medium text-gray-700">Placeholder 3</span>
+              </div>
+            </div>
+
+            {/* Results Count */}
+            <div className="mt-4 pt-3 border-t border-gray-200">
+              <p className="text-sm text-gray-600">
+                Showing <span className="font-semibold text-[#355842]">{filteredData.length}</span> container{filteredData.length !== 1 ? 's' : ''}
+              </p>
+            </div>
+
+            {/* Info Section with Lily */}
+            <div className="mt-auto pt-3 border-t border-gray-200">
+              <button
+                onClick={() => setShowInfoModal(true)}
+                className="w-full flex items-center gap-3 p-3 bg-gradient-to-r from-[#355842] to-[#4a7c5d] hover:from-[#2d4a37] hover:to-[#3d6a4d] rounded-xl transition-all duration-300 transform hover:scale-[1.02] shadow-md hover:shadow-lg group"
+              >
+                <div className="relative">
+                  <img 
+                    src={lilyImage}
+                    alt="Lily Mascot" 
+                    className="w-12 h-12 rounded-full bg-white p-0.5 object-cover"
+                  />
+                  <Sparkles size={14} className="absolute -top-1 -right-1 text-yellow-300 animate-pulse" />
+                </div>
+                <div className="flex-1 text-left">
+                  <p className="text-white font-semibold text-sm flex items-center gap-1">
+                    Learn About This Tab
+                    <span className="text-xs opacity-75">✨</span>
+                  </p>
+                  <p className="text-white/80 text-xs">Click me to know more!</p>
+                </div>
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side - Map */}
+        <div className="flex-1 rounded-2xl overflow-hidden border-2 border-[#355842] shadow-lg">
+          <MapContainer
+            center={mapCenter}
+            zoom={13}
+            style={{ height: "100%", width: "100%" }}
+            className="z-0"
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
+            {filteredData.map((item) => (
+              <Marker
+                key={item.container_id}
+                position={[item.latitude, item.longitude]}
+                icon={wasteIcon}
+                eventHandlers={{
+                  click: () => {
+                    setSelectedWaste(item);
+                  },
+                }}
+              >
+                <Tooltip>
+                  <div className="w-72 p-2">
+                    <div className="flex items-start gap-3">
+                      <div className="pt-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8 text-[#355842]">
+                          <path d="M9 2L8 3H4V5H20V3H16L15 2H9ZM5 7V21C5 22.1 5.9 23 7 23H17C18.1 23 19 22.1 19 21V7H5ZM9 9H11V21H9V9ZM13 9H15V21H13V9Z" />
+                        </svg>
+                      </div>
+                      <div className="flex-1">
+                        <div className="grid grid-cols-2 gap-x-2">
+                          <p className="font-semibold text-[#355842] text-sm truncate flex items-center">
+                            <MapPin size={14} className="mr-1 flex-shrink-0" />
+                            {item.area_name}
+                          </p>
+                          <p className="text-xs text-[#355842]/90 text-right font-medium">
+                            {item.status}
+                          </p>
+                        </div>
+                        <p className="font-semibold text-[#355842] text-lg text-left truncate mt-2">
+                          {item.container_name}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-center text-xs text-gray-400 pt-2 mt-2 border-t border-gray-200">
+                      Click marker for more details
+                    </p>
+                  </div>
+                </Tooltip>
+              </Marker>
+            ))}
+          </MapContainer>
+
+          {filteredData.length === 0 && !loading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-10">
+              <p className="text-center text-gray-500 italic">
+                No waste containers found.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Info Modal */}
+      <InfoModal
+        isOpen={showInfoModal}
+        onClose={() => setShowInfoModal(false)}
+        title="Waste Collection Hub"
+        subtitle="Your Guide to Smart Waste Management"
+      >
+        <InfoModalContent />
+      </InfoModal>
+
+      {/* Container Details Modal */}
       {selectedWaste && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="relative w-[90%] sm:w-[80%] md:w-[70%] lg:w-[50%] max-h-[85vh] bg-white rounded-3xl shadow-xl flex flex-col overflow-hidden">
-            <div className="px-6 py-5 border-b">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="relative w-[90%] sm:w-[80%] md:w-[70%] lg:w-[50%] max-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
+            <div className="px-6 py-5 border-b bg-white">
               <h2 className="text-xl font-bold text-gray-800">{selectedWaste.container_name}</h2>
               <p className="text-sm text-gray-500">{selectedWaste.area_name}</p>
             </div>
             <button
               onClick={() => setSelectedWaste(null)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors"
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 transition-colors z-10 bg-white rounded-full p-1 shadow-sm"
             >
               <X size={24} />
             </button>
-            <div className="p-6 overflow-y-auto">
+            <CustomScrollbar className="p-6 bg-white" maxHeight="max-h-[70vh]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                 <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">
                   <div className="bg-blue-100 p-2 rounded-full"><Trash2 size={18} className="text-blue-600" /></div>
@@ -284,14 +478,16 @@ const WasteCollectionTab: React.FC = () => {
                 <h3 className="text-sm font-semibold text-[#355842] mb-3 flex items-center gap-2">
                   <MapPin size={16} /> Container Location
                 </h3>
-                <WasteCollectionMap
-                  latitude={selectedWaste.latitude}
-                  longitude={selectedWaste.longitude}
-                  area={selectedWaste.area_name}
-                  interactive={false}
-                />
+                <div className="rounded-xl overflow-hidden border border-gray-200">
+                  <WasteCollectionMap
+                    latitude={selectedWaste.latitude}
+                    longitude={selectedWaste.longitude}
+                    area={selectedWaste.area_name}
+                    interactive={false}
+                  />
+                </div>
               </div>
-            </div>
+            </CustomScrollbar>
           </div>
         </div>
       )}
