@@ -259,14 +259,6 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
           {/* Action Buttons */}
           <div className="flex justify-end gap-3 mt-8">
             <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 font-medium hover:bg-gray-50 transition-colors"
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
               type="submit"
               className="px-8 py-3 bg-[#2d5f4a] hover:bg-[#234a39] text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
               disabled={loading}
