@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { verifyToken, getUser } from '../../services/auth';
 
 interface ProtectedRouteProps {
-  children: React.ReactElement;
   requiredRole?: number; // Optional: restrict by role
 }
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole }) => {
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
   const [isChecking, setIsChecking] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState<number | null>(null);
@@ -65,7 +64,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, requiredRole 
     return <Navigate to="/dashboard" replace />;
   }
 
-  return children;
+  // If authenticated and role check passes (or is not required), render the child route
+  return <Outlet />;
 };
 
 export default ProtectedRoute;
