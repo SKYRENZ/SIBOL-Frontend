@@ -13,7 +13,6 @@ import {
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
-import AdminControls from '../Components/admin/AdminControls';
 import { Account } from '../types/adminTypes';
 import Header from '../Components/Header';
 import Pagination from '../Components/common/Pagination';
@@ -40,33 +39,19 @@ export default function Admin() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
-  const [globalQuery, setGlobalQuery] = useState('');
-  const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const filteredAccounts = useMemo(() => {
-    const q = globalQuery.trim().toLowerCase();
-    return accounts.filter((a: any) => {
-      if (roleFilter !== 'all' && a.Roles !== roleFilter) return false;
-      if (!q) return true;
-      return `${a.Username ?? a.FirstName ?? ''} ${a.LastName ?? ''} ${a.Email ?? ''}`
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [accounts, globalQuery, roleFilter]);
-
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(filteredAccounts.length / pageSize) || 1),
-    [filteredAccounts.length, pageSize]
+    () => Math.max(1, Math.ceil(accounts.length / pageSize) || 1),
+    [accounts.length, pageSize]
   );
 
   const paginatedAccounts = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredAccounts.slice(start, start + pageSize);
-  }, [filteredAccounts, currentPage, pageSize]);
+    return accounts.slice(start, start + pageSize);
+  }, [accounts, currentPage, pageSize]);
 
-  useEffect(() => setCurrentPage(1), [globalQuery, roleFilter]);
   useEffect(() => setCurrentPage((prev) => Math.min(prev, totalPages)), [totalPages]);
 
   // UI-level slim wrappers (network handled in Redux)
@@ -192,17 +177,6 @@ export default function Admin() {
         {/* MAIN CONTENT */}
         <div className="w-full bg-white mt-3">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Controls (Search + Filter) */}
-            <div className="mb-4">
-              <AdminControls
-                globalQuery={globalQuery}
-                setGlobalQuery={setGlobalQuery}
-                roleFilter={roleFilter}
-                setRoleFilter={setRoleFilter}
-                onReset={() => { /* nothing extra for now */ }}                
-                onCreate={() => setCreating(true)}
-              />
-            </div>
 
             {loading && <div className="text-sm text-gray-600">Loading...</div>}
             {error && <div className="text-sm text-red-500">{error}</div>}
@@ -225,7 +199,7 @@ export default function Admin() {
                     totalPages={totalPages}
                     onPageChange={setCurrentPage}
                     pageSize={pageSize}
-                    totalItems={filteredAccounts.length}
+                    totalItems={accounts.length} // UPDATE to use `accounts.length`
                     onPageSizeChange={(newSize) => {
                       setPageSize(newSize);
                       setCurrentPage(1);

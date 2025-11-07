@@ -1,9 +1,6 @@
-import { useMemo, useState } from 'react';
 import { Account } from '../../types/adminTypes';
 import Table from '../common/Table'; // Import the Table component
-import { Search } from 'lucide-react';
 
-// 1. Update the Props type to accept the new props
 type Props = {
   accounts: Account[];
   loading: boolean;
@@ -12,19 +9,7 @@ type Props = {
   onReject: (a: Account) => void;
 };
 
-// 2. Update the function to receive the new props
 export default function UserApproval({ accounts, loading, error, onAccept, onReject }: Props) {
-  const [filter, setFilter] = useState('');
-
-  const filteredAccounts = useMemo(() => {
-    if (!filter) return accounts;
-    return accounts.filter(
-      (acc) =>
-        acc.Username?.toLowerCase().includes(filter.toLowerCase()) ||
-        acc.Email?.toLowerCase().includes(filter.toLowerCase())
-    );
-  }, [accounts, filter]);
-
   const columns = [
     {
       key: 'Username',
@@ -66,34 +51,14 @@ export default function UserApproval({ accounts, loading, error, onAccept, onRej
 
   return (
     <div className="space-y-4">
-      {/* --- Filter and Search Controls --- */}
-      <div className="flex justify-between items-center">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search by username or email..."
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className="pl-9 pr-4 py-2 text-sm border border-gray-300 rounded-md focus:ring-1 focus:ring-green-600 focus:border-green-600"
-          />
-        </div>
-        {/* 
-          Your FilterPanel can be placed here. 
-          For pending approvals, there might not be roles/barangays to filter by yet,
-          so a search bar is often more practical.
-        */}
-        {/* <FilterPanel types={['some_category']} onFilterChange={...} /> */}
-      </div>
-
       {/* --- Reusable Table Component --- */}
       <Table
         columns={columns}
-        data={filteredAccounts}
-        emptyMessage="No pending accounts match your search."
-        enablePagination={true} // The Table component handles its own pagination
+        data={accounts}
+        emptyMessage="No pending accounts to approve."
+        enablePagination={true}
         initialPageSize={5}
-        fixedPagination={false} // Set to false so pagination appears below the table, not at the screen bottom
+        fixedPagination={false}
       />
     </div>
   );
