@@ -9,7 +9,23 @@ export interface Account {
   Area_id?: number;
   Email?: string;
   Contact?: string | number;
-  Pending_id?: number; // Add this for pending accounts
+  Pending_id?: number;
   Barangay_id?: number;
   Barangay_Name?: string;
+}
+
+export interface Role {
+  Roles_id: number;
+  Roles: string;
+}
+
+export interface Module {
+  Module_id: number;
+  Module_name: string;
+  Path?: string;
+}
+
+export interface Barangay {
+  Barangay_id: number;
+  Barangay_Name: string;
 }
