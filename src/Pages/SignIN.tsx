@@ -35,10 +35,9 @@ const Login: React.FC = () => {
       }
 
       if (event.data?.type === 'SSO_SUCCESS') {
-        const { token, user } = event.data;
-        if (token) localStorage.setItem('token', token);
+        const { user } = event.data; // ❌ No token
+        // ❌ Don't store token
         if (user) localStorage.setItem('user', JSON.stringify(user));
-        // ❌ REMOVE: setIsRedirecting(true);
         navigate('/dashboard', { replace: true });
       } else if (event.data?.type === 'SSO_ERROR') {
         setServerError(event.data.message || 'Google sign-in failed');
@@ -65,9 +64,8 @@ const Login: React.FC = () => {
       setLoading(true)
       const data = await apiLogin(username.trim(), password);
       if (data?.user) {
-        if (data?.token) localStorage.setItem('token', data.token);
-        if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
-        // ❌ REMOVE: setIsRedirecting(true);
+        // ❌ No longer store token (it's in cookie)
+        localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/dashboard', { replace: true });
       } else {
         setServerError(data?.message || 'Invalid response from server');
