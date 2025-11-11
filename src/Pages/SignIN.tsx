@@ -14,12 +14,11 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
   const [fpOpen, setFpOpen] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
 
   // Check if user is already logged in - IMMEDIATE check
   useEffect(() => {
     if (isAuthenticated()) {
-      setIsRedirecting(true);
+      // ❌ REMOVE: setIsRedirecting(true);
       // Use replace to prevent back button issues
       navigate('/dashboard', { replace: true });
     }
@@ -39,7 +38,7 @@ const Login: React.FC = () => {
         const { token, user } = event.data;
         if (token) localStorage.setItem('token', token);
         if (user) localStorage.setItem('user', JSON.stringify(user));
-        setIsRedirecting(true);
+        // ❌ REMOVE: setIsRedirecting(true);
         navigate('/dashboard', { replace: true });
       } else if (event.data?.type === 'SSO_ERROR') {
         setServerError(event.data.message || 'Google sign-in failed');
@@ -68,7 +67,7 @@ const Login: React.FC = () => {
       if (data?.user) {
         if (data?.token) localStorage.setItem('token', data.token);
         if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
-        setIsRedirecting(true);
+        // ❌ REMOVE: setIsRedirecting(true);
         navigate('/dashboard', { replace: true });
       } else {
         setServerError(data?.message || 'Invalid response from server');
@@ -105,17 +104,17 @@ const Login: React.FC = () => {
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
 
-  // Show loading state while redirecting to prevent flash of old content
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
+  // ❌ REMOVE: Loading state while redirecting
+  // if (isRedirecting) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+  //         <p className="text-gray-600">Redirecting to dashboard...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">

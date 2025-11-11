@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { verifyToken, getUser } from '../../services/auth';
 
 interface ProtectedRouteProps {
-  requiredRole?: number; // Optional: restrict by role
+  requiredRole?: number;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
@@ -23,7 +23,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
           return;
         }
 
-        // Get user role
         const user = getUser();
         if (user) {
           const role = user.Roles ?? user.roleId ?? user.role ?? null;
@@ -42,29 +41,31 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
     checkAuth();
   }, []);
 
+  // ❌ REMOVE THIS SECTION if you want instant redirects:
+  // if (isChecking) {
+  //   return (
+  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
+  //       <div className="text-center">
+  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
+  //         <p className="text-gray-600">Verifying authentication...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
+
+  // Show nothing while checking (instant redirect feel)
   if (isChecking) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verifying authentication...</p>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   if (!isAuthenticated) {
-    // Redirect to login, but save the attempted location
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // Check role if required
   if (requiredRole !== undefined && userRole !== requiredRole) {
-    // Redirect to appropriate dashboard based on their actual role
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If authenticated and role check passes (or is not required), render the child route
   return <Outlet />;
 };
 
