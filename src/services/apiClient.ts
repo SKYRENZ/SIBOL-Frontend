@@ -7,14 +7,14 @@ const API_URL =
 
 export { API_URL };
 
-// ✅ Axios instance with cookie support
+// Axios instance with cookie support
 const api = axios.create({
   baseURL: API_URL,
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true, // ✅ CRITICAL: Send cookies with requests
 });
 
-// ✅ Response interceptor for error handling
+// Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -29,7 +29,7 @@ api.interceptors.response.use(
 
 export default api;
 
-// ✅ Helper types
+// Helper types
 type HeadersLike = HeadersInit;
 
 function headersToObject(h?: HeadersLike): Record<string, string> {
