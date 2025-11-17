@@ -159,7 +159,7 @@ const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute inset-y-0 right-3 flex items-center justify-center text-gray-600 bg-transparent border-0 p-0 focus:outline-none hover:text-gray-800"
+                  className="absolute inset-y-0 right-3 flex items-center justify-center bg-transparent border-0 text-gray-600 hover:text-gray-800 focus:outline-none cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -170,11 +170,11 @@ const Login: React.FC = () => {
               )}
             </div>
 
-            {/* Forgot Password */}
+            {/* Forgot Password Link */}
             <div className="flex justify-end mt-1">
               <button 
                 type="button" 
-                className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
+                className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer focus:outline-none"
                 onClick={() => navigate('/forgot-password')}
               >
                 Forgot Password?
@@ -188,7 +188,7 @@ const Login: React.FC = () => {
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* ✅ REMOVED: Loading spinner - Submit Button shows text only */}
             <button 
               className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
               type="submit" 
@@ -221,7 +221,7 @@ const Login: React.FC = () => {
           <p className="text-center mt-6 sm:mt-8 text-gray-700 text-sm sm:text-base">
             Don't have an account?{' '}
             <button 
-              className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold transition-colors cursor-pointer"
+              className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold transition-colors cursor-pointer focus:outline-none"
               type="button" 
               onClick={() => navigate('/signup')}
             >

@@ -17,43 +17,35 @@ const EmailVerification = lazy(() => import('./Pages/EmailVerification.tsx'));
 const AdminPending = lazy(() => import('./Pages/AdminPending.tsx'));
 const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
 
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
-  </div>
-);
-
 function App() {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Landingpage />} />
-        <Route path="/login" element={<SignIN />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ✅ NEW */}
-        <Route path="/email-verification" element={<EmailVerification />} />
-        <Route path="/pending-approval" element={<AdminPending />} />
-        <Route path="/auth/callback" element={<SSOCallback />} />
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<Landingpage />} />
+      <Route path="/login" element={<SignIN />} />
+      <Route path="/signup" element={<SignUp />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ✅ NEW */}
+      <Route path="/email-verification" element={<EmailVerification />} />
+      <Route path="/pending-approval" element={<AdminPending />} />
+      <Route path="/auth/callback" element={<SSOCallback />} />
 
-        {/* Protected Routes for any authenticated user */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/sibol-machines" element={<SibolMachinePage />} />
-          <Route path="/household" element={<Household />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-        </Route>
+      {/* Protected Routes for any authenticated user */}
+      <Route element={<ProtectedRoute />}>
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/sibol-machines" element={<SibolMachinePage />} />
+        <Route path="/household" element={<Household />} />
+        <Route path="/maintenance" element={<MaintenancePage />} />
+      </Route>
 
-        {/* Admin Only Routes */}
-        <Route element={<ProtectedRoute requiredRole={1} />}>
-          <Route path="/admin" element={<Admin />} />
-        </Route>
+      {/* Admin Only Routes */}
+      <Route element={<ProtectedRoute requiredRole={1} />}>
+        <Route path="/admin" element={<Admin />} />
+      </Route>
 
-        {/* 404 */}
-        <Route path="/404" element={<NotFound />} />
-        <Route path="*" element={<Navigate to="/404" replace />} />
-      </Routes>
-    </Suspense>
+      {/* 404 */}
+      <Route path="/404" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
+    </Routes>
   );
 }
 
