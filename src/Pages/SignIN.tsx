@@ -1,7 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
-import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
 import { login as apiLogin, isAuthenticated } from '../services/auth';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
@@ -13,13 +12,10 @@ const Login: React.FC = () => {
   const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
   const [loading, setLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
-  const [fpOpen, setFpOpen] = useState(false);
 
-  // Check if user is already logged in - IMMEDIATE check
+  // Check if user is already logged in
   useEffect(() => {
     if (isAuthenticated()) {
-      // ❌ REMOVE: setIsRedirecting(true);
-      // Use replace to prevent back button issues
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
@@ -35,8 +31,7 @@ const Login: React.FC = () => {
       }
 
       if (event.data?.type === 'SSO_SUCCESS') {
-        const { user } = event.data; // ❌ No token
-        // ❌ Don't store token
+        const { user } = event.data;
         if (user) localStorage.setItem('user', JSON.stringify(user));
         navigate('/dashboard', { replace: true });
       } else if (event.data?.type === 'SSO_ERROR') {
@@ -64,7 +59,6 @@ const Login: React.FC = () => {
       setLoading(true)
       const data = await apiLogin(username.trim(), password);
       if (data?.user) {
-        // ❌ No longer store token (it's in cookie)
         localStorage.setItem('user', JSON.stringify(data.user));
         navigate('/dashboard', { replace: true });
       } else {
@@ -101,18 +95,6 @@ const Login: React.FC = () => {
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
-
-  // ❌ REMOVE: Loading state while redirecting
-  // if (isRedirecting) {
-  //   return (
-  //     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-  //       <div className="text-center">
-  //         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-  //         <p className="text-gray-600">Redirecting to dashboard...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
@@ -193,7 +175,7 @@ const Login: React.FC = () => {
               <button 
                 type="button" 
                 className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
-                onClick={() => setFpOpen(true)}
+                onClick={() => navigate('/forgot-password')}
               >
                 Forgot Password?
               </button>
@@ -246,8 +228,6 @@ const Login: React.FC = () => {
               Sign up
             </button>
           </p>
-
-          <ForgotPasswordModal open={fpOpen} onClose={() => setFpOpen(false)} />
         </div>
       </div>
     </div>
