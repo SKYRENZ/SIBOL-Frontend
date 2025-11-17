@@ -109,3 +109,13 @@ export function isFirstLogin(): boolean {
     return false;
   }
 }
+
+export async function getQueuePosition(email: string) {
+  try {
+    const res = await api.get(`/api/auth/queue-position?email=${encodeURIComponent(email)}`);
+    return res.data;
+  } catch (error: any) {
+    console.error('getQueuePosition error:', error);
+    throw error;
+  }
+}

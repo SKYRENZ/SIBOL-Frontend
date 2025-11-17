@@ -11,6 +11,15 @@ export const useAdminPending = () => {
   const [isSSO, setIsSSO] = useState(false);
   const [username, setUsername] = useState('');
   const [checkingStatus, setCheckingStatus] = useState(false);
+  
+  // ✅ NEW: Queue position state
+  const [queueInfo, setQueueInfo] = useState<{
+    position: number;
+    totalPending: number;
+    estimatedWaitTime: string;
+  } | null>(null);
+  const [loadingQueue, setLoadingQueue] = useState(true);
+  const [queueError, setQueueError] = useState<string | null>(null);
 
   // Assets
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
@@ -45,6 +54,39 @@ export const useAdminPending = () => {
       navigate('/login');
     }
   }, [searchParams, navigate]);
+
+  // ✅ NEW: Fetch queue position when email is available
+  useEffect(() => {
+    const fetchQueuePosition = async () => {
+      if (!email) {
+        setLoadingQueue(false);
+        return;
+      }
+
+      try {
+        setLoadingQueue(true);
+        setQueueError(null);
+        console.log('🔍 Fetching queue position for:', email);
+        
+        const data = await fetchJson(`/api/auth/queue-position?email=${encodeURIComponent(email)}`);
+        
+        console.log('📊 Queue position data:', data);
+        setQueueInfo(data);
+      } catch (err: any) {
+        console.error('❌ Failed to get queue position:', err);
+        setQueueError(err?.message || 'Failed to get queue position');
+      } finally {
+        setLoadingQueue(false);
+      }
+    };
+
+    fetchQueuePosition();
+
+    // Refresh queue position every 30 seconds
+    const interval = setInterval(fetchQueuePosition, 30000);
+
+    return () => clearInterval(interval);
+  }, [email]);
 
   // Check account status function
   const checkAccountStatus = async () => {
@@ -95,6 +137,11 @@ export const useAdminPending = () => {
     isSSO,
     username,
     checkingStatus,
+    
+    // ✅ NEW: Queue info
+    queueInfo,
+    loadingQueue,
+    queueError,
     
     // Assets
     topLogo,
