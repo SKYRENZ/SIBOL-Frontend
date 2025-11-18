@@ -13,14 +13,12 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false)
   const [serverError, setServerError] = useState<string | null>(null)
 
-  // Check if user is already logged in
   useEffect(() => {
     if (isAuthenticated()) {
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
-  // Listen for SSO messages from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';

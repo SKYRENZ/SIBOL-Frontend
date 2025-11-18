@@ -19,7 +19,6 @@ const AdminPending: React.FC = () => {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem('user', JSON.stringify(parsed));
       } catch (e) {
-        console.warn('Failed to parse SSO user on AdminPending', e);
       }
     }
 

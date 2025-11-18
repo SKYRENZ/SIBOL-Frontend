@@ -86,7 +86,6 @@ export function useForgotPassword(initialEmail = '') {
     setError(null);
     setInfo(null);
     
-    // Prevent resending while cooldown active
     if (resendAvailableAt && Date.now() < resendAvailableAt) {
       return setError(`Please wait ${Math.ceil((resendAvailableAt - Date.now()) / 1000)}s before resending.`);
     }
@@ -103,13 +102,9 @@ export function useForgotPassword(initialEmail = '') {
       });
       
       setInfo(data?.message || 'Reset code sent. Check your email.');
-      
-      // Start cooldown
       setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
       setResendCooldown(COOLDOWN_SECONDS);
       setStep('verify');
-      
-      // Update URL
       setSearchParams({ email, step: 'verify' });
     } catch (err: any) {
       setError(err?.message || 'Failed to send reset code. Please try again.');
