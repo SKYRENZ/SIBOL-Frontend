@@ -19,7 +19,6 @@ const AdminPending: React.FC = () => {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem('user', JSON.stringify(parsed));
       } catch (e) {
-        console.warn('Failed to parse SSO user on AdminPending', e);
       }
     }
 
@@ -33,95 +32,116 @@ const AdminPending: React.FC = () => {
 
   const {
     email,
-    isSSO,
-    checkingStatus,
+    username,
+    queueInfo,
+    loadingQueue,
+    queueError,
     topLogo,
     leftBg,
     leftLogo,
-    checkAccountStatus,
     goBackToLogin,
   } = useAdminPending();
 
   return (
     <div className="min-h-screen flex bg-white flex-col lg:flex-row">
-      {/* Left Panel - Background image style (no white background) */}
+      {/* ✅ Left Panel - Background image style */}
       <AuthLeftPanel backgroundImage={leftBg} logoImage={leftLogo} />
 
-      {/* Right Panel - Full width on mobile/tablet, half on desktop */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-6 md:p-8 lg:p-12 bg-gray-50">
-        <div className="w-full max-w-md lg:max-w-lg xl:max-w-xl">
-          <div className="bg-white rounded-lg shadow-lg p-4 sm:p-6 md:p-8">
-
+      {/* Right Panel - Centered content with gradient background */}
+      <div className="flex-1 flex items-center justify-center p-12 bg-white">
+        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
+          <div className="text-center">
             {/* Logo - Show on mobile/tablet */}
-            <div className="text-center mb-6 lg:hidden">
-              <img className="mx-auto w-12 h-12 sm:w-16 sm:h-16" src={topLogo} alt="SIBOL" />
+            <div className="mb-6 lg:hidden">
+              <img className="mx-auto w-16 h-16" src={topLogo} alt="SIBOL" />
             </div>
 
-            {/* Pending Icon with Animation */}
-            <div className="text-center mb-6 sm:mb-8">
-              <div className="text-4xl sm:text-5xl animate-pulse mb-4 sm:mb-6">⏳</div>
+            {/* Icon */}
+            <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-yellow-100 mb-4">
+              <svg className="h-8 w-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
             </div>
 
             {/* Title */}
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 text-center mb-6 sm:mb-8">
-              Account Pending Approval
-            </h1>
-            
-            {/* Account Info */}
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 mb-4 sm:mb-6">
-              <div className="flex items-center justify-center mb-3">
-                <span className="text-sm sm:text-base text-green-600 font-semibold text-center">
-                  {isSSO ? 'Google Registration Complete!' : 'Email Verification Complete!'}
-                </span>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Awaiting Admin Approval
+            </h2>
+
+            {/* User Info */}
+            {username && (
+              <p className="text-gray-600 mb-4">
+                Account: <span className="font-semibold">{username}</span>
+              </p>
+            )}
+
+            {/* Queue Position */}
+            {loadingQueue ? (
+              <div className="py-8">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+                <p className="text-gray-500 mt-4">Loading queue position...</p>
               </div>
-              <div className="bg-white border border-blue-100 rounded-lg p-3 sm:p-4">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-                  <span className="text-sm sm:text-base text-gray-600">Email:</span>
-                  <span className="text-sm sm:text-base font-semibold text-gray-800 break-words text-center">
-                    {email}
-                  </span>
+            ) : queueError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-red-700">{queueError}</p>
+              </div>
+            ) : queueInfo ? (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">
+                <div className="mb-4">
+                  <p className="text-sm text-gray-600 mb-2">Your position in queue:</p>
+                  <div className="text-5xl font-bold text-blue-600">
+                    #{queueInfo.position}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    out of {queueInfo.totalPending} pending accounts
+                  </p>
+                </div>
+                
+                <div className="border-t border-blue-200 pt-4">
+                  <p className="text-sm text-gray-600">Estimated approval time:</p>
+                  <p className="text-lg font-semibold text-blue-700 mt-1">
+                    {queueInfo.estimatedWaitTime}
+                  </p>
                 </div>
               </div>
+            ) : null}
+
+            {/* Message */}
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <p className="text-gray-700 text-sm leading-relaxed">
+                Your account registration has been submitted successfully. 
+                An administrator will review and approve your account soon.
+              </p>
             </div>
-            
-            {/* Admin Review Message */}
-            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 sm:p-6 mb-6 sm:mb-8">
-              <div className="text-center">
-                <div className="text-3xl sm:text-4xl mb-3 sm:mb-4">🔍</div>
-                <h3 className="text-base sm:text-lg font-semibold text-yellow-800 mb-2 sm:mb-3">
-                  Admin Review Required
-                </h3>
-                <p className="text-xs sm:text-sm text-yellow-700 mb-2">
-                  Your account is currently being reviewed by our administrators.
-                </p>
-                <p className="text-xs sm:text-sm text-yellow-700">
-                  You will be able to sign in once your account is approved.
+
+            {/* Email notification note */}
+            <div className="flex items-start text-left bg-green-50 rounded-lg p-4 mb-6">
+              <svg className="h-5 w-5 text-green-600 mt-0.5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+              </svg>
+              <div>
+                <p className="text-sm font-medium text-green-800">Email Notification</p>
+                <p className="text-xs text-green-700 mt-1">
+                  You'll receive an email at <span className="font-semibold">{email}</span> once your account is approved.
                 </p>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="space-y-3 sm:space-y-4 mb-6 sm:mb-8">              
-              <button 
-                className="w-full py-2.5 sm:py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition-colors text-sm sm:text-base"
-                onClick={goBackToLogin}
-              >
-                Back to Login
-              </button>
-            </div>
-            
-            {/* Footer Info */}
-            <div className="border-t border-gray-200 pt-4 sm:pt-6">
-              <div className="text-center space-y-2 sm:space-y-3">
-                <p className="text-gray-600 text-xs sm:text-sm">
-                  <span className="font-semibold">Questions?</span> Contact support if you need assistance with your account approval.
-                </p>
-                <p className="text-gray-600 text-xs sm:text-sm flex items-center justify-center flex-wrap gap-2">
-                  <span>⏰</span>
-                  <span>Account reviews typically take 1-2 business days.</span>
-                </p>
-              </div>
-            </div>
+            {/* Action Button */}
+            <button
+              onClick={goBackToLogin}
+              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-3 px-4 rounded-lg transition duration-200 ease-in-out transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            >
+              Back to Login
+            </button>
+
+            {/* Help Text */}
+            <p className="text-xs text-gray-500 mt-4">
+              Questions? Contact support at{' '}
+              <a href="mailto:support@sibol.com" className="text-blue-600 hover:underline">
+                support@sibol.com
+              </a>
+            </p>
           </div>
         </div>
       </div>
