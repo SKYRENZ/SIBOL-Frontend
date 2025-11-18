@@ -8,7 +8,6 @@ export const useSignUp = () => {
 
   // State
   const [role, setRoleState] = useState("");
-  // setter that clears role error when user selects a value
   const setRole = (v: string) => {
     setRoleState(v);
     setErrors(prev => {
@@ -23,7 +22,6 @@ export const useSignUp = () => {
   const [lastName, setLastNameState] = useState("");
   const [email, setEmail] = useState("");
   const [barangay, setBarangayState] = useState("");
-  // setter that clears barangay error when user selects a value
   const setBarangay = (v: string) => {
     setBarangayState(v);
     setErrors(prev => {
@@ -34,7 +32,7 @@ export const useSignUp = () => {
     setTouched(prev => ({ ...prev, barangay: true }));
   };
 
-  const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]); // NEW
+  const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
   const [isSSO, setIsSSO] = useState(false);
@@ -43,18 +41,14 @@ export const useSignUp = () => {
   const [serverError, setServerError] = useState("");
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
-  // Assets
   const signupImage = new URL("../../assets/images/lilisignup.png", import.meta.url).href;
 
-  // name filter + validation regex (allow letters, spaces, hyphen, apostrophe, period)
   const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
   const nameRegex = /^[A-Za-z\s.'-]+$/;
 
-  // Exposed setters that filter invalid characters
   const setFirstName = (v: string) => setFirstNameState(nameFilter(v));
   const setLastName = (v: string) => setLastNameState(nameFilter(v));
 
-  // Validate a single field on blur (updates errors state)
   const validateField = (field: string) => {
     const newErrors = { ...errors };
     if (field === 'role') {
@@ -85,18 +79,11 @@ export const useSignUp = () => {
     setTouched(prev => ({ ...prev, [field]: true }));
   };
 
-  // Check for SSO redirect parameters
+  // ✅ REMOVED: console.log for SSO params
   useEffect(() => {
     const emailParam = searchParams.get('email');
     const ssoParam = searchParams.get('sso');
     const messageParam = searchParams.get('message');
-    // removed firstName/lastName auto-fill from SSO for privacy/UX
-
-    console.log('📋 SSO params detected:', {
-      email: emailParam,
-      sso: ssoParam,
-      message: messageParam
-    });
 
     if (emailParam && ssoParam === 'google') {
       setEmail(emailParam);
@@ -105,7 +92,6 @@ export const useSignUp = () => {
     }
   }, [searchParams]);
 
-  // Fetch barangays on mount
   useEffect(() => {
     let cancelled = false;
     async function loadBarangays() {
@@ -122,7 +108,6 @@ export const useSignUp = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // Validate form function
   const validateForm = () => {
     const newErrors: { [key: string]: string } = {};
     if (!role) newErrors.role = "Role is required";
@@ -145,7 +130,6 @@ export const useSignUp = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle sign up submission
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -157,21 +141,17 @@ export const useSignUp = () => {
     }
 
     try {
-      // Map role label -> id expected by backend
       const roleMap: Record<string, number> = {
         Admin: 1,
         User: 2,
       };
       const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
 
-      // derive a simple username
       const usernameCandidate = email
         ? email.split('@')[0].replace(/[^a-zA-Z0-9._-]/g, '').slice(0, 30)
         : `${firstName}${lastName}`.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 30);
 
-      // build payload with both naming variants
       const payload = {
-        // camelCase
         firstName,
         lastName,
         areaId: Number(barangay),
@@ -180,23 +160,22 @@ export const useSignUp = () => {
         roleId: Number(roleId),
         username: usernameCandidate,
         isSSO: Boolean(isSSO),
-        // snake_case/DB style
         FirstName: firstName,
         LastName: lastName,
         Area_id: Number(barangay),
         Email: email,
         Roles: Number(roleId),
         Username: usernameCandidate,
-        // omit Password so backend will apply DEFAULT_PASSWORD when appropriate
       };
 
-      console.log('🔁 signup payload', payload);
+      // ✅ REMOVED: console.log('🔁 signup payload', payload);
 
       const data = await fetchJson('/api/auth/signup', {
         method: 'POST',
         body: JSON.stringify(payload),
       });
-      console.log('⬅️ signup response', data);
+      
+      // ✅ REMOVED: console.log('⬅️ signup response', data);
 
       if (data.success) {
         setPendingEmail(null);
@@ -206,19 +185,16 @@ export const useSignUp = () => {
           navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(data.username)}`);
         }
       } else {
-        // in case backend returns 200 with success:false
         const msg = data?.message || data?.error || 'Registration failed';
         setServerError(msg);
         if (data?.email) setPendingEmail(data.email);
         else if (data?.pendingEmail) setPendingEmail(data.pendingEmail);
       }
     } catch (err: any) {
-      console.error('❌ Signup request failed:', err);
-      // Prefer server-provided message (err.data), then Error.message
+      // ✅ REMOVED: console.error('❌ Signup request failed:', err);
       const msg = err?.data?.error || err?.data?.message || err?.message || 'Network error';
       setServerError(msg);
 
-      // if backend returned structured data with pending email, set it
       if (err?.data?.email) setPendingEmail(err.data.email);
       else if (err?.data?.pendingEmail) setPendingEmail(err.data?.pendingEmail);
     } finally {
@@ -226,24 +202,22 @@ export const useSignUp = () => {
     }
   };
 
-  // Navigation functions
   const goToLogin = () => {
     navigate("/login");
   };
 
   return {
-    // State
     role,
     setRole,
     firstName,
-    setFirstName, // now filtered
+    setFirstName,
     lastName,
-    setLastName,  // now filtered
+    setLastName,
     email,
     setEmail,
     barangay,
     setBarangay,
-    barangays, // EXPOSED
+    barangays,
     errors,
     isSSO,
     ssoMessage,
@@ -253,11 +227,7 @@ export const useSignUp = () => {
     touched,
     setTouched,
     validateField,
-
-    // Assets
     signupImage,
-
-    // Actions
     handleSignUp,
     goToLogin,
   };

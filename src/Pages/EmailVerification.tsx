@@ -17,8 +17,6 @@ const EmailVerification: React.FC = () => {
     const user = params.get('user');
     const auth = params.get('auth');
 
-    console.log('EmailVerification: raw params', { token, user, auth });
-
     if (token) {
       localStorage.setItem('token', token);
     }
@@ -33,7 +31,6 @@ const EmailVerification: React.FC = () => {
 
     if (token) {
       window.history.replaceState({}, '', location.pathname + (location.hash || ''));
-      console.log('EmailVerification: token stored, awaiting verification hook');
     } else if (auth === 'fail') {
       navigate('/login', { replace: true });
     }
@@ -149,7 +146,7 @@ const EmailVerification: React.FC = () => {
           </div>
         );
 
-      default: // waiting state
+      default:
         return (
           <div className="text-center">
             <div className="text-4xl sm:text-6xl mb-4 sm:mb-6 animate-pulse">📧</div>
