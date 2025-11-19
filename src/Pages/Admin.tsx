@@ -1,101 +1,93 @@
 import { useEffect, useMemo, useState } from 'react';
-import useAdmin from '../hooks/admin/useAdmin';
+import { useSelector, useDispatch } from 'react-redux';
+import { AppDispatch, RootState } from '../store/store';
+import {
+  fetchAdminData,
+  approvePendingAccount,
+  rejectPendingAccount,
+  createAccount,
+  updateAccount,
+  toggleAccountActive,
+} from '../store/slices/adminSlice';
+
 import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
-import AdminControls from '../Components/admin/AdminControls';
-import { Account } from '../types/Types';
+import { Account } from '../types/adminTypes';
 import Header from '../Components/Header';
-import { fetchPendingAccounts } from '../services/adminService'; // adjust path if needed
 import Pagination from '../Components/common/Pagination';
 
 export default function Admin() {
+  const dispatch = useDispatch<AppDispatch>();
   const {
     accounts,
-    loading,
-    error,
-    createAccount,
-    updateAccount,
-    toggleAccountActive,
-    approveAccount,
-    rejectAccount,
-    // pass hook data to components
+    pendingAccounts,
     roles,
     modules,
     barangays,
-  } = useAdmin();
+    status,
+    error,
+  } = useSelector((state: RootState) => state.admin);
+
+  // Fetch data on component mount
+  useEffect(() => {
+    if (status === 'idle') {
+      dispatch(fetchAdminData());
+    }
+  }, [status, dispatch]);
 
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
   const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
-
-  // Global UI controls
-  const [globalQuery, setGlobalQuery] = useState('');
-  // roleFilter now stores role id (from user_roles_tbl) or 'all'
-  const [roleFilter, setRoleFilter] = useState<number | 'all'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
-  const filteredAccounts = useMemo(() => {
-    const q = globalQuery.trim().toLowerCase();
-    return accounts.filter((a: any) => {
-      if (roleFilter !== 'all' && a.Roles !== roleFilter) return false;
-      if (!q) return true;
-      return `${a.Username ?? a.FirstName ?? ''} ${a.LastName ?? ''} ${a.Email ?? ''}`
-        .toLowerCase()
-        .includes(q);
-    });
-  }, [accounts, globalQuery, roleFilter]);
-
   const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(filteredAccounts.length / pageSize) || 1),
-    [filteredAccounts.length, pageSize]
+    () => Math.max(1, Math.ceil(accounts.length / pageSize) || 1),
+    [accounts.length, pageSize]
   );
 
   const paginatedAccounts = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredAccounts.slice(start, start + pageSize);
-  }, [filteredAccounts, currentPage, pageSize]);
+    return accounts.slice(start, start + pageSize);
+  }, [accounts, currentPage, pageSize]);
 
-  useEffect(() => setCurrentPage(1), [globalQuery, roleFilter]);
   useEffect(() => setCurrentPage((prev) => Math.min(prev, totalPages)), [totalPages]);
 
-  // UI-level slim wrappers (network handled in hook)
+  // UI-level slim wrappers (network handled in Redux)
   const onCreate = async (p: Partial<Account>) => {
-    try {
-      await createAccount(p as any);
-      setCreating(false);
-    } catch (err: any) {
-      alert(err?.message ?? 'Create failed');
-    }
+    dispatch(createAccount(p))
+      .unwrap()
+      .then(() => {
+        setCreating(false);
+        dispatch(fetchAdminData()); // Refetch to ensure list is perfectly in sync
+      })
+      .catch((err: any) => alert(err?.message ?? 'Create failed'));
   };
 
   // Pass payload object with Account_id (useAdmin.updateAccount expects a payload)
   const onUpdate = async (p: Partial<Account>) => {
     if (!editingAccount?.Account_id) return;
-    try {
-      // The hook's updateAccount expects (accountId: number, updates: Partial<Account>)
-      await updateAccount(editingAccount.Account_id, p);
-
-      // temporary: ensure UI reflects backend by reloading accounts — replace with proper refetch in the hook
-      // quick-and-dirty: reload the page so list shows DB state immediately
-      window.location.reload();
-
-      // setEditingAccount(null); // not needed because we reload
-    } catch (err: any) {
-      alert(err?.message ?? 'Update failed');
-    }
+    dispatch(updateAccount({ accountId: editingAccount.Account_id, updates: p }))
+      .unwrap()
+      .then(() => {
+        setEditingAccount(null);
+        dispatch(fetchAdminData()); // Refetch to ensure list is perfectly in sync
+      })
+      .catch((err: any) => alert(err?.message ?? 'Update failed'));
   };
 
   // use the hook's toggleAccountActive(accountId, isActive) signature
   const onToggleActive = async (a: Account) => {
     if (!a.Account_id) return;
-    try {
-      // Pass accountId and the new isActive state (toggle from current) as boolean
-      await toggleAccountActive(a.Account_id, a.IsActive === 1 ? false : true);
-    } catch (err: any) {
-      alert(err?.message ?? 'Toggle active failed');
-    }
+    const newIsActive = a.IsActive === 1 ? false : true;
+    dispatch(toggleAccountActive({ accountId: a.Account_id, isActive: newIsActive }))
+      .unwrap()
+      .then(() => {
+        // The list will update automatically from the reducer, but a refetch is safer
+        dispatch(fetchAdminData());
+      })
+      .catch((err: any) => alert(err?.message ?? 'Toggle active failed'));
   };
 
   // Accept/Approve expects an Account (or id) — keep similar but use hook properly
@@ -103,14 +95,13 @@ export default function Admin() {
     const pendingId = (a as any).Pending_id;
     if (!pendingId) return;
     if (!confirm(`Approve account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
-    try {
-      await approveAccount(Number(pendingId));
-      // keep badge in sync immediately (pessimistic update)
-      setPendingCount((c) => Math.max(0, c - 1));
-      alert('Account approved');
-    } catch (err: any) {
-      alert(err?.message ?? 'Approve failed');
-    }
+    dispatch(approvePendingAccount(Number(pendingId)))
+      .unwrap()
+      .then(() => {
+        alert('Account approved');
+        dispatch(fetchAdminData()); // Refetch all data to update lists
+      })
+      .catch((err) => alert(err?.message ?? 'Approve failed'));
   };
 
   const onReject = async (a: Account) => {
@@ -118,32 +109,14 @@ export default function Admin() {
     if (!pendingId) return;
     const reason = prompt('Reason for rejection (optional)', '') ?? undefined;
     if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
-    try {
-      await rejectAccount(Number(pendingId), reason);
-      // decrement badge locally
-      setPendingCount((c) => Math.max(0, c - 1));
-      alert('Account rejected');
-    } catch (err: any) {
-      alert(err?.message ?? 'Reject failed');
-    }
+    dispatch(rejectPendingAccount({ pendingId: Number(pendingId), reason }))
+      .unwrap()
+      .then(() => alert('Account rejected'))
+      .catch((err) => alert(err?.message ?? 'Reject failed'));
   };
 
-  const [pendingCount, setPendingCount] = useState<number>(0);
-
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const pending = await fetchPendingAccounts();
-        if (!mounted) return;
-        setPendingCount(Array.isArray(pending) ? pending.length : 0);
-      } catch {
-        if (!mounted) return;
-        setPendingCount(0);
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+  const pendingCount = pendingAccounts.length;
+  const loading = status === 'loading';
 
   // In the Admin component
   const initialData = useMemo(() => (editingAccount ? editingAccount : {}), [editingAccount]); // Stable for create mode
@@ -204,17 +177,6 @@ export default function Admin() {
         {/* MAIN CONTENT */}
         <div className="w-full bg-white mt-3">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
-            {/* Controls (Search + Filter) */}
-            <div className="mb-4">
-              <AdminControls
-                globalQuery={globalQuery}
-                setGlobalQuery={setGlobalQuery}
-                roleFilter={roleFilter}
-                setRoleFilter={setRoleFilter}
-                onReset={() => { /* nothing extra for now */ }}                
-                onCreate={() => setCreating(true)}
-              />
-            </div>
 
             {loading && <div className="text-sm text-gray-600">Loading...</div>}
             {error && <div className="text-sm text-red-500">{error}</div>}
@@ -237,7 +199,7 @@ export default function Admin() {
                     totalPages={totalPages}
                     onPageChange={setCurrentPage}
                     pageSize={pageSize}
-                    totalItems={filteredAccounts.length}
+                    totalItems={accounts.length} // UPDATE to use `accounts.length`
                     onPageSizeChange={(newSize) => {
                       setPageSize(newSize);
                       setCurrentPage(1);
@@ -250,7 +212,13 @@ export default function Admin() {
 
             {activeTab === 'approval' && (
               <div className="overflow-x-auto">
-                <UserApproval onAccept={onAccept} onReject={onReject} />
+                <UserApproval 
+                  accounts={pendingAccounts} 
+                  onAccept={onAccept} 
+                  onReject={onReject} 
+                  loading={loading}
+                  error={error}
+                />
               </div>
             )}
 

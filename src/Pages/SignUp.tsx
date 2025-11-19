@@ -71,7 +71,7 @@ const SignUp: React.FC = () => {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem('user', JSON.stringify(parsed));
       } catch (e) {
-        console.warn('Failed to parse SSO user on SignUp', e);
+        // ✅ REMOVED: console.warn - Silent error handling
       }
     }
 
@@ -97,7 +97,7 @@ const SignUp: React.FC = () => {
         navigate(`/email-verification?token=${encodeURIComponent(data.token)}&user=${userStr}`, { replace: true });
       }
     } catch (err: any) {
-      console.error('Resend verification error', err);
+      // ✅ REMOVED: console.error - Silent error handling
       setResendMessage(err?.message ?? 'Network error');
     }
   }

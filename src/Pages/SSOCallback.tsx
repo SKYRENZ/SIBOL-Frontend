@@ -1,43 +1,31 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 
 const SSOCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const [message, setMessage] = useState('Processing...');
 
   useEffect(() => {
     const handleSSOCallback = () => {
       try {
-        const token = searchParams.get('token') || searchParams.get('access_token');
-        const user = searchParams.get('user');
-        const auth = searchParams.get('auth');
-        const errorParam = searchParams.get('error');
-        const errorMessage = searchParams.get('message');
-        const sso = searchParams.get('sso');
-        const email = searchParams.get('email');
-        const username = searchParams.get('username');
-        const firstName = searchParams.get('firstName');
-        const lastName = searchParams.get('lastName');
+        const queryParams = new URLSearchParams(location.search);
+        const user = queryParams.get('user');
+        const auth = queryParams.get('auth');
+        const errorParam = queryParams.get('error');
+        const errorMessage = queryParams.get('message');
+        const email = queryParams.get('email');
+        const sso = queryParams.get('sso');
+        const username = queryParams.get('username');
+        const firstName = queryParams.get('firstName');
+        const lastName = queryParams.get('lastName');
 
-        console.log('🔍 SSOCallback params:', {
-          token: !!token,
-          user: !!user,
-          auth,
-          errorParam,
-          message: errorMessage,
-          sso,
-          email,
-          username,
-          firstName,
-          lastName
-        });
-
-        // Check if this is a popup window
+        // ✅ Token is now in HTTP-only cookie, just handle user data
         const isPopup = window.opener && !window.opener.closed;
 
         // Handle authentication failure
         if (auth === 'fail' || errorParam) {
-          const error = errorMessage || errorParam || 'Authentication failed';
+          const error = errorParam || errorMessage || 'Authentication failed';
           setMessage(error);
           
           if (isPopup) {
@@ -50,24 +38,21 @@ const SSOCallback: React.FC = () => {
           return;
         }
 
-        // Handle successful authentication with token
-        if (token && user) {
+        // ✅ Handle successful authentication
+        if (auth === 'success' && user) {
           try {
             const parsedUser = JSON.parse(decodeURIComponent(user));
             
             if (isPopup) {
-              // Send success message to parent window
               window.opener.postMessage({
                 type: 'SSO_SUCCESS',
-                token,
-                user: parsedUser
+                user: parsedUser // ❌ No token needed
               }, window.location.origin);
               
               setMessage('Success! Closing window...');
               setTimeout(() => window.close(), 500);
             } else {
-              // Fallback: store and redirect if not in popup
-              localStorage.setItem('token', token);
+              // ❌ No longer store token
               localStorage.setItem('user', JSON.stringify(parsedUser));
               window.location.href = '/dashboard';
             }
@@ -147,12 +132,18 @@ const SSOCallback: React.FC = () => {
       } catch (err: any) {
         console.error('SSO Callback error:', err);
         setMessage('An error occurred');
-        setTimeout(() => window.close(), 2000);
+        setTimeout(() => {
+          if (window.opener && !window.opener.closed) {
+            window.close();
+          } else {
+            window.location.href = '/login';
+          }
+        }, 2000);
       }
     };
 
     handleSSOCallback();
-  }, [searchParams]);
+  }, [searchParams, location]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">

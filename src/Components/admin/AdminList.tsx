@@ -1,5 +1,5 @@
 import React from 'react';
-import { Account } from '../../types/Types';
+import { Account } from '../../types/adminTypes';
 
 type AdminListProps = {
   accounts: Account[];

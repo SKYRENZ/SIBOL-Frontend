@@ -77,8 +77,8 @@ const Dashboard: React.FC = () => {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem("user", JSON.stringify(parsed));
-      } catch (e) {
-        console.warn("Failed to parse user from SSO redirect", e);
+      } catch {
+        // Silent fail
       }
     }
 
@@ -90,27 +90,10 @@ const Dashboard: React.FC = () => {
     }
   }, [location, navigate]);
 
-  // 🔑 Check first login with detailed logging
+  // ✅ REMOVED: All console.log debugging statements
   useEffect(() => {
-    console.log('🔍 Dashboard - Checking first login status...');
-    console.log('📋 Is authenticated:', isAuthenticated());
-    
-    const user = getUser();
-    console.log('👤 User from localStorage:', user);
-    console.log('🔑 IsFirstLogin value:', user?.IsFirstLogin);
-    console.log('🔑 IsFirstLogin type:', typeof user?.IsFirstLogin);
-    
-    const firstLogin = isFirstLogin();
-    console.log('✅ isFirstLogin() result:', firstLogin);
-
-    if (isAuthenticated() && firstLogin) {
-      console.log('🚀 SHOULD SHOW PASSWORD MODAL');
+    if (isAuthenticated() && isFirstLogin()) {
       setShowPasswordModal(true);
-    } else {
-      console.log('❌ Not showing password modal:', {
-        authenticated: isAuthenticated(),
-        firstLogin: firstLogin
-      });
     }
   }, []);
 
@@ -167,16 +150,14 @@ const Dashboard: React.FC = () => {
       <ChangePasswordModal
         open={showPasswordModal}
         onClose={() => {
-          console.log('❌ User tried to close modal (blocked for first login)');
-        }} // Empty - force user to change password
+          // Empty - force user to change password on first login
+        }}
         onSuccess={() => {
-          console.log('✅ Password changed successfully');
           setShowPasswordModal(false);
           // Update user data to reflect password change
           const user = JSON.parse(localStorage.getItem('user') || '{}');
           user.IsFirstLogin = 0;
           localStorage.setItem('user', JSON.stringify(user));
-          console.log('📝 Updated user in localStorage:', user);
         }}
         isFirstLogin={true}
       />
