@@ -1,13 +1,25 @@
 import React, { ReactNode, useState } from "react";
 import Pagination from "./Pagination";
+import {
+  Table as ShadTable,
+  TableHeader,
+  TableRow,
+  TableHead,
+  TableBody,
+  TableCell,
+} from "@/Components/ui/table";
+
+/* ============================================================
+   TYPES
+============================================================ */
 
 interface Column {
   key: string;
   label: string;
   render?: (value: any, row: any) => ReactNode;
   sortable?: boolean;
-  hideMobile?: boolean; // Hide on mobile
-  hideTablet?: boolean; // Hide on tablet
+  hideMobile?: boolean;
+  hideTablet?: boolean;
 }
 
 interface TablePaginationConfig {
@@ -32,6 +44,14 @@ interface TableProps {
   fixedPagination?: boolean;
   pagination?: TablePaginationConfig;
 }
+
+/* ============================================================
+   STYLE CONSTANTS
+============================================================ */
+
+const HEADER_BG = "bg-[#AFC8AD]"; // Column header text fully opaque
+const BORDER_COLOR = "border-[#00001A4D]"; // Row border 30%
+const DIVIDE_COLOR = "divide-[#00001A4D]"; // Divider between rows
 
 const Table: React.FC<TableProps> = ({
   columns,
@@ -62,243 +82,209 @@ const Table: React.FC<TableProps> = ({
     enablePagination && !isControlled ? data.slice(startIndex, endIndex) : data;
 
   const handlePageSizeChange = (newPageSize: number) => {
-    if (isControlled) {
-      pagination?.onPageSizeChange?.(newPageSize);
-    } else {
+    if (isControlled) pagination?.onPageSizeChange?.(newPageSize);
+    else {
       setInternalPageSize(newPageSize);
       setInternalPage(1);
     }
   };
 
   const handlePageChange = (page: number) => {
-    if (isControlled) {
-      pagination?.onPageChange(page);
-    } else {
-      setInternalPage(page);
-    }
+    if (isControlled) pagination?.onPageChange(page);
+    else setInternalPage(page);
   };
 
-  // Filter columns for tablet view (hide less important columns)
-  const getVisibleColumns = (breakpoint: "mobile" | "tablet" | "desktop") => {
-    return columns.filter((col) => {
+  const getVisibleColumns = (breakpoint: "mobile" | "tablet" | "desktop") =>
+    columns.filter((col) => {
       if (breakpoint === "mobile") return !col.hideMobile;
       if (breakpoint === "tablet") return !col.hideTablet;
       return true;
     });
-  };
 
-  // Get primary column (usually first visible)
   const getPrimaryColumn = (visibleColumns: Column[]) => visibleColumns[0];
-
-  const getInitialColumns = (visibleColumns: Column[]) => {
-    // Show first 3 visible columns initially
-    return visibleColumns.slice(0, 3);
-  };
+  const getInitialColumns = (visibleColumns: Column[]) =>
+    visibleColumns.slice(0, 3);
 
   const toggleRowExpand = (rowIndex: number) => {
-    const newExpandedRows = new Set(expandedRows);
-    if (newExpandedRows.has(rowIndex)) {
-      newExpandedRows.delete(rowIndex);
-    } else {
-      newExpandedRows.add(rowIndex);
-    }
-    setExpandedRows(newExpandedRows);
+    const newSet = new Set(expandedRows);
+    newSet.has(rowIndex) ? newSet.delete(rowIndex) : newSet.add(rowIndex);
+    setExpandedRows(newSet);
   };
 
   return (
     <div className={`w-full ${className}`}>
-      {/* Mobile Card View - visible only on mobile */}
+      {/* MOBILE CARD VIEW */}
       <div className="lg:hidden space-y-3">
-        {data.map((row, rowIndex) => {
-          const visibleCols = getVisibleColumns("mobile");
-          const primaryCol = getPrimaryColumn(visibleCols);
-          const primaryValue = primaryCol.render
-            ? primaryCol.render(row[primaryCol.key], row)
-            : row[primaryCol.key];
-          const initialCols = getInitialColumns(visibleCols);
-          const isExpanded = expandedRows.has(rowIndex);
-          const hasMoreData = visibleCols.length > initialCols.length;
+        {paginatedData.length === 0 ? (
+          <div className="px-4 py-3 text-sm text-gray-600">{emptyMessage}</div>
+        ) : (
+          paginatedData.map((row, rowIndex) => {
+            const visibleCols = getVisibleColumns("mobile");
+            const primaryCol = getPrimaryColumn(visibleCols);
+            const primaryValue = primaryCol.render
+              ? primaryCol.render(row[primaryCol.key], row)
+              : row[primaryCol.key];
 
-          return (
-            <div
-              key={rowIndex}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col"
-            >
-              {/* Card Header - Primary Value with Label */}
-              <div 
-                className="px-4 py-3"
-                style={{ backgroundColor: '#AFC8AD9C' }}
+            const initialCols = getInitialColumns(visibleCols);
+            const isExpanded = expandedRows.has(rowIndex);
+            const hasMoreData = visibleCols.length > initialCols.length;
+
+            return (
+              <div
+                key={rowIndex}
+                className={`bg-white rounded-xl ${BORDER_COLOR} shadow-[0_2px_4px_rgba(0,0,0,0.4)] transition-all duration-200`}
+                onClick={() => onRowClick?.(row)}
+                role={onRowClick ? "button" : undefined}
               >
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  {primaryCol.label}
-                </p>
-                <h3 className="text-sm font-bold text-gray-900 truncate mt-1">
-                  {primaryValue}
-                </h3>
-              </div>
+                {/* Card header */}
+                <div className={`px-4 py-3 ${HEADER_BG}`}>
+                  <p className="text-xs font-semibold uppercase tracking-wider text-white">
+                    {primaryCol.label}
+                  </p>
+                  <h3 className="text-sm font-bold text-white mt-1 truncate">
+                    {primaryValue}
+                  </h3>
+                </div>
 
-              {/* Card Body - Initial Data Grid (Always Visible) */}
-              <div className="px-4 py-3 space-y-3 flex-1">
-                {initialCols.slice(1).map((column, colIndex) => {
-                  const isLastInitialCol = colIndex === initialCols.slice(1).length - 1;
-                  return (
+                {/* Card body */}
+                <div className="px-4 py-3 space-y-3 flex-1">
+                  {initialCols.slice(1).map((column) => (
                     <div key={column.key} className="flex flex-col gap-1">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
                         {column.label}
                       </span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm text-gray-900 font-medium break-words flex-1">
-                          {column.render ? column.render(row[column.key], row) : row[column.key]}
-                        </span>
-                        {/* Arrow Icon - on last initial column, hidden when expanded */}
-                        {isLastInitialCol && hasMoreData && !isExpanded && (
-                          <button
-                            onClick={() => toggleRowExpand(rowIndex)}
-                            className="ml-3 p-0.5 rounded-lg transition-all duration-200 flex-shrink-0 bg-transparent hover:bg-gray-100"
-                            aria-label="Expand"
-                          >
-                            <svg
-                              className="w-3.5 h-3.5 text-gray-600 transition-transform duration-200"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M7 10l5 5 5-5z" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
 
-              {/* Card Body - Additional Data (Expandable) */}
-              {isExpanded && hasMoreData && (
-                <div className="px-4 py-3 space-y-3 border-t border-gray-200 bg-gray-50">
-                  {visibleCols.slice(initialCols.length).map((column, colIndex) => {
-                    const isLastCol = colIndex === visibleCols.slice(initialCols.length).length - 1;
-                    return (
+                      <span className="text-xs sm:text-sm text-gray-900 font-medium break-words">
+                        {column.render
+                          ? column.render(row[column.key], row)
+                          : row[column.key]}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Extra details expanded */}
+                {isExpanded && hasMoreData && (
+                  <div className={`px-4 py-3 border-t ${BORDER_COLOR} bg-gray-50`}>
+                    {visibleCols.slice(initialCols.length).map((column) => (
                       <div key={column.key} className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <span className="text-xs font-semibold uppercase text-gray-500">
                           {column.label}
                         </span>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm text-gray-900 font-medium break-words flex-1">
-                            {column.render ? column.render(row[column.key], row) : row[column.key]}
-                          </span>
-                          {/* Arrow Icon - on last expanded column */}
-                          {isLastCol && (
-                            <button
-                              onClick={() => toggleRowExpand(rowIndex)}
-                              className="ml-3 p-0.5 rounded-lg transition-all duration-200 flex-shrink-0 bg-transparent hover:bg-gray-100"
-                              aria-label="Collapse"
-                            >
-                              <svg
-                                className="w-3.5 h-3.5 text-gray-600 transition-transform duration-200 transform rotate-180"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M7 10l5 5 5-5z" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
+                        <span className="text-xs sm:text-sm text-gray-900 font-medium">
+                          {column.render
+                            ? column.render(row[column.key], row)
+                            : row[column.key]}
+                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Card Footer - Action Column if exists */}
-              {columns.some((col) => col.label === "Actions") && (
-                <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                  {columns
-                    .find((col) => col.label === "Actions")
-                    ?.render?.(
-                      columns.find((col) => col.label === "Actions")?.key,
-                      row
-                    )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })
+        )}
       </div>
 
-      {/* Tablet Table View - visible on tablet to small desktop */}
-      <div className="hidden lg:block xl:hidden overflow-x-auto border border-gray-200">
-        <table className="w-full">
-          <thead style={{ backgroundColor: '#AFC8AD9C' }}>
-            <tr>
-              {getVisibleColumns("tablet").map((column) => (
-                <th
-                  key={column.key}
-                  className="px-3 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap"
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {data.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
+      {/* TABLET VIEW */}
+      <div className={`hidden lg:block xl:hidden overflow-x-auto ${BORDER_COLOR}`}>
+        {paginatedData.length === 0 ? (
+          <div className="p-4 text-sm text-gray-600">{emptyMessage}</div>
+        ) : (
+          <ShadTable className="w-full">
+            <TableHeader className={`${HEADER_BG}`}>
+              <TableRow>
                 {getVisibleColumns("tablet").map((column) => (
-                  <td key={column.key} className="px-3 py-3 text-xs text-gray-700">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </td>
+                  <TableHead
+                    key={column.key}
+                    className="px-3 py-3 text-left text-xs font-semibold text-white"
+                  >
+                    {column.label}
+                  </TableHead>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+              </TableRow>
+            </TableHeader>
 
-      {/* Desktop Table View - visible on large desktop */}
-      <div className="hidden xl:block overflow-x-auto border border-gray-200">
-        <table className="w-full">
-          <thead style={{ backgroundColor: '#AFC8AD9C' }}>
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap"
+            <TableBody className={`${DIVIDE_COLOR}`}>
+              {paginatedData.map((row, rowIndex) => (
+                <TableRow
+                  key={rowIndex}
+                  className="transition-all hover:shadow-[0_4px_6px_rgba(0,0,0,0.4)] hover:bg-gray-50 border-b"
+                  onClick={() => onRowClick?.(row)}
                 >
-                  {column.label}
-                </th>
+                  {getVisibleColumns("tablet").map((column) => (
+                    <TableCell
+                      key={column.key}
+                      className={`px-3 py-3 text-xs text-gray-900 ${BORDER_COLOR}`}
+                    >
+                      {column.render
+                        ? column.render(row[column.key], row)
+                        : row[column.key]}
+                    </TableCell>
+                  ))}
+                </TableRow>
               ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {data.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
-                {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-xs sm:text-sm text-gray-700">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+            </TableBody>
+          </ShadTable>
+        )}
       </div>
 
-{enablePagination && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          onPageSizeChange={handlePageSizeChange}
-          fixed={fixedPagination}
-        />
+      {/* DESKTOP VIEW */}
+      <div className={`hidden xl:block overflow-x-auto ${BORDER_COLOR}`}>
+        {paginatedData.length === 0 ? (
+          <div className="p-4 text-sm text-gray-600">{emptyMessage}</div>
+        ) : (
+          <ShadTable className="w-full">
+            <TableHeader className={`${HEADER_BG}`}>
+              <TableRow>
+                {columns.map((column) => (
+                  <TableHead
+                    key={column.key}
+                    className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-white"
+                  >
+                    {column.label}
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+
+            <TableBody className={`${DIVIDE_COLOR}`}>
+              {paginatedData.map((row, rowIndex) => (
+                <TableRow
+                  key={rowIndex}
+                  className="transition-all hover:shadow-[0_4px_6px_rgba(0,0,0,0.4)] hover:bg-gray-50 border-b"
+                  onClick={() => onRowClick?.(row)}
+                >
+                  {columns.map((column) => (
+                    <TableCell
+                      key={column.key}
+                      className={`px-4 py-3 text-xs sm:text-sm text-gray-900 ${BORDER_COLOR}`}
+                    >
+                      {column.render
+                        ? column.render(row[column.key], row)
+                        : row[column.key]}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </ShadTable>
+        )}
+      </div>
+
+      {/* PAGINATION */}
+      {enablePagination && (
+        <div className="mt-4">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+            pageSize={pageSize}
+            totalItems={totalItems}
+            onPageSizeChange={handlePageSizeChange}
+            fixed={fixedPagination}
+          />
+        </div>
       )}
     </div>
   );
