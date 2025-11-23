@@ -21,9 +21,9 @@
     "noFallthroughCasesInSwitch": true,
 
     /* REQUIRED FOR shadcn */
-    "baseUrl": "src",
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],

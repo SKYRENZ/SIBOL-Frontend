@@ -3,6 +3,10 @@ import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import * as userService from '../../services/userService';
 import CustomScrollbar from '../common/CustomScrollbar';
+import { format, parse } from "date-fns";
+import { Calendar } from "@/Components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/Components/ui/popover";
+import { Button } from "@/Components/ui/button";
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -239,13 +243,49 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     options={priorityOptions}
                   />
 
-                  <FormField
-                    label="Due Date"
-                    name="dueDate"
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                  />
+                  <div className="space-y-1">
+                    <label className="text-sm font-medium text-gray-700">Due Date</label>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          className="w-full justify-start border-green-700 text-green-800 hover:bg-green-100"
+                        >
+                          {formData.dueDate
+                            ? (() => {
+                                const d = parse(formData.dueDate, "yyyy-MM-dd", new Date());
+                                d.setHours(12, 0, 0, 0);
+                                return format(d, "PPP");
+                              })()
+                            : "Select date"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0">
+                        <Calendar
+                          mode="single"
+                          selected={
+                            formData.dueDate
+                              ? (() => {
+                                  const d = parse(formData.dueDate, "yyyy-MM-dd", new Date());
+                                  d.setHours(12, 0, 0, 0);
+                                  return d;
+                                })()
+                              : undefined
+                          }
+                          onSelect={(date) => {
+                            if (!date) {
+                              setFormData({ ...formData, dueDate: "" });
+                              return;
+                            }
+                            const yyyy = date.getFullYear();
+                            const mm = String(date.getMonth() + 1).padStart(2, "0");
+                            const dd = String(date.getDate()).padStart(2, "0");
+                            setFormData({ ...formData, dueDate: `${yyyy}-${mm}-${dd}` });
+                          }}
+                        />
+                      </PopoverContent>
+                    </Popover>
+                  </div>
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
@@ -317,15 +357,49 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <FormField
-                      label="Due Date (editable)"
-                      name="dueDate"
-                      type="date"
-                      value={formData.dueDate}
-                      onChange={(e) =>
-                        setFormData({ ...formData, dueDate: e.target.value })
-                      }
-                    />
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Due Date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start border-green-700 text-green-800 hover:bg-green-100"
+                          >
+                            {formData.dueDate
+                              ? (() => {
+                                  const d = parse(formData.dueDate, "yyyy-MM-dd", new Date());
+                                  d.setHours(12, 0, 0, 0);
+                                  return format(d, "PPP");
+                                })()
+                              : "Select date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              formData.dueDate
+                                ? (() => {
+                                    const d = parse(formData.dueDate, "yyyy-MM-dd", new Date());
+                                    d.setHours(12, 0, 0, 0);
+                                    return d;
+                                  })()
+                                : undefined
+                            }
+                            onSelect={(date) => {
+                              if (!date) {
+                                setFormData({ ...formData, dueDate: "" });
+                                return;
+                              }
+                              const yyyy = date.getFullYear();
+                              const mm = String(date.getMonth() + 1).padStart(2, "0");
+                              const dd = String(date.getDate()).padStart(2, "0");
+                              setFormData({ ...formData, dueDate: `${yyyy}-${mm}-${dd}` });
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
                     {initialData?.Attachment && (
                       <div className="space-y-1">
@@ -391,14 +465,49 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <FormField
-                      label="Due Date"
-                      name="dueDate"
-                      type="date"
-                      value={formData.dueDate}
-                      onChange={noOpChange}
-                      disabled
-                    />
+                    <div className="space-y-1">
+                      <label className="text-sm font-medium text-gray-700">Due Date</label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="w-full justify-start border-green-700 text-green-800 hover:bg-green-100"
+                          >
+                            {formData.dueDate
+                              ? (() => {
+                                  const d = parse(formData.dueDate, "yyyy-MM-dd", new Date());
+                                  d.setHours(12, 0, 0, 0);
+                                  return format(d, "PPP");
+                                })()
+                              : "Select date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={
+                              formData.dueDate
+                                ? (() => {
+                                    const d = parse(formData.dueDate, "yyyy-MM-dd", new Date());
+                                    d.setHours(12, 0, 0, 0);
+                                    return d;
+                                  })()
+                                : undefined
+                            }
+                            onSelect={(date) => {
+                              if (!date) {
+                                setFormData({ ...formData, dueDate: "" });
+                                return;
+                              }
+                              const yyyy = date.getFullYear();
+                              const mm = String(date.getMonth() + 1).padStart(2, "0");
+                              const dd = String(date.getDate()).padStart(2, "0");
+                              setFormData({ ...formData, dueDate: `${yyyy}-${mm}-${dd}` });
+                            }}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">

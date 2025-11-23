@@ -1,6 +1,6 @@
 import React, { ReactNode, useState } from "react";
 import { X } from "lucide-react";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 
 import { Button } from "@/Components/ui/button";
 import { Input } from "@/Components/ui/input";
@@ -100,15 +100,37 @@ const FormRenderer = ({
               variant="outline"
               className={`w-full justify-start border-green-700 text-green-800 hover:bg-green-100`}
             >
-              {value ? format(new Date(value), "PPP") : "Select date"}
+              {value
+                ? (() => {
+                    const d = parse(value, "yyyy-MM-dd", new Date());
+                    d.setHours(12, 0, 0, 0); // force local midday to avoid TZ shifts
+                    return format(d, "PPP");
+                  })()
+                : "Select date"}
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-auto p-0">
+          <PopoverContent className="w-auto p-0 z-[1000002]">
             <Calendar
               mode="single"
-              selected={value ? new Date(value) : undefined}
-              onSelect={(date) => onChange(field.name, date?.toISOString())}
-              className="border-none"
+              selected={
+                value
+                  ? (() => {
+                      const d = parse(value, "yyyy-MM-dd", new Date());
+                      d.setHours(12, 0, 0, 0);
+                      return d;
+                    })()
+                  : undefined
+              }
+              onSelect={(date) => {
+                if (!date) return onChange(field.name, undefined);
+
+                // store as local yyyy-MM-dd (avoid timezone/ISO issues)
+                const local = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+                const yyyy = local.getFullYear();
+                const mm = String(local.getMonth() + 1).padStart(2, "0");
+                const dd = String(local.getDate()).padStart(2, "0");
+                onChange(field.name, `${yyyy}-${mm}-${dd}`);
+              }}
             />
           </PopoverContent>
         </Popover>
