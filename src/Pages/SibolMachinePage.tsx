@@ -13,12 +13,32 @@ import '../types/Household.css';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import Table from '../Components/common/Table';
+import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
+import type { CreateContainerRequest } from '../services/wasteContainerService';
 
 const SibolMachinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Machines');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+
+  // measure header height (only apply offset if header is fixed so Tabs won't be hidden)
+  const [headerHeight, setHeaderHeight] = useState<number>(0);
+  useEffect(() => {
+    const update = () => {
+      const headerEl = document.querySelector('header.header') as HTMLElement | null;
+      if (!headerEl) {
+        setHeaderHeight(0);
+        return;
+      }
+      const style = getComputedStyle(headerEl);
+      const isFixed = style.position === 'fixed' || style.position === 'sticky';
+      setHeaderHeight(isFixed ? Math.ceil(headerEl.getBoundingClientRect().height) : 0);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
   
   // Your existing hook for form state
   const { 
@@ -85,10 +105,20 @@ const SibolMachinePage: React.FC = () => {
     openEditForm();
   };
 
+  const handleContainerSubmit = async (payload: CreateContainerRequest) => {
+    const success = await containersHook.createContainer(payload);
+    if (success) {
+      closeAddForm();
+      alert('Waste container created successfully!');
+      return true;
+    }
+    alert(`Failed to create container: ${containersHook.error ?? 'Unknown error'}`);
+    return false;
+  };
+
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
     const isEditing = showEditForm && editingMachine;
-
     if (activeTab === 'Machines') {
       try {
         if (isEditing) {
@@ -106,20 +136,7 @@ const SibolMachinePage: React.FC = () => {
       } catch (err) {
         alert(`Failed to ${isEditing ? 'update' : 'create'} machine: ${err instanceof Error ? err.message : 'Unknown error'}`);
       }
-    } else if (activeTab === 'Waste Container') {
-      const success = await containersHook.createContainer({
-        container_name: formData.name || '',
-        area_id: parseInt(formData.area),
-        deployment_date: formData.startDate,
-      });
-      if (success) {
-        closeAddForm();
-        alert('Waste container created successfully!');
-      } else {
-        alert(`Failed to create container: ${containersHook.error}`);
-      }
     } else {
-      // Handle other tabs
       console.log('Form submitted for other tab:', { ...formData });
       closeAddForm();
     }
@@ -187,18 +204,20 @@ const SibolMachinePage: React.FC = () => {
   };
 
   return (
+    // NOTE: switched to spacer + sticky subheader approach (like MaintenancePage)
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Sub Navigation Bar */}
-      <div className="w-full bg-white shadow-sm">
-        <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
+      {/* Sub Navigation Bar - placed directly under header with no outer gap */}
+      <div className="w-full bg-white border-b">
+        {/* spacer to preserve header height so sticky subheader won't overlap header */}
+        <div style={{ height: `calc(${headerHeight}px)` }} aria-hidden />
         <div
-          className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm"
-          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
+          className="subheader sticky z-10 w-full bg-white px-6"
+          style={{ top: `calc(${headerHeight}px)` }}
         >
-          <div className="max-w-screen-2xl mx-auto flex items-center justify-between">
-            {/* Tabs */}
+          <div className="max-w-screen-2xl mx-auto py-3">
+            {/* added vertical padding (py-3) so tabs have breathing room inside the bar */}
             <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
         </div>
@@ -217,16 +236,16 @@ const SibolMachinePage: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-          <div className="flex space-x-3">
-            {(activeTab === 'Machines' || activeTab === 'Waste Container') && (
-              <button 
-                onClick={openAddForm}
-                className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium"
-              >
-                {activeTab === 'Waste Container' ? 'Add Container' : 'Add Machine'}
-              </button>
-            )}
-          </div>
+            <div className="flex space-x-3">
+              {(activeTab === 'Machines' || activeTab === 'Waste Container') && (
+                <button 
+                  onClick={openAddForm}
+                  className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium"
+                >
+                  {activeTab === 'Waste Container' ? 'Add Container' : 'Add Machine'}
+                </button>
+              )}
+            </div>
           </div>
           {renderContent()}
         </div>
@@ -234,64 +253,73 @@ const SibolMachinePage: React.FC = () => {
 
       {/* Add/Edit Modals */}
       <FormModal
-        isOpen={showAddForm || showEditForm}
+        // allow modal to open for Waste Container add flow so AddWasteContainerForm is usable
+        isOpen={(showAddForm || showEditForm)}
         onClose={showEditForm ? closeEditForm : closeAddForm}
         title={showEditForm ? `Edit Machine #${editingMachine?.machine_id}` : `Add ${activeTab === 'Waste Container' ? 'Container' : 'Machine'}`}
         width="500px"
       >
-        <form onSubmit={handleSubmitForm} className="space-y-4">
-          {(activeTab === 'Waste Container' || showEditForm) && (
-            <FormField
-              label={activeTab === 'Waste Container' ? "Container Name" : "Machine Name"}
-              name="name"
-              type="text"
-              placeholder={activeTab === 'Waste Container' ? "e.g., WC-101" : "e.g., SIBOL-M-001"}
-              value={formData.name}
-              onChange={(e) => updateFormField('name', e.target.value)}
-              required
-            />
-          )}
-          <FormField
-            label="Area"
-            name="area"
-            type="select"
-            value={formData.area}
-            onChange={(e) => updateFormField('area', e.target.value)}
-            options={machinesHook.areas.map((area) => ({
-              value: area.Area_id.toString(),
-              label: area.Area_Name
-            }))}
-            required
+        {activeTab === 'Waste Container' && !showEditForm ? (
+          <AddWasteContainerForm
+            loading={containersHook.loading}
+            onCancel={closeAddForm}
+            onSubmit={handleContainerSubmit}
           />
-          {activeTab === 'Waste Container' && !showEditForm && (
+        ) : (
+          <form onSubmit={handleSubmitForm} className="space-y-4">
+            {(activeTab === 'Waste Container' || showEditForm) && (
+              <FormField
+                label={activeTab === 'Waste Container' ? "Container Name" : "Machine Name"}
+                name="name"
+                type="text"
+                placeholder={activeTab === 'Waste Container' ? "e.g., WC-101" : "e.g., SIBOL-M-001"}
+                value={formData.name}
+                onChange={(e) => updateFormField('name', e.target.value)}
+                required
+              />
+            )}
             <FormField
-              label="Deployment Date"
-              name="startDate"
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => updateFormField('startDate', e.target.value)}
+              label="Area"
+              name="area"
+              type="select"
+              value={formData.area}
+              onChange={(e) => updateFormField('area', e.target.value)}
+              options={machinesHook.areas.map((area) => ({
+                value: area.Area_id.toString(),
+                label: area.Area_Name
+              }))}
               required
             />
-          )}
-          {showEditForm && (
-            <FormField
-              label="Status"
-              name="status"
-              type="select"
-              value={formData.status}
-              onChange={(e) => updateFormField('status', e.target.value)}
-              options={machinesHook.machineStatuses.map((s) => ({ value: s.Mach_status_id.toString(), label: s.Status }))}
-            />
-          )}
-          <div className="flex justify-center pt-2">
-            <button type="button" onClick={showEditForm ? closeEditForm : closeAddForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-3">
-              Cancel
-            </button>
-            <button type="submit" disabled={machinesHook.loading || containersHook.loading} className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50">
-              {machinesHook.loading || containersHook.loading ? 'Saving...' : (showEditForm ? 'Update Machine' : 'Add')}
-            </button>
-          </div>
-        </form>
+            {activeTab === 'Waste Container' && !showEditForm && (
+              <FormField
+                label="Deployment Date"
+                name="startDate"
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => updateFormField('startDate', e.target.value)}
+                required
+              />
+            )}
+            {showEditForm && (
+              <FormField
+                label="Status"
+                name="status"
+                type="select"
+                value={formData.status}
+                onChange={(e) => updateFormField('status', e.target.value)}
+                options={machinesHook.machineStatuses.map((s) => ({ value: s.Mach_status_id.toString(), label: s.Status }))}
+              />
+            )}
+            <div className="flex justify-center pt-2">
+              <button type="button" onClick={showEditForm ? closeEditForm : closeAddForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-3">
+                Cancel
+              </button>
+              <button type="submit" disabled={machinesHook.loading || containersHook.loading} className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50">
+                {machinesHook.loading || containersHook.loading ? 'Saving...' : (showEditForm ? 'Update Machine' : 'Add')}
+              </button>
+            </div>
+          </form>
+        )}
       </FormModal>
     </div>
   );
