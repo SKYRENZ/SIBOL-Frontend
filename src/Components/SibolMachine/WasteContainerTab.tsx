@@ -1,6 +1,6 @@
 import React from 'react';
 import type { WasteContainer } from '../../services/wasteContainerService';
-import WasteCollectionTab from './wasteCollection';
+import WasteCollectionTab, { WasteCollectionTabProps } from './wasteCollection';
 
 interface WasteContainerTabProps {
   containers: WasteContainer[];
@@ -9,10 +9,15 @@ interface WasteContainerTabProps {
   searchTerm: string;
 }
 
-const WasteContainerTab: React.FC<WasteContainerTabProps> = (props) => {
-  // currently the inner WasteCollectionTab manages its own state;
-  // keep props for future use or forward them later
-  return <WasteCollectionTab />;
+const WasteContainerTab: React.FC<WasteContainerTabProps> = ({ containers, loading, error, searchTerm }) => {
+  return (
+    <WasteCollectionTab
+      containers={containers}
+      loading={loading}
+      error={error}
+      parentSearchTerm={searchTerm}
+    />
+  );
 };
 
 export default WasteContainerTab;

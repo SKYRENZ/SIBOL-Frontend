@@ -253,12 +253,13 @@ const SibolMachinePage: React.FC = () => {
 
       {/* Add/Edit Modals */}
       <FormModal
-        // allow modal to open for Waste Container add flow so AddWasteContainerForm is usable
+        // ensure modal appears above sticky subheader/tabs by forcing a high z-index
         isOpen={(showAddForm || showEditForm)}
         onClose={showEditForm ? closeEditForm : closeAddForm}
         title={showEditForm ? `Edit Machine #${editingMachine?.machine_id}` : `Add ${activeTab === 'Waste Container' ? 'Container' : 'Machine'}`}
         width="500px"
-      >
+        style={{ zIndex: 200000 }}
+       >
         {activeTab === 'Waste Container' && !showEditForm ? (
           <AddWasteContainerForm
             loading={containersHook.loading}

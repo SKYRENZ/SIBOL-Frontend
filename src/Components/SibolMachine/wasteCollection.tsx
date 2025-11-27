@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import type { WasteContainer, AreaLog } from "../../services/wasteContainerService";
 import ReactDOM from 'react-dom';
 import SearchBar from "../common/SearchBar";
 import { X, MapPin, Calendar, Trash2, History, Weight, List, Table, FileDown, Printer, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
@@ -7,33 +8,59 @@ import { MapContainer, TileLayer, Marker, Tooltip } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 import { useWasteContainers } from "../../hooks/sibolMachine/useWasteContainers";
 import { getAreaLogs } from "../../services/wasteContainerService";
-import type { WasteContainer, AreaLog } from "../../services/wasteContainerService";
 import wasteIcon from './wasteIcon';
 import InfoModal from '../common/InfoModal';
 import CustomScrollbar from '../common/CustomScrollbar';
 import AddWasteContainerForm from './AddWasteContainerForm'; // added import
+import FormModal from '../common/FormModal'; // <-- new import
 
 // Import export libraries
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
-const WasteCollectionTab: React.FC = () => {
+export interface WasteCollectionTabProps {
+  containers?: WasteContainer[];
+  loading?: boolean;
+  error?: string | null;
+  parentSearchTerm?: string;
+}
+
+const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ containers: propContainers, loading: propLoading, error: propError, parentSearchTerm = '' }) => {
   const [searchTerm, setSearchTerm] = useState("");
+  const mapRef = useRef<any | null>(null);
+
   const [selectedWaste, setSelectedWaste] = useState<WasteContainer | null>(null);
   const [logs, setLogs] = useState<AreaLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(false);
   const [logViewMode, setLogViewMode] = useState<'timeline' | 'table'>('timeline');
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [sidebarAddOpen, setSidebarAddOpen] = useState(false); // new: toggle add form in sidebar
+  // replaced inline sidebar add with center modal
+  const [showAddModal, setShowAddModal] = useState(false);
 
   // include createContainer from hook (hook already used elsewhere)
-  const { wasteContainers, loading, error, fetchContainers, createContainer } = useWasteContainers();
+  const {
+    wasteContainers: hookContainers,
+    loading: hookLoading,
+    error: hookError,
+    fetchContainers,
+    createContainer
+  } = useWasteContainers();
+
+  // prefer props when parent provided, otherwise fallback to hook values
+  const wasteContainers = propContainers ?? hookContainers;
+  const loading = propLoading ?? hookLoading;
+  const error = propError ?? hookError;
 
   useEffect(() => {
     fetchContainers();
   }, [fetchContainers]);
+
+  // keep local search in sync with parent header search
+  useEffect(() => {
+    setSearchTerm(parentSearchTerm ?? '');
+  }, [parentSearchTerm]);
 
   // Fetch logs when a container is selected
   useEffect(() => {
@@ -214,7 +241,7 @@ const WasteCollectionTab: React.FC = () => {
     </div>
   );
 
-  // handler used by the inline add form in the sidebar
+  // handler used by the inline add form in the sidebar (now used by modal)
   const handleSidebarCreate = async (payload: { container_name: string; area_name: string; fullAddress: string; }) => {
     if (!createContainer) {
       alert('Create action is not available.');
@@ -223,7 +250,7 @@ const WasteCollectionTab: React.FC = () => {
     const ok = await createContainer(payload);
     if (ok) {
       await fetchContainers();
-      setSidebarAddOpen(false);
+      setShowAddModal(false); // close center modal
       alert('Waste container created.');
       return true;
     }
@@ -239,58 +266,47 @@ const WasteCollectionTab: React.FC = () => {
         <div className="rounded-xl shadow-lg p-2 border-2 border-[#2E523A] bg-white/12 backdrop-blur-sm">
           {/* smaller internal padding so input is more compact */}
           <div className="rounded-md p-0">
-            <SearchBar
-              value={searchTerm}
-              onChange={setSearchTerm}
-              placeholder="Search by container, area..."
-              className="w-full bg-white/95 placeholder-gray-400 text-gray-800 border border-[#2E523A]/25 py-2 px-3 text-sm rounded-md shadow-sm"
-            />
+            <div className="w-full bg-white/95 placeholder-gray-400 text-gray-800 border border-[#2E523A]/25 py-2 px-3 text-sm rounded-md shadow-sm">
+              <SearchBar
+                value={searchTerm}
+                onChange={setSearchTerm}
+                placeholder="Search by container, area..."
+              />
+            </div>
           </div>
         </div>
  
-        {/* Legends + Inline Add Form - Header shows green, body white */}
+        {/* Legends + Add button (now opens centered modal) */}
         <div className="relative rounded-xl shadow-lg p-0 border border-gray-200 bg-white h-auto max-h-96 overflow-hidden flex flex-col">
           <div className="px-3 py-2 bg-gradient-to-r from-[#2E523A] to-[#4a7c5d] text-white rounded-t-xl flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0" />
             </svg>
             <span className="font-semibold text-sm">Map Legends</span>
-            {/* Add Container button in header */}
+            {/* Open centered Add Container modal */}
             <button
-              onClick={() => setSidebarAddOpen(!sidebarAddOpen)}
+              onClick={() => setShowAddModal(!showAddModal)}
               className="ml-auto bg-white/10 hover:bg-white/20 text-white text-xs px-3 py-1 rounded-md border border-white/10"
             >
-              {sidebarAddOpen ? 'Close' : 'Add Container'}
+              {showAddModal ? 'Close' : 'Add Container'}
             </button>
           </div>
 
-          {/* Body: either Add form or the simple legend */}
-          {sidebarAddOpen ? (
-            <div className="p-4 bg-white flex-1 overflow-y-auto">
-              <AddWasteContainerForm
-                loading={loading}
-                onCancel={() => setSidebarAddOpen(false)}
-                onSubmit={handleSidebarCreate}
-              />
+          {/* Body: show legends (no inline add form anymore) */}
+          <div className="p-4 bg-white flex-1 overflow-y-auto space-y-3">
+            <div className="flex items-center gap-3 p-2 rounded-lg">
+              <div className="w-8 h-8 bg-[#e7f4ec] rounded-lg flex items-center justify-center shadow-sm">
+                <Trash2 size={18} className="text-[#235034]" />
+              </div>
+              <span className="text-sm font-medium text-gray-700">Active Container</span>
             </div>
-          ) : (
-            <>
-              <div className="p-4 bg-white flex-1 overflow-y-auto space-y-3">
-                <div className="flex items-center gap-3 p-2 rounded-lg">
-                  <div className="w-8 h-8 bg-[#e7f4ec] rounded-lg flex items-center justify-center shadow-sm">
-                    <Trash2 size={18} className="text-[#235034]" />
-                  </div>
-                  <span className="text-sm font-medium text-gray-700">Active Container</span>
-                </div>
-              </div>
+          </div>
 
-              <div className="px-4 py-3 border-t border-gray-100 bg-white rounded-b-xl">
-                <p className="text-sm text-gray-600">
-                  Showing <span className="font-semibold text-gray-800">{filteredData.length}</span> container{filteredData.length !== 1 ? 's' : ''}
-                </p>
-              </div>
-            </>
-          )}
+          <div className="px-4 py-3 border-t border-gray-100 bg-white rounded-b-xl">
+            <p className="text-sm text-gray-600">
+              Showing <span className="font-semibold text-gray-800">{filteredData.length}</span> container{filteredData.length !== 1 ? 's' : ''}
+            </p>
+          </div>
         </div>
  
         {/* Info Section with Lily */}
@@ -339,6 +355,7 @@ const WasteCollectionTab: React.FC = () => {
           zoom={13}
           style={{ height: "100%", width: "100%" }}
           className="z-0"
+          whenReady={(mapInstance: any) => { mapRef.current = mapInstance; }}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -406,6 +423,20 @@ const WasteCollectionTab: React.FC = () => {
       >
         <InfoModalContent />
       </InfoModal>
+
+      {/* Centered Add Container Modal */}
+      <FormModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add Container"
+        width="500px"
+      >
+        <AddWasteContainerForm
+          loading={loading}
+          onCancel={() => setShowAddModal(false)}
+          onSubmit={handleSidebarCreate}
+        />
+      </FormModal>
 
       {/* Container Details Modal - render into document.body to avoid stacking-context issues */}
       {selectedWaste &&
