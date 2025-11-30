@@ -2,51 +2,112 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tailwind-level custom vars (keep minimal) */
+/* ==========================================================
+   ROOT VARIABLES (Minimal)
+========================================================== */
 :root {
   --sibol-green: #2E523A;
+} 
+
+button:focus {
+  outline: none;
+  box-shadow: none;
 }
 
-button:focus { outline: none; box-shadow: none; }
+/* ==========================================================
+   GLOBAL BASE STYLES
+========================================================== */
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
 
+body {
+  font-family: "Geist", sans-serif;
+  background-color: #F7F9F5;
+  color: #333;
+}
+
+html, body, #root {
+  height: auto !important;
+  min-height: 100vh;
+  overflow-y: auto !important;
+}
+
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #C6D1C6;
+  border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9FB59F;
+}
+
+/* ==========================================================
+   COMPONENT LAYER
+========================================================== */
 @layer components {
-  /* Shared button primitives (copy these to match your Header buttons) */
+
+  /* ====== BUTTONS ====== */
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
   }
+
   .btn-primary {
     @apply bg-sibol-green text-white hover:bg-green-700 focus-visible:ring-sibol-green;
   }
+
   .btn-outline {
     @apply border border-green-100 bg-white text-sibol-green hover:bg-green-50 focus-visible:ring-sibol-green;
   }
+
   .btn-ghost {
     @apply bg-transparent text-sibol-green hover:bg-green-50 focus-visible:ring-sibol-green;
   }
+
+  /* ====== BADGES / CHIPS ====== */
   .chip {
     @apply inline-flex items-center justify-center text-[11px] font-medium px-2 py-0.5 rounded-full;
   }
+
   .chip-rose {
-    @apply bg-rose-100 text-rose-700;
+    @apply bg-white text-rose-700;
   }
 
-  /* Tabs that visually mimic your header button style but behave like tabs */
+  .badge {
+    @apply px-3 py-1 rounded-md text-xs font-medium;
+  }
+
+  .badge-critical { background: #E9744B; color: white; }
+  .badge-high { background: #E4A24B; color: white; }
+  .badge-medium { background: #D9C94F; color: #4A4A4A; }
+  .badge-low { background: #A3CFA0; color: #2B2B2B; }
+  .badge-active { background: #A3CFA0; color: #2B2B2B; }
+  .badge-inactive { background: #C0C6C1; color: #2B2B2B; }
+
+  /* ====== TABS ====== */
   .tab {
     @apply bg-sibol-green text-white font-medium text-base px-6 py-2 rounded-none border-none shadow-none hover:opacity-100 opacity-90 transition-colors;
   }
+
   .tab-active {
     @apply underline underline-offset-4 font-semibold;
   }
 
-  /* Sub-header wrapper that sits right under the main header */
-  .subheader {
-    @apply bg-white/90 backdrop-blur border-b border-green-50;
-  }
-
-  /* Remove browser focus/hover outline on the tab buttons (keep focus-visible for keyboard) */
   nav[role="tablist"] button {
     -webkit-tap-highlight-color: transparent;
-    outline: none;            /* some browsers */
+    outline: none;
     border: none;
     box-shadow: none;
     @apply bg-transparent shadow-none;
@@ -61,16 +122,54 @@ button:focus { outline: none; box-shadow: none; }
     background: transparent !important;
   }
 
-  /* Keep an accessible visible state for keyboard users only */
   nav[role="tablist"] button:focus-visible {
     outline: none;
     box-shadow: none;
     @apply underline font-semibold;
   }
-}
 
-html, body, #root {
-  height: auto !important;
-  min-height: 100vh;
-  overflow-y: auto !important;
+  /* ====== SUBHEADER ====== */
+  .subheader {
+    @apply bg-white/90 backdrop-blur border-b border-green-50;
+  }
+
+  /* ====== CARDS ====== */
+  .card {
+    @apply bg-white border border-green-100 rounded-md shadow-sm p-4;
+  }
+
+  /* ====== TABLES ====== */
+  .table-header {
+    background-color: #DDE8D5;
+    font-weight: 600;
+  }
+
+  .table-row {
+    transition: background 0.15s ease;
+  }
+
+  .table-row:hover {
+    background-color: #F1F5EA;
+  }
+
+  /* ====== FILTER BOX ====== */
+  .filter-box {
+    @apply bg-white border border-green-100 rounded-md shadow-sm p-4;
+  }
+
+  /* ====== INPUTS ====== */
+  input,
+  textarea,
+  select {
+    @apply border border-green-100 rounded-md px-3 py-2 bg-white;
+    font-family: "Geist", sans-serif;
+    outline: none;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--sibol-green);
+    box-shadow: 0 0 0 2px rgba(46, 82, 58, 0.18);
+  }
 }
