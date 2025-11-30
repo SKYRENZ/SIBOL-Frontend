@@ -1,5 +1,8 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useMemo, useState } from "react";
 import Pagination from "./Pagination";
+import SearchBar from "./SearchBar";
+import FilterPanel from "./filterPanel";
+
 import {
   Table as ShadTable,
   TableHeader,
@@ -36,22 +39,15 @@ interface TableProps {
   onRowClick?: (row: any) => void;
   emptyMessage?: string;
   className?: string;
-  sortBy?: string | null;
-  sortDir?: "asc" | "desc" | null;
-  onSort?: (key: string) => void;
   enablePagination?: boolean;
   initialPageSize?: number;
   fixedPagination?: boolean;
   pagination?: TablePaginationConfig;
+  types?: string[];
 }
 
-/* ============================================================
-   STYLE CONSTANTS
-============================================================ */
-
-const HEADER_BG = "bg-[#AFC8AD]"; // Column header text fully opaque
-const BORDER_COLOR = "border-[#00001A4D]"; // Row border 30%
-const DIVIDE_COLOR = "divide-[#00001A4D]"; // Divider between rows
+const HEADER_BG = "bg-[#355842]";
+const BORDER_COLOR = "border-[#00001A4D]";
 
 const Table: React.FC<TableProps> = ({
   columns,
@@ -59,32 +55,49 @@ const Table: React.FC<TableProps> = ({
   onRowClick,
   emptyMessage = "No data available",
   className = "",
-  sortBy = null,
-  sortDir = null,
-  onSort,
   enablePagination = true,
   initialPageSize = 5,
   fixedPagination = true,
   pagination,
+  types = [],
 }) => {
+  const [search, setSearch] = useState("");
+  const [filters, setFilters] = useState<string[]>([]);
+
+  const processedData = useMemo(() => {
+    let temp = [...data];
+    if (search.trim() !== "") {
+      const lower = search.toLowerCase();
+      temp = temp.filter((row) =>
+        columns.some((col) =>
+          String(row[col.key] ?? "").toLowerCase().includes(lower)
+        )
+      );
+    }
+    if (filters.length > 0) {
+      temp = temp.filter((row) => filters.includes(row.type));
+    }
+    return temp;
+  }, [search, filters, data, columns]);
+
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const isControlled = Boolean(pagination);
   const currentPage = isControlled ? pagination!.currentPage : internalPage;
   const pageSize = isControlled ? pagination!.pageSize : internalPageSize;
-  const totalItems = isControlled ? pagination!.totalItems : data.length;
+  const totalItems = processedData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
   const paginatedData =
-    enablePagination && !isControlled ? data.slice(startIndex, endIndex) : data;
+    enablePagination && !isControlled
+      ? processedData.slice(startIndex, startIndex + pageSize)
+      : processedData;
 
-  const handlePageSizeChange = (newPageSize: number) => {
-    if (isControlled) pagination?.onPageSizeChange?.(newPageSize);
+  const handlePageSizeChange = (newSize: number) => {
+    if (isControlled) pagination?.onPageSizeChange?.(newSize);
     else {
-      setInternalPageSize(newPageSize);
+      setInternalPageSize(newSize);
       setInternalPage(1);
     }
   };
@@ -101,190 +114,111 @@ const Table: React.FC<TableProps> = ({
       return true;
     });
 
-  const getPrimaryColumn = (visibleColumns: Column[]) => visibleColumns[0];
-  const getInitialColumns = (visibleColumns: Column[]) =>
-    visibleColumns.slice(0, 3);
-
-  const toggleRowExpand = (rowIndex: number) => {
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
+  const toggleRowExpand = (idx: number) => {
     const newSet = new Set(expandedRows);
-    newSet.has(rowIndex) ? newSet.delete(rowIndex) : newSet.add(rowIndex);
+    newSet.has(idx) ? newSet.delete(idx) : newSet.add(idx);
     setExpandedRows(newSet);
   };
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* MOBILE CARD VIEW */}
+    <div className={`w-full space-y-4 ${className}`}>
+      {/* MOBILE VIEW */}
       <div className="lg:hidden space-y-3">
         {paginatedData.length === 0 ? (
           <div className="px-4 py-3 text-sm text-gray-600">{emptyMessage}</div>
         ) : (
           paginatedData.map((row, rowIndex) => {
             const visibleCols = getVisibleColumns("mobile");
-            const primaryCol = getPrimaryColumn(visibleCols);
-            const primaryValue = primaryCol.render
-              ? primaryCol.render(row[primaryCol.key], row)
-              : row[primaryCol.key];
-
-            const initialCols = getInitialColumns(visibleCols);
-            const isExpanded = expandedRows.has(rowIndex);
-            const hasMoreData = visibleCols.length > initialCols.length;
-
+            const primaryCol = visibleCols[0];
             return (
               <div
                 key={rowIndex}
-                className={`bg-white rounded-xl ${BORDER_COLOR} shadow-[0_2px_4px_rgba(0,0,0,0.4)] transition-all duration-200`}
-                onClick={() => onRowClick?.(row)}
-                role={onRowClick ? "button" : undefined}
+                className={`bg-white rounded-xl shadow-md ${BORDER_COLOR}`}
               >
-                {/* Card header */}
                 <div className={`px-4 py-3 ${HEADER_BG}`}>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-white">
+                  <p className="text-xs font-semibold text-white uppercase tracking-wider">
                     {primaryCol.label}
                   </p>
                   <h3 className="text-sm font-bold text-white mt-1 truncate">
-                    {primaryValue}
+                    {row[primaryCol.key]}
                   </h3>
                 </div>
-
-                {/* Card body */}
-                <div className="px-4 py-3 space-y-3 flex-1">
-                  {initialCols.slice(1).map((column) => (
-                    <div key={column.key} className="flex flex-col gap-1">
-                      <span className="text-xs font-semibold uppercase text-gray-500 tracking-wider">
-                        {column.label}
-                      </span>
-
-                      <span className="text-xs sm:text-sm text-gray-900 font-medium break-words">
-                        {column.render
-                          ? column.render(row[column.key], row)
-                          : row[column.key]}
-                      </span>
+                <div className="px-4 py-3 space-y-2">
+                  {visibleCols.slice(1, 3).map((col) => (
+                    <div key={col.key}>
+                      <p className="text-xs text-gray-500">{col.label}</p>
+                      <p className="text-sm font-medium text-gray-900">
+                        {col.render ? col.render(row[col.key], row) : row[col.key]}
+                      </p>
                     </div>
                   ))}
                 </div>
-
-                {/* Extra details expanded */}
-                {isExpanded && hasMoreData && (
-                  <div className={`px-4 py-3 border-t ${BORDER_COLOR} bg-gray-50`}>
-                    {visibleCols.slice(initialCols.length).map((column) => (
-                      <div key={column.key} className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold uppercase text-gray-500">
-                          {column.label}
-                        </span>
-                        <span className="text-xs sm:text-sm text-gray-900 font-medium">
-                          {column.render
-                            ? column.render(row[column.key], row)
-                            : row[column.key]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
             );
           })
         )}
       </div>
 
-      {/* TABLET VIEW */}
-      <div className={`hidden lg:block xl:hidden overflow-x-auto ${BORDER_COLOR}`}>
-        {paginatedData.length === 0 ? (
-          <div className="p-4 text-sm text-gray-600">{emptyMessage}</div>
-        ) : (
-          <ShadTable className="w-full">
-            <TableHeader className={`${HEADER_BG}`}>
-              <TableRow>
-                {getVisibleColumns("tablet").map((column) => (
-                  <TableHead
-                    key={column.key}
-                    className="px-3 py-3 text-left text-xs font-semibold text-white"
-                  >
-                    {column.label}
-                  </TableHead>
+      {/* TABLET & DESKTOP VIEW */}
+      <div className="hidden lg:block overflow-x-auto">
+        <ShadTable className="w-full border">
+          {/* SEARCH + FILTER ROW */}
+          <TableHeader>
+            <TableRow className="bg-white cursor-default select-none">
+              <TableCell colSpan={columns.length} className="px-4 py-3">
+                <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+                  <div className="w-full lg:w-1/3">
+                    <SearchBar value={search} onChange={setSearch} placeholder="Search..." />
+                  </div>
+                  <div className="w-full lg:w-auto">
+                    <FilterPanel types={types} onFilterChange={(f) => setFilters(f)} />
+                  </div>
+                </div>
+              </TableCell>
+            </TableRow>
+          </TableHeader>
+
+          {/* TABLE HEADER */}
+          <TableHeader>
+            <TableRow className={`${HEADER_BG} cursor-default select-none`}>
+              {columns.map((col) => (
+                <TableHead
+                  key={col.key}
+                  className="px-4 py-3 text-left text-xs font-semibold text-white"
+                >
+                  {col.label}
+                </TableHead>
+              ))}
+            </TableRow>
+          </TableHeader>
+
+          {/* TABLE BODY */}
+          <TableBody>
+            {paginatedData.map((row, idx) => (
+              <TableRow key={idx} className="cursor-default">
+                {columns.map((col) => (
+                  <TableCell key={col.key} className="px-4 py-3 text-sm">
+                    {col.render ? col.render(row[col.key], row) : row[col.key]}
+                  </TableCell>
                 ))}
               </TableRow>
-            </TableHeader>
-
-            <TableBody className={`${DIVIDE_COLOR}`}>
-              {paginatedData.map((row, rowIndex) => (
-                <TableRow
-                  key={rowIndex}
-                  className="transition-all hover:shadow-[0_4px_6px_rgba(0,0,0,0.4)] hover:bg-gray-50 border-b"
-                  onClick={() => onRowClick?.(row)}
-                >
-                  {getVisibleColumns("tablet").map((column) => (
-                    <TableCell
-                      key={column.key}
-                      className={`px-3 py-3 text-xs text-gray-900 ${BORDER_COLOR}`}
-                    >
-                      {column.render
-                        ? column.render(row[column.key], row)
-                        : row[column.key]}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </ShadTable>
-        )}
-      </div>
-
-      {/* DESKTOP VIEW */}
-      <div className={`hidden xl:block overflow-x-auto ${BORDER_COLOR}`}>
-        {paginatedData.length === 0 ? (
-          <div className="p-4 text-sm text-gray-600">{emptyMessage}</div>
-        ) : (
-          <ShadTable className="w-full">
-            <TableHeader className={`${HEADER_BG}`}>
-              <TableRow>
-                {columns.map((column) => (
-                  <TableHead
-                    key={column.key}
-                    className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-white"
-                  >
-                    {column.label}
-                  </TableHead>
-                ))}
-              </TableRow>
-            </TableHeader>
-
-            <TableBody className={`${DIVIDE_COLOR}`}>
-              {paginatedData.map((row, rowIndex) => (
-                <TableRow
-                  key={rowIndex}
-                  className="transition-all hover:shadow-[0_4px_6px_rgba(0,0,0,0.4)] hover:bg-gray-50 border-b"
-                  onClick={() => onRowClick?.(row)}
-                >
-                  {columns.map((column) => (
-                    <TableCell
-                      key={column.key}
-                      className={`px-4 py-3 text-xs sm:text-sm text-gray-900 ${BORDER_COLOR}`}
-                    >
-                      {column.render
-                        ? column.render(row[column.key], row)
-                        : row[column.key]}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-            </TableBody>
-          </ShadTable>
-        )}
+            ))}
+          </TableBody>
+        </ShadTable>
       </div>
 
       {/* PAGINATION */}
       {enablePagination && (
-        <div className="mt-4">
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={handlePageChange}
-            pageSize={pageSize}
-            totalItems={totalItems}
-            onPageSizeChange={handlePageSizeChange}
-            fixed={fixedPagination}
-          />
-        </div>
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          totalItems={totalItems}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+          fixed={fixedPagination}
+        />
       )}
     </div>
   );
