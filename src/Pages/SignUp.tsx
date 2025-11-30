@@ -65,13 +65,11 @@ const SignUp: React.FC = () => {
     const user = params.get('user');
     const auth = params.get('auth');
 
-    if (token) localStorage.setItem('token', token);
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem('user', JSON.stringify(parsed));
       } catch (e) {
-        // ✅ REMOVED: console.warn - Silent error handling
       }
     }
 
