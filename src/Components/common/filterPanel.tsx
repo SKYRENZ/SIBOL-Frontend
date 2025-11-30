@@ -9,7 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/Components/ui/popover
 import { Separator } from "@/Components/ui/separator";
 
 type FilterPanelProps = {
-  types?: string[];
+  types?: string[]; 
+
+  
   onFilterChange?: (filters: string[]) => void;
   className?: string;
 };
@@ -119,10 +121,11 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
                       {options.map((option) => (
                         <div key={option} className="flex items-center space-x-2">
                           <Checkbox
-                            id={option}
-                            checked={selectedFilters.includes(option)}
-                            onCheckedChange={() => handleCheckboxChange(option)}
-                          />
+                          id={option}
+                          checked={selectedFilters.includes(option)}
+                          onCheckedChange={() => handleCheckboxChange(option)}
+                          className="focus:outline-none"
+                        />
                           <label
                             htmlFor={option}
                             className="text-sm cursor-pointer leading-none"
