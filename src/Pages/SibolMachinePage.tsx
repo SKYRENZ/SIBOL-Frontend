@@ -12,6 +12,7 @@ import FormField from '../Components/common/FormField';
 import '../types/Household.css';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
+import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
 import Table from '../Components/common/Table';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
@@ -58,12 +59,6 @@ const SibolMachinePage: React.FC = () => {
   const containersHook = useWasteContainers();
 
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
-
-  // Sample data for Chemical Additives
-  const chemicalAdditivesData = [
-    { additiveInput: 'Cow Manure', stage: 'Pre-treatment', value: '50', units: 'g', date: '2025-10-28', time: '09:00', personInCharge: 'John Doe' },
-    { additiveInput: 'NaOH', stage: 'Hydrolysis', value: '100', units: 'ml', date: '2025-10-28', time: '11:30', personInCharge: 'Jane Smith' },
-  ];
 
   const tabsConfig = [
     { id: 'Machines', label: 'Machines' },
@@ -172,32 +167,7 @@ const SibolMachinePage: React.FC = () => {
       );
     }
     if (activeTab === 'Chemical Additives') {
-      const columns = [
-        { key: 'additiveInput', label: 'Additive Input' },
-        { key: 'stage', label: 'Stage' },
-        { key: 'value', label: 'Value' },
-        { key: 'units', label: 'Units' },
-        { key: 'date', label: 'Date' },
-        { key: 'time', label: 'Time' },
-        { key: 'personInCharge', label: 'Person in Charge' }
-      ];
-      const startIndex = (currentPage - 1) * pageSize;
-      const endIndex = startIndex + pageSize;
-      const paginatedData = chemicalAdditivesData.slice(startIndex, endIndex);
-      return (
-        <Table 
-          columns={columns} 
-          data={paginatedData} 
-          emptyMessage="No chemical additives data available"
-          pagination={{
-            currentPage,
-            pageSize,
-            totalItems: chemicalAdditivesData.length,
-            onPageChange: setCurrentPage,
-            onPageSizeChange: handlePageSizeChange
-          }}
-        />
-      );
+      return <AdditivesTab searchTerm={searchTerm} onSearchChange={setSearchTerm} />;
     }
     // Placeholder for other tabs
     return <div className="text-center py-10">Content for {activeTab}</div>;
