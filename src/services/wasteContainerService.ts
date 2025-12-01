@@ -6,6 +6,8 @@ export interface WasteContainer {
   area_id: number; //
   container_name: string;
   area_name: string;
+  // added optional full_address so frontend can show the area's full address returned by the backend
+  full_address?: string;
   status: 'Empty' | 'Collecting' | 'Full' | 'In-Maintenance';
   deployment_date: string;
   latitude: number;
@@ -13,9 +15,9 @@ export interface WasteContainer {
 }
 
 export interface CreateContainerRequest {
-    container_name: string;
-    area_id: number;
-    deployment_date: string;
+  container_name: string;
+  area_name: string;
+  fullAddress: string;
 }
 
 export interface AreaLog {
@@ -40,6 +42,7 @@ export const getWasteContainers = async (): Promise<WasteContainer[]> => {
  * @param containerData - The data for the new container.
  */
 export const createWasteContainer = async (containerData: CreateContainerRequest): Promise<WasteContainer> => {
+  // payload now includes area_name and fullAddress for backend geocoding
   const { data } = await post('/api/waste-containers', containerData);
   return data;
 };
