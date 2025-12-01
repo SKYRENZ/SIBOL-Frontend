@@ -4,7 +4,7 @@ const wasteIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24
 
 const wasteIcon = new L.DivIcon({
   html: wasteIconSvg,
-  className: 'leaflet-div-icon-transparent', // Use a transparent background
+  className: 'leaflet-div-icon-transparent',
   iconSize: [32, 32],
   iconAnchor: [16, 32],
   popupAnchor: [0, -32],

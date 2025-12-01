@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactDOM from 'react-dom';
 import { X, Info } from 'lucide-react';
 import CustomScrollbar from './CustomScrollbar';
 
@@ -21,35 +22,16 @@ const InfoModal: React.FC<InfoModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
+  const modal = (
     <>
       <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        .animate-fadeIn {
-          animation: fadeIn 0.3s ease-out;
-        }
-        
-        .animate-slideUp {
-          animation: slideUp 0.3s ease-out;
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
       `}</style>
 
-      <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fadeIn">
         <div className="relative w-[90%] sm:w-[80%] md:w-[60%] lg:w-[45%] max-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-slideUp">
           {/* Header with gradient and spacing */}
           <div className="px-8 py-6 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white relative overflow-hidden">
@@ -90,6 +72,8 @@ const InfoModal: React.FC<InfoModalProps> = ({
       </div>
     </>
   );
+
+  return ReactDOM.createPortal(modal, document.body);
 };
 
 export default InfoModal;
