@@ -17,9 +17,6 @@ const EmailVerification: React.FC = () => {
     const user = params.get('user');
     const auth = params.get('auth');
 
-    if (token) {
-      localStorage.setItem('token', token);
-    }
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));

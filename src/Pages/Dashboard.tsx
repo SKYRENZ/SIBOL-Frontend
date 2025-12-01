@@ -71,8 +71,6 @@ const Dashboard: React.FC = () => {
     const user = get("user");
     const auth = get("auth");
 
-    if (token) localStorage.setItem("token", token);
-
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
