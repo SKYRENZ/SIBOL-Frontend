@@ -6,7 +6,6 @@ interface MachineTabProps {
   machines: Machine[];
   loading: boolean;
   error: string | null;
-  searchTerm: string;
   pagination: {
     currentPage: number;
     pageSize: number;
@@ -15,15 +14,17 @@ interface MachineTabProps {
     onPageSizeChange: (size: number) => void;
   };
   onEdit: (machine: Machine) => void;
+  onAdd: () => void; // ✅ NEW: Add machine handler
 }
 
-const MachineTab: React.FC<MachineTabProps> = ({ machines, loading, error, searchTerm, pagination, onEdit }) => {
-  const filteredMachines = machines.filter(machine =>
-    searchTerm === '' ||
-    machine.Name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    machine.Area_Name?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
+const MachineTab: React.FC<MachineTabProps> = ({ 
+  machines,
+  loading, 
+  error, 
+  pagination, 
+  onEdit,
+  onAdd, // ✅ NEW
+}) => {
   const columns = [
     { key: 'machine_id', label: 'Machine ID', render: (value: number) => `#${value}` },
     { key: 'Name', label: 'Machine Name' },
@@ -41,8 +42,7 @@ const MachineTab: React.FC<MachineTabProps> = ({ machines, loading, error, searc
           'no status': 'bg-gray-100 text-gray-800'
         };
 
-        const badgeClass =
-          statusClasses[status ?? 'no status'] ?? statusClasses['no status'];
+        const badgeClass = statusClasses[status ?? 'no status'] ?? statusClasses['no status'];
 
         return (
           <span className={`px-2 py-1 text-xs rounded-full capitalize ${badgeClass}`}>
@@ -50,8 +50,7 @@ const MachineTab: React.FC<MachineTabProps> = ({ machines, loading, error, searc
           </span>
         );
       }
-    }
-    ,
+    },
     {
       key: 'machine_id',
       label: 'Actions',
@@ -66,9 +65,20 @@ const MachineTab: React.FC<MachineTabProps> = ({ machines, loading, error, searc
     }
   ];
 
+  // Pagination
   const startIndex = (pagination.currentPage - 1) * pagination.pageSize;
   const endIndex = startIndex + pagination.pageSize;
-  const paginatedMachines = filteredMachines.slice(startIndex, endIndex);
+  const paginatedMachines = machines.slice(startIndex, endIndex);
+
+  // ✅ Custom Toolbar with Add Machine Button
+  const customToolbar = (
+    <button 
+      onClick={onAdd}
+      className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+    >
+      Add Machine
+    </button>
+  );
 
   return (
     <div>
@@ -86,10 +96,10 @@ const MachineTab: React.FC<MachineTabProps> = ({ machines, loading, error, searc
         columns={columns}
         data={paginatedMachines}
         emptyMessage="No machines found. Click 'Add Machine' to create one."
-        pagination={{
-          ...pagination,
-          totalItems: filteredMachines.length,
-        }}
+        rowKey="machine_id"
+        pagination={pagination}
+        customToolbar={customToolbar} // ✅ Pass custom toolbar
+        filterTypes={['status', 'area']} // ✅ Optional: Add filter types if you have them
       />
     </div>
   );
