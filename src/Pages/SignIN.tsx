@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
-import { login as apiLogin, isAuthenticated } from '../services/auth';
+import { login as apiLogin, isAuthenticated } from '../services/authService';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {

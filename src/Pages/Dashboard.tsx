@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isAuthenticated, isFirstLogin, getUser } from "../services/auth";
+import { isAuthenticated, isFirstLogin, getUser } from "../services/authService";
 import Header from "../Components/Header";
 import ProcessPanel from "../Components/dashboard/ProcessPanel";
 import TotalWastePanel from "../Components/TotalWastePanel";

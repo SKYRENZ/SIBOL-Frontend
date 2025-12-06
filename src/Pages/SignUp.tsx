@@ -2,7 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { useSignUp } from '../hooks/signup/useSignUp';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { fetchJson } from '../services/apiClient';
-import { isAuthenticated } from '../services/auth';
+import { isAuthenticated } from '../services/authService';
 
 const SignUp: React.FC = () => {
   const [resendMessage, setResendMessage] = useState<string | null>(null);
