@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
-import api from '../services/apiClient';
+import { useAppDispatch } from '../store/hooks';
+import { logout as logoutAction } from '../store/slices/authSlice';
 import "../types/Header.css";
 
 const allLinks = [
@@ -18,30 +19,32 @@ const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
   
+  // ✅ FIX: Use Redux logout instead of manual cleanup
   async function handleLogout() {
     try {
-      // Attempt to notify backend (if session-based logout exists)
-      await api.post('/api/auth/logout');
+      // ✅ Dispatch Redux logout action (this will call authService.logout internally)
+      dispatch(logoutAction());
+      
+      // ✅ Navigate after Redux cleanup
+      navigate('/login', { replace: true });
     } catch (err) {
-      // ignore network errors, still clear local state
-      console.warn('logout request failed', err);
+      console.warn('logout failed', err);
+      // Still navigate even if backend call fails
+      navigate('/login', { replace: true });
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login', { replace: true });
   }
   
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const normalized = await fetchAllowedModules(); // { list, get, has }
+        const normalized = await fetchAllowedModules();
         if (!mounted) return;
         setModules(normalized);
       } catch (err) {
         console.error('modules/allowed error:', err);
-        // leave modules empty so UI doesn't crash
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
@@ -73,7 +76,6 @@ const Header: React.FC = () => {
     );
   };
 
-  // fallback: check localStorage user for role/modules
   const localUser = (() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
   })();

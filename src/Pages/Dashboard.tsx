@@ -1,14 +1,18 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isAuthenticated, isFirstLogin, getUser } from "../services/authService";
+import { isAuthenticated as checkIsAuthenticated, isFirstLogin as checkIsFirstLogin, getUser } from "../services/authService";
 import Header from "../Components/Header";
 import ProcessPanel from "../Components/dashboard/ProcessPanel";
 import TotalWastePanel from "../Components/TotalWastePanel";
 import CollectionSchedule from "../Components/CollectionSchedule";
 import EnergyChart from "../Components/EnergyChart";
 import ChangePasswordModal from "../Components/verification/ChangePasswordModal";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { logout, updateFirstLogin } from "../store/slices/authSlice";
 
 const Dashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { user, isAuthenticated, isFirstLogin: isFirstLoginRedux } = useAppSelector((state) => state.auth);
   const [barangay] = useState("Barangay 176 - E");
   const [currentDate, setCurrentDate] = useState<string>("");
   const navigate = useNavigate();
@@ -17,17 +21,17 @@ const Dashboard: React.FC = () => {
 
   // 🔐 Auth check - redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       navigate('/login', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
   // Prevent back/forward navigation issues
   useEffect(() => {
     window.history.pushState(null, '', window.location.href);
     
     const handlePopState = () => {
-      if (!isAuthenticated()) {
+      if (!checkIsAuthenticated()) {
         navigate('/login', { replace: true });
       } else {
         window.history.pushState(null, '', window.location.href);
@@ -90,10 +94,10 @@ const Dashboard: React.FC = () => {
 
   // ✅ REMOVED: All console.log debugging statements
   useEffect(() => {
-    if (isAuthenticated() && isFirstLogin()) {
+    if (isAuthenticated && isFirstLoginRedux) {
       setShowPasswordModal(true);
     }
-  }, []);
+  }, [isAuthenticated, isFirstLoginRedux]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -147,15 +151,10 @@ const Dashboard: React.FC = () => {
       {/* ✅ Password Change Modal - OUTSIDE main, INSIDE root div */}
       <ChangePasswordModal
         open={showPasswordModal}
-        onClose={() => {
-          // Empty - force user to change password on first login
-        }}
+        onClose={() => {}}
         onSuccess={() => {
           setShowPasswordModal(false);
-          // Update user data to reflect password change
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          user.IsFirstLogin = 0;
-          localStorage.setItem('user', JSON.stringify(user));
+          dispatch(updateFirstLogin(false));
         }}
         isFirstLogin={true}
       />

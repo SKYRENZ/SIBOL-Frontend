@@ -31,15 +31,11 @@ export async function register(payload: any) {
   return res.data;
 }
 
-// Fix 1: Update the verifyToken function to properly type the response
 export async function verifyToken(): Promise<boolean> {
   try {
     const response = await api.get('/api/auth/verify');
-    
-    // ✅ Properly type the response data
     const data = response.data as { valid?: boolean; user?: User } | undefined;
     
-    // ✅ Add null check before accessing user property
     if (data?.user) {
       localStorage.setItem('user', JSON.stringify(data.user));
       return true;
@@ -61,7 +57,7 @@ export function logout(): void {
     // Silent fail - non-critical
   });
   
-  window.location.replace('/login');
+  // Let React Router handle navigation instead
 }
 
 export function getUser(): User | null {
@@ -82,7 +78,6 @@ export async function changePassword(currentPassword: string, newPassword: strin
   return res.data;
 }
 
-// Fix 2: Update isFirstLogin to handle the type comparison properly
 export function isFirstLogin(): boolean {
   try {
     const user = getUser();
@@ -90,10 +85,8 @@ export function isFirstLogin(): boolean {
     
     const isFirstLoginValue = user.IsFirstLogin;
     
-    // ✅ Add undefined check to prevent type error
     if (isFirstLoginValue === undefined) return false;
     
-    // ✅ Only compare with number since IsFirstLogin is typed as number
     return isFirstLoginValue === 1;
   } catch {
     return false;

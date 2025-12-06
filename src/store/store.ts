@@ -3,6 +3,7 @@ import adminReducer from './slices/adminSlice';
 import additivesReducer from './slices/additivesSlice';
 import wasteContainerReducer from './slices/wasteContainerSlice';
 import machineReducer from './slices/machineSlice';
+import authReducer from './slices/authSlice';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +11,7 @@ const store = configureStore({
     additives: additivesReducer,
     wasteContainer: wasteContainerReducer,
     machine: machineReducer,
+    auth: authReducer,
   },
 });
 

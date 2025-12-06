@@ -18,11 +18,16 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - logout
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+    const authEndpoints = ['/api/auth/login', '/api/auth/register'];
+    const isAuthRequest = authEndpoints.some((path) => error.config?.url?.includes(path));
+    if (isAuthRequest) {
+      return Promise.reject(error);
     }
+
+    if (error.response?.status === 401) {
+      window.location.replace('/login');
+    }
+
     return Promise.reject(error);
   }
 );
