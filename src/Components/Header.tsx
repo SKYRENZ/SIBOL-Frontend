@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
-import { useAppDispatch } from '../store/hooks';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout as logoutAction } from '../store/slices/authSlice';
 import "../types/Header.css";
 
@@ -21,17 +21,15 @@ const Header: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
   
-  // ✅ FIX: Use Redux logout instead of manual cleanup
+  // ✅ Get isFirstLogin from Redux to disable header
+  const { isFirstLogin } = useAppSelector((state) => state.auth);
+  
   async function handleLogout() {
     try {
-      // ✅ Dispatch Redux logout action (this will call authService.logout internally)
       dispatch(logoutAction());
-      
-      // ✅ Navigate after Redux cleanup
       navigate('/login', { replace: true });
     } catch (err) {
       console.warn('logout failed', err);
-      // Still navigate even if backend call fails
       navigate('/login', { replace: true });
     }
   }
@@ -90,7 +88,7 @@ const Header: React.FC = () => {
   });
 
   return (
-    <header className="header">
+    <header className={`header ${isFirstLogin ? 'pointer-events-none opacity-50' : ''}`}>
       <nav className="nav">
         <img
           className="nav-logo"
@@ -108,6 +106,7 @@ const Header: React.FC = () => {
           aria-expanded={menuOpen}
           aria-controls="primary-navigation"
           aria-label="Toggle navigation menu"
+          disabled={isFirstLogin}
         >
           <span />
           <span />
@@ -124,6 +123,7 @@ const Header: React.FC = () => {
                   className={({ isActive }) =>
                     `nav-link ${isActive ? "active" : ""}`
                   }
+                  style={{ pointerEvents: isFirstLogin ? 'none' : 'auto' }}
                 >
                   {link.label}
                 </NavLink>
@@ -170,14 +170,16 @@ const Header: React.FC = () => {
               title="Logout"
               aria-label="Logout"
               className="logout-btn"
+              disabled={isFirstLogin}
               style={{
                 background: 'transparent',
                 border: 'none',
                 padding: '4px 8px',
                 marginLeft: 8,
-                cursor: 'pointer',
+                cursor: isFirstLogin ? 'not-allowed' : 'pointer',
                 color: 'inherit',
                 fontSize: 14,
+                opacity: isFirstLogin ? 0.5 : 1,
               }}
             >
               Logout

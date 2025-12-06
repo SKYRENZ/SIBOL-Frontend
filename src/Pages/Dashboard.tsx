@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isAuthenticated as checkIsAuthenticated, isFirstLogin as checkIsFirstLogin, getUser } from "../services/authService";
+import { isAuthenticated as checkIsAuthenticated, getUser } from "../services/authService";
 import Header from "../Components/Header";
 import ProcessPanel from "../Components/dashboard/ProcessPanel";
 import TotalWastePanel from "../Components/TotalWastePanel";
@@ -8,7 +8,7 @@ import CollectionSchedule from "../Components/CollectionSchedule";
 import EnergyChart from "../Components/EnergyChart";
 import ChangePasswordModal from "../Components/verification/ChangePasswordModal";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { logout, updateFirstLogin } from "../store/slices/authSlice";
+import { logout, updateFirstLogin, verifyToken } from "../store/slices/authSlice";
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -25,6 +25,13 @@ const Dashboard: React.FC = () => {
       navigate('/login', { replace: true });
     }
   }, [isAuthenticated, navigate]);
+
+  // ✅ NEW: Verify token on mount to refresh user state
+  useEffect(() => {
+    if (isAuthenticated) {
+      dispatch(verifyToken());
+    }
+  }, [dispatch, isAuthenticated]);
 
   // Prevent back/forward navigation issues
   useEffect(() => {
@@ -92,10 +99,15 @@ const Dashboard: React.FC = () => {
     }
   }, [location, navigate]);
 
-  // ✅ REMOVED: All console.log debugging statements
+  // ✅ FIX: Show modal based on Redux isFirstLogin state
   useEffect(() => {
+    console.log('🔍 Dashboard - isAuthenticated:', isAuthenticated, 'isFirstLogin:', isFirstLoginRedux);
+    
     if (isAuthenticated && isFirstLoginRedux) {
+      console.log('✅ Showing password modal');
       setShowPasswordModal(true);
+    } else {
+      setShowPasswordModal(false);
     }
   }, [isAuthenticated, isFirstLoginRedux]);
 
@@ -151,12 +163,18 @@ const Dashboard: React.FC = () => {
       {/* ✅ Password Change Modal - OUTSIDE main, INSIDE root div */}
       <ChangePasswordModal
         open={showPasswordModal}
-        onClose={() => {}}
+        onClose={() => {
+          // Only allow closing if NOT first login
+          if (!isFirstLoginRedux) {
+            setShowPasswordModal(false);
+          }
+        }}
         onSuccess={() => {
+          console.log('✅ Password changed successfully');
           setShowPasswordModal(false);
           dispatch(updateFirstLogin(false));
         }}
-        isFirstLogin={true}
+        isFirstLogin={isFirstLoginRedux}
       />
     </div>
   );

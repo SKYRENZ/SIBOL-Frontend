@@ -1,57 +1,154 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
-import { useForgotPassword } from '../hooks/signup/useForgotPassword';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { forgotPassword, verifyResetCode, resetPassword, clearError, clearSuccess } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
+
+type Step = 'email' | 'verify' | 'reset' | 'done';
 
 const ForgotPassword: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    step,
-    email,
-    setEmail,
-    code,
-    setCode,
-    newPassword,
-    setNewPassword,
-    loading,
-    error,
-    info,
-    resendCooldown,
-    canResend,
-    emailValid,
-    codeValid,
-    passwordValid,
-    sendResetRequest,
-    verifyCode,
-    submitNewPassword,
-  } = useForgotPassword();
-
+  const dispatch = useAppDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // ✅ Redux state
+  const { isLoading, error: authError, successMessage } = useAppSelector((state) => state.auth);
+  
+  // ✅ Get initial state from URL
+  const emailParam = searchParams.get('email');
+  const stepParam = searchParams.get('step') as Step | null;
+  
+  // ✅ Local state
+  const [step, setStep] = useState<Step>(() => {
+    if (stepParam && ['email', 'verify', 'reset', 'done'].includes(stepParam)) {
+      return stepParam;
+    }
+    return 'email';
+  });
+  
+  const [email, setEmail] = useState(emailParam || '');
+  const [code, setCode] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  
+  // Resend cooldown
+  const COOLDOWN_SECONDS = 60;
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
 
+  // ✅ Clear errors on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
+
+  // ✅ Sync with URL params
+  useEffect(() => {
+    if (emailParam && emailParam !== email) {
+      setEmail(emailParam);
+    }
+    if (stepParam && stepParam !== step && ['email', 'verify', 'reset', 'done'].includes(stepParam)) {
+      setStep(stepParam as Step);
+    }
+  }, [emailParam, stepParam]);
+
+  // ✅ Resend cooldown timer
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setResendCooldown(0);
+      return;
+    }
+
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((resendAvailableAt - Date.now()) / 1000));
+      setResendCooldown(remaining);
+    };
+
+    update();
+    const id = window.setInterval(() => {
+      update();
+      if ((resendAvailableAt ?? 0) - Date.now() <= 0) {
+        clearInterval(id);
+        setResendAvailableAt(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [resendAvailableAt]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (step === 'email') {
-      await sendResetRequest();
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        return;
+      }
+      
+      try {
+        await dispatch(forgotPassword(email)).unwrap();
+        setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
+        setResendCooldown(COOLDOWN_SECONDS);
+        setStep('verify');
+        setSearchParams({ email, step: 'verify' });
+      } catch (error) {
+        // Error handled by Redux
+      }
     } else if (step === 'verify') {
-      await verifyCode();
+      if (!/^\d{6}$/.test(code)) {
+        return;
+      }
+      
+      try {
+        await dispatch(verifyResetCode({ email, code })).unwrap();
+        setStep('reset');
+        setSearchParams({ email, step: 'reset' });
+      } catch (error) {
+        // Error handled by Redux
+      }
     } else if (step === 'reset') {
       if (newPassword !== confirmPassword) {
         return;
       }
-      await submitNewPassword();
+      
+      if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}/.test(newPassword)) {
+        return;
+      }
+      
+      try {
+        await dispatch(resetPassword({ email, code, newPassword })).unwrap();
+        setStep('done');
+        setSearchParams({ step: 'done' });
+      } catch (error) {
+        // Error handled by Redux
+      }
     }
   };
 
   const handleDone = () => {
     navigate('/login');
+  };
+
+  const handleResend = async () => {
+    if (resendAvailableAt && Date.now() < resendAvailableAt) {
+      return;
+    }
+    
+    try {
+      await dispatch(forgotPassword(email)).unwrap();
+      setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
+      setResendCooldown(COOLDOWN_SECONDS);
+    } catch (error) {
+      // Error handled by Redux
+    }
   };
 
   // Password strength calculation
@@ -106,16 +203,16 @@ const ForgotPassword: React.FC = () => {
           </p>
 
           {/* Error Message */}
-          {error && (
+          {authError && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-              <p className="text-red-700 text-sm">{error}</p>
+              <p className="text-red-700 text-sm">{authError}</p>
             </div>
           )}
 
-          {/* Info Message */}
-          {info && (
+          {/* Success Message */}
+          {successMessage && (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-              <p className="text-green-700 text-sm">{info}</p>
+              <p className="text-green-700 text-sm">{successMessage}</p>
             </div>
           )}
 
@@ -131,12 +228,8 @@ const ForgotPassword: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className={`w-full px-4 py-3 border rounded-lg text-base outline-none transition-all ${
-                    !emailValid && email
-                      ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
-                      : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                  }`}
-                  disabled={loading}
+                  className="w-full px-4 py-3 border border-gray-200 rounded-lg text-base outline-none transition-all focus:border-green-300 focus:ring-2 focus:ring-green-100"
+                  disabled={isLoading}
                 />
               </div>
             )}
@@ -161,7 +254,6 @@ const ForgotPassword: React.FC = () => {
                         newCode[i] = digit;
                         setCode(newCode.join(''));
                         
-                        // Auto-focus next input if digit entered
                         if (digit && i < 5) {
                           const nextInput = e.target.nextElementSibling as HTMLInputElement;
                           nextInput?.focus();
@@ -172,13 +264,10 @@ const ForgotPassword: React.FC = () => {
                           e.preventDefault();
                           const newCode = code.split('');
                           
-                          // If current box has a digit, clear it
                           if (code[i]) {
                             newCode[i] = '';
                             setCode(newCode.join(''));
-                          } 
-                          // If current box is empty, move to previous and clear it
-                          else if (i > 0) {
+                          } else if (i > 0) {
                             newCode[i - 1] = '';
                             setCode(newCode.join(''));
                             const prevInput = (e.target as HTMLInputElement).previousElementSibling as HTMLInputElement;
@@ -187,7 +276,7 @@ const ForgotPassword: React.FC = () => {
                         }
                       }}
                       className="w-12 h-12 text-center text-lg font-medium border border-gray-200 rounded-lg focus:outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100"
-                      disabled={loading}
+                      disabled={isLoading}
                     />
                   ))}
                 </div>
@@ -197,13 +286,13 @@ const ForgotPassword: React.FC = () => {
                   <span className="text-gray-600">Didn't get an email?</span>
                   <button
                     type="button"
-                    onClick={sendResetRequest}
-                    disabled={!canResend || loading}
+                    onClick={handleResend}
+                    disabled={resendCooldown > 0 || isLoading}
                     className={`bg-transparent border-0 text-green-600 font-medium hover:text-green-700 hover:underline focus:outline-none ${
-                      (!canResend || loading) && 'opacity-50 cursor-not-allowed'
+                      (resendCooldown > 0 || isLoading) && 'opacity-50 cursor-not-allowed'
                     }`}
                   >
-                    {canResend ? 'Resend Code' : `Resend in ${resendCooldown}s`}
+                    {resendCooldown > 0 ? `Resend in ${resendCooldown}s` : 'Resend Code'}
                   </button>
                 </div>
               </div>
@@ -224,7 +313,7 @@ const ForgotPassword: React.FC = () => {
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password"
                       className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg text-base outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100"
-                      disabled={loading}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
@@ -248,7 +337,7 @@ const ForgotPassword: React.FC = () => {
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       placeholder="Confirm new password"
                       className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-lg text-base outline-none focus:border-green-300 focus:ring-2 focus:ring-green-100"
-                      disabled={loading}
+                      disabled={isLoading}
                     />
                     <button
                       type="button"
@@ -357,13 +446,13 @@ const ForgotPassword: React.FC = () => {
             {step !== 'done' && (
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 rounded-full text-base transition-all mt-4"
               >
-                {loading && 'Processing...'}
-                {!loading && step === 'email' && 'Send Code'}
-                {!loading && step === 'verify' && 'Verify Code'}
-                {!loading && step === 'reset' && 'Reset Password'}
+                {isLoading && 'Processing...'}
+                {!isLoading && step === 'email' && 'Send Code'}
+                {!isLoading && step === 'verify' && 'Verify Code'}
+                {!isLoading && step === 'reset' && 'Reset Password'}
               </button>
             )}
 
@@ -378,7 +467,7 @@ const ForgotPassword: React.FC = () => {
               </button>
             )}
 
-            {/* Back to Sign In (except on done step) */}
+            {/* Back to Sign In */}
             {step !== 'done' && (
               <button
                 type="button"

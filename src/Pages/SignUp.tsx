@@ -1,45 +1,34 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { useSignUp } from '../hooks/signup/useSignUp';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { fetchJson } from '../services/apiClient';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { register, resendVerification, clearError, clearSuccess } from '../store/slices/authSlice';
 import { isAuthenticated } from '../services/authService';
+import api from '../services/apiClient';
 
 const SignUp: React.FC = () => {
-  const [resendMessage, setResendMessage] = useState<string | null>(null);
-  const [isBarangayOpen, setIsBarangayOpen] = useState(false);
-  const barangayRef = useRef<HTMLDivElement>(null);
-  
-  const {
-    // State
-    role,
-    setRole,
-    firstName,
-    setFirstName,
-    lastName,
-    setLastName,
-    email,
-    setEmail,
-    barangay,
-    setBarangay,
-    barangays,
-    errors,
-    isSSO,
-    touched,
-    validateField,
-    loading,
-    
-    // Assets
-    signupImage,
-    
-    // Actions
-    handleSignUp,
-    goToLogin,
-    serverError,
-    pendingEmail,
-  } = useSignUp();
-
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
+  
+  // ✅ Redux state
+  const { isLoading, error: authError, successMessage } = useAppSelector((state) => state.auth);
+  
+  // ✅ Local state
+  const [role, setRole] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [barangay, setBarangay] = useState('');
+  const [barangays, setBarangays] = useState<{ id: number; name: string }[]>([]);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [touched, setTouched] = useState<{ [key: string]: boolean }>({});
+  const [isSSO, setIsSSO] = useState(false);
+  const [isBarangayOpen, setIsBarangayOpen] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  
+  const barangayRef = useRef<HTMLDivElement>(null);
+  const signupImage = new URL('../assets/images/lilisignup.png', import.meta.url).href;
 
   // Check if user is already logged in
   useEffect(() => {
@@ -47,6 +36,38 @@ const SignUp: React.FC = () => {
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
+
+  // ✅ Load SSO params from URL
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const ssoParam = searchParams.get('sso');
+    const firstNameParam = searchParams.get('firstName');
+    const lastNameParam = searchParams.get('lastName');
+
+    if (emailParam && ssoParam === 'google') {
+      setEmail(emailParam);
+      setIsSSO(true);
+      if (firstNameParam) setFirstName(firstNameParam);
+      if (lastNameParam) setLastName(lastNameParam);
+    }
+  }, [searchParams]);
+
+  // ✅ Load barangays
+  useEffect(() => {
+    let cancelled = false;
+    async function loadBarangays() {
+      try {
+        const res = await api.get('/api/auth/barangays');
+        if (!cancelled && res.data?.success && Array.isArray(res.data.barangays)) {
+          setBarangays(res.data.barangays);
+        }
+      } catch (err) {
+        console.warn('Failed to load barangays', err);
+      }
+    }
+    loadBarangays();
+    return () => { cancelled = true; };
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -59,46 +80,105 @@ const SignUp: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // ✅ Clear errors on unmount
   useEffect(() => {
-    const params = new URLSearchParams(location.search);
-    const token = params.get('token') || params.get('access_token');
-    const user = params.get('user');
-    const auth = params.get('auth');
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
 
-    if (user) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(user));
-        localStorage.setItem('user', JSON.stringify(parsed));
-      } catch (e) {
-      }
+  const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
+  const nameRegex = /^[A-Za-z\s.'-]+$/;
+
+  const validateField = (field: string) => {
+    const newErrors = { ...errors };
+    if (field === 'role') {
+      if (!role) newErrors.role = 'Role is required';
+      else delete newErrors.role;
     }
-
-    if (token) {
-      window.history.replaceState({}, '', location.pathname);
-      navigate('/dashboard', { replace: true });
-    } else if (auth === 'fail') {
-      navigate('/login', { replace: true });
+    if (field === 'firstName') {
+      if (!firstName.trim()) newErrors.firstName = 'First name is required';
+      else if (!nameRegex.test(firstName.trim())) newErrors.firstName = 'First name can only contain letters, spaces, hyphens, apostrophes and periods';
+      else delete newErrors.firstName;
     }
-  }, [location, navigate]);
+    if (field === 'lastName') {
+      if (!lastName.trim()) newErrors.lastName = 'Last name is required';
+      else if (!nameRegex.test(lastName.trim())) newErrors.lastName = 'Last name can only contain letters, spaces, hyphens, apostrophes and periods';
+      else delete newErrors.lastName;
+    }
+    if (field === 'email') {
+      if (!email.trim()) newErrors.email = 'Email is required';
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = 'Enter a valid email';
+      else delete newErrors.email;
+    }
+    if (field === 'barangay') {
+      if (!barangay.trim()) newErrors.barangay = 'Barangay is required';
+      else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) newErrors.barangay = 'Barangay must be a valid number';
+      else delete newErrors.barangay;
+    }
+    setErrors(newErrors);
+    setTouched(prev => ({ ...prev, [field]: true }));
+  };
 
-  async function handleResendVerification() {
-    if (!pendingEmail) return;
-    setResendMessage(null);
+  const validateForm = () => {
+    const newErrors: { [key: string]: string } = {};
+    if (!role) newErrors.role = "Role is required";
+    if (!firstName.trim()) newErrors.firstName = "First name is required";
+    else if (!nameRegex.test(firstName.trim())) newErrors.firstName = "Invalid first name";
+    if (!lastName.trim()) newErrors.lastName = "Last name is required";
+    else if (!nameRegex.test(lastName.trim())) newErrors.lastName = "Invalid last name";
+    if (!email.trim()) newErrors.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Invalid email";
+    if (!barangay.trim()) newErrors.barangay = "Barangay is required";
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validateForm()) return;
+
+    const roleMap: Record<string, number> = { Admin: 1, User: 2 };
+    const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
+
+    const payload = {
+      firstName,
+      lastName,
+      barangayId: Number(barangay),
+      email,
+      roleId: Number(roleId),
+      isSSO: Boolean(isSSO),
+    };
+
     try {
-      const data = await fetchJson('/api/auth/resend-verification', {
-        method: 'POST',
-        body: JSON.stringify({ email: pendingEmail }),
-      });
-      setResendMessage(data?.message || 'Verification email resent. Check your inbox.');
-      if (data?.token) {
-        const userStr = data.user ? encodeURIComponent(JSON.stringify(data.user)) : '';
-        navigate(`/email-verification?token=${encodeURIComponent(data.token)}&user=${userStr}`, { replace: true });
+      const result = await dispatch(register(payload)).unwrap();
+      
+      if (result.success) {
+        setPendingEmail(null);
+        if (isSSO) {
+          navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(result.username)}`);
+        } else {
+          navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(result.username)}`);
+        }
       }
-    } catch (err: any) {
-      // ✅ REMOVED: console.error - Silent error handling
-      setResendMessage(err?.message ?? 'Network error');
+    } catch (error: any) {
+      // Error is in Redux state
+      if (error?.email) setPendingEmail(error.email);
     }
-  }
+  };
+
+  const handleResendVerification = async () => {
+    if (!pendingEmail) return;
+    
+    try {
+      await dispatch(resendVerification(pendingEmail)).unwrap();
+    } catch (error) {
+      // Error handled by Redux
+    }
+  };
 
   const handleBarangaySelect = (id: number, name: string) => {
     setBarangay(id.toString());
@@ -109,14 +189,14 @@ const SignUp: React.FC = () => {
 
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
-      {/* Left Panel - Sign Up Form */}
+      {/* Left Panel */}
       <div className="flex items-center justify-center px-4 sm:px-6 md:px-8 lg:px-12 py-8 sm:py-12 lg:py-16">
         <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl">
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-6 sm:mb-8">
             {isSSO ? 'Complete Your Google Registration' : 'Create your account with us below'}
           </h1>
 
-          <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleSignUp} noValidate>
+          <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleSubmit} noValidate>
             {/* Role Selection */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
@@ -124,14 +204,18 @@ const SignUp: React.FC = () => {
               </label>
               <select
                 value={role}
-                onChange={(e) => setRole(e.target.value)}
+                onChange={(e) => {
+                  setRole(e.target.value);
+                  const newErrors = { ...errors };
+                  if (e.target.value) delete newErrors.role;
+                  setErrors(newErrors);
+                }}
                 onBlur={() => validateField('role')}
                 className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
                   errors.role 
                     ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
                     : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
                 }`}
-                aria-invalid={Boolean(errors.role)}
               >
                 <option value="">Select Role</option>
                 <option value="1">Admin</option>
@@ -140,25 +224,23 @@ const SignUp: React.FC = () => {
               {errors.role && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.role}</div>}
             </div>
 
-            {/* First Name & Last Name Row */}
+            {/* First Name & Last Name */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   First Name
-                  {isSSO && firstName && <span className="text-blue-600 text-xs ml-2"></span>}
                 </label>
                 <input
                   type="text"
                   value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
+                  onChange={(e) => setFirstName(nameFilter(e.target.value))}
                   onBlur={() => validateField('firstName')}
                   placeholder="First Name"
                   className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
                     errors.firstName 
                       ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
                       : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                  } ${isSSO && firstName ? 'bg-gray-50 border-blue-200' : ''}`}
-                  aria-invalid={Boolean(errors.firstName)}
+                  }`}
                 />
                 {errors.firstName && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.firstName}</div>}
               </div>
@@ -166,30 +248,28 @@ const SignUp: React.FC = () => {
               <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                   Last Name
-                  {isSSO && lastName && <span className="text-blue-600 text-xs ml-2"></span>}
                 </label>
                 <input
                   type="text"
                   value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
+                  onChange={(e) => setLastName(nameFilter(e.target.value))}
                   onBlur={() => validateField('lastName')}
                   placeholder="Last Name"
                   className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
                     errors.lastName 
                       ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
                       : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                  } ${isSSO && lastName ? 'bg-gray-50 border-blue-200' : ''}`}
-                  aria-invalid={Boolean(errors.lastName)}
+                  }`}
                 />
                 {errors.lastName && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.lastName}</div>}
               </div>
             </div>
 
-            {/* Email Field */}
+            {/* Email */}
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 Email Address
-                {isSSO && <span className="text-green-700 text-xs ml-2">Verified</span>}
+                {isSSO && <span className="text-green-700 text-xs ml-2">✓ Verified</span>}
               </label>
               <input
                 type="email"
@@ -203,12 +283,11 @@ const SignUp: React.FC = () => {
                     ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
                     : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
                 } ${isSSO ? 'bg-green-50 border-green-400 cursor-not-allowed text-green-700' : ''}`}
-                aria-invalid={Boolean(errors.email)}
               />
               {errors.email && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.email}</div>}
             </div>
 
-            {/* Custom Barangay Dropdown */}
+            {/* Barangay Dropdown */}
             <div className="relative" ref={barangayRef}>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 Barangay
@@ -222,13 +301,12 @@ const SignUp: React.FC = () => {
                     ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
                     : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
                 }`}
-                aria-invalid={Boolean(errors.barangay)}
               >
-                <span className={selectedBarangay ? 'text-gray-900 font-normal' : 'text-gray-400 font-normal'}>
+                <span className={selectedBarangay ? 'text-gray-900' : 'text-gray-400'}>
                   {selectedBarangay ? selectedBarangay.name : 'Select Barangay'}
                 </span>
                 <svg 
-                  className={`w-4 h-4 transition-transform text-gray-600 ${isBarangayOpen ? 'rotate-180' : ''}`} 
+                  className={`w-4 h-4 transition-transform ${isBarangayOpen ? 'rotate-180' : ''}`} 
                   fill="none" 
                   stroke="currentColor" 
                   viewBox="0 0 24 24"
@@ -239,16 +317,12 @@ const SignUp: React.FC = () => {
               
               {isBarangayOpen && (
                 <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                  {barangays && barangays.map((b, index) => (
+                  {barangays.map((b) => (
                     <button
                       key={b.id}
                       type="button"
                       onClick={() => handleBarangaySelect(b.id, b.name)}
-                      className={`w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base font-normal bg-white text-black hover:bg-gray-100 active:bg-gray-200 transition-colors block outline-none border-none ${
-                        index === 0 ? 'rounded-t-lg' : ''
-                      } ${
-                        index === barangays.length - 1 ? 'rounded-b-lg' : ''
-                      }`}
+                      className="w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base hover:bg-gray-100 transition-colors"
                     >
                       {b.name}
                     </button>
@@ -259,32 +333,38 @@ const SignUp: React.FC = () => {
               {errors.barangay && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.barangay}</div>}
             </div>
 
-            {/* Server Error */}
-            {serverError && (
-              <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 p-2 sm:p-3 rounded-lg">
-                {serverError}
+            {/* Error Message */}
+            {authError && (
+              <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 border border-red-200 p-3 rounded-lg">
+                {authError}
+              </div>
+            )}
+
+            {/* Success Message */}
+            {successMessage && (
+              <div className="text-green-600 text-xs sm:text-sm text-center bg-green-50 border border-green-200 p-3 rounded-lg">
+                {successMessage}
               </div>
             )}
 
             {/* Submit Button */}
             <button 
-              className="w-full bg-sibol-green hover:bg-green-700 active:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3 lg:mt-[10%] flex items-center justify-center gap-2"
+              className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
             >
-              {loading ? (
+              {isLoading ? (
                 <>
-                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg className="animate-spin h-5 w-5 text-white inline mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  <span>Creating Account...</span>
+                  Creating Account...
                 </>
               ) : (
                 isSSO ? 'Complete Google Registration' : 'Create Account'
               )}
             </button>
-
           </form>
 
           {/* Sign In Link */}
@@ -293,13 +373,13 @@ const SignUp: React.FC = () => {
             <button 
               className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold transition-colors cursor-pointer"
               type="button" 
-              onClick={goToLogin}
+              onClick={() => navigate('/login')}
             >
               Sign In
             </button>
           </p>
 
-          {/* Pending Verification Section */}
+          {/* Pending Verification */}
           {pendingEmail && (
             <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
               <p className="text-sm text-gray-700 mb-2">
@@ -308,17 +388,18 @@ const SignUp: React.FC = () => {
               <button 
                 type="button" 
                 onClick={handleResendVerification}
-                className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-sm transition-colors cursor-pointer"
+                disabled={isLoading}
+                className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-sm transition-colors cursor-pointer disabled:opacity-50"
               >
                 Resend verification email
               </button>
-              {resendMessage && <p className="text-xs text-gray-600 mt-2">{resendMessage}</p>}
+              {successMessage && <p className="text-xs text-green-600 mt-2">{successMessage}</p>}
             </div>
           )}
         </div>
       </div>
 
-      {/* Right Panel - Image (Hidden on mobile/tablet) */}
+      {/* Right Panel - Image */}
       <div
         className="hidden lg:block bg-cover bg-center bg-no-repeat min-h-screen"
         style={{ backgroundImage: `url(${signupImage})` }}
