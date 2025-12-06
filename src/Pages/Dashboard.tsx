@@ -8,7 +8,7 @@ import CollectionSchedule from "../Components/CollectionSchedule";
 import EnergyChart from "../Components/EnergyChart";
 import ChangePasswordModal from "../Components/verification/ChangePasswordModal";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
-import { logout, updateFirstLogin, verifyToken } from "../store/slices/authSlice";
+import { logout, updateFirstLogin, verifyToken, setUser } from "../store/slices/authSlice";
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -18,6 +18,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [hasProcessedUrlParams, setHasProcessedUrlParams] = useState(false); // ✅ NEW: Track if we processed URL params
 
   // 🔐 Auth check - redirect if not authenticated
   useEffect(() => {
@@ -26,12 +27,85 @@ const Dashboard: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  // ✅ NEW: Verify token on mount to refresh user state
+  // ✅ FIX: Handle approval link FIRST - before anything else
   useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(verifyToken());
+    const parseHashParams = (hash: string) => {
+      if (!hash) return new URLSearchParams();
+      const trimmed = hash.startsWith("#") ? hash.slice(1) : hash;
+      return new URLSearchParams(trimmed);
+    };
+
+    const queryParams = new URLSearchParams(location.search);
+    const hashParams = parseHashParams(window.location.hash);
+    const get = (key: string) => queryParams.get(key) || hashParams.get(key);
+
+    const token = get("token") || get("access_token") || get("auth_token");
+    const userParam = get("user");
+    const auth = get("auth");
+
+    console.log('🔍 Dashboard URL params:', { 
+      token: token ? 'present' : 'none', 
+      user: userParam ? 'present' : 'none', 
+      auth,
+      location: location.pathname + location.search
+    });
+
+    // ✅ CRITICAL: Handle user data from approval email link FIRST
+    if (userParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(userParam));
+        console.log('✅ User data from URL:', parsed);
+        
+        // Store in localStorage
+        localStorage.setItem("user", JSON.stringify(parsed));
+        
+        // ✅ Update Redux state immediately
+        dispatch(setUser(parsed));
+        
+        // ✅ Mark that we processed URL params
+        setHasProcessedUrlParams(true);
+        
+        // Clean URL after extracting data
+        const cleanUrl = location.pathname;
+        window.history.replaceState({}, "", cleanUrl);
+        
+        // ✅ If IsFirstLogin=1, show modal immediately
+        if (parsed.IsFirstLogin === 1) {
+          console.log('✅ First login detected from URL - showing modal');
+          setTimeout(() => setShowPasswordModal(true), 100); // ✅ Small delay to ensure state is updated
+        }
+        
+        return; // ✅ Exit early - don't process anything else
+      } catch (e) {
+        console.error('Failed to parse user data from URL:', e);
+      }
     }
-  }, [dispatch, isAuthenticated]);
+
+    // Handle token/auth params (secondary)
+    if (token) {
+      const cleanUrl = location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    } else if (auth === "fail") {
+      navigate("/login");
+    }
+  }, [location.search, location.hash, navigate, dispatch]); // ✅ CHANGED: Removed location from deps to prevent re-runs
+
+  // ✅ FIX: Only verify token if NO user data in URL AND we haven't processed URL params
+  useEffect(() => {
+    // ✅ Don't run if:
+    // 1. We just processed URL params
+    // 2. URL contains user data
+    // 3. Not authenticated
+    const hasUrlParams = location.search.includes('user=') || location.search.includes('token=');
+    
+    if (hasProcessedUrlParams || hasUrlParams || !isAuthenticated) {
+      console.log('⏭️ Skipping verifyToken - URL params present or already processed');
+      return;
+    }
+
+    console.log('🔄 Verifying token...');
+    dispatch(verifyToken());
+  }, [hasProcessedUrlParams, isAuthenticated, dispatch]); // ✅ CHANGED: Removed location.search from deps
 
   // Prevent back/forward navigation issues
   useEffect(() => {
@@ -66,42 +140,9 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔐 Token / Auth check
+  // ✅ FIX: Show modal based on Redux isFirstLogin state (with extra logging)
   useEffect(() => {
-    const parseHashParams = (hash: string) => {
-      if (!hash) return new URLSearchParams();
-      const trimmed = hash.startsWith("#") ? hash.slice(1) : hash;
-      return new URLSearchParams(trimmed);
-    };
-
-    const queryParams = new URLSearchParams(location.search);
-    const hashParams = parseHashParams(window.location.hash);
-    const get = (key: string) => queryParams.get(key) || hashParams.get(key);
-
-    const token = get("token") || get("access_token") || get("auth_token");
-    const user = get("user");
-    const auth = get("auth");
-
-    if (user) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(user));
-        localStorage.setItem("user", JSON.stringify(parsed));
-      } catch {
-        // Silent fail
-      }
-    }
-
-    if (token) {
-      const cleanUrl = location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
-    } else if (auth === "fail") {
-      navigate("/login");
-    }
-  }, [location, navigate]);
-
-  // ✅ FIX: Show modal based on Redux isFirstLogin state
-  useEffect(() => {
-    console.log('🔍 Dashboard - isAuthenticated:', isAuthenticated, 'isFirstLogin:', isFirstLoginRedux);
+    console.log('🔍 Modal check - isAuthenticated:', isAuthenticated, 'isFirstLogin:', isFirstLoginRedux, 'user:', user);
     
     if (isAuthenticated && isFirstLoginRedux) {
       console.log('✅ Showing password modal');
@@ -109,7 +150,7 @@ const Dashboard: React.FC = () => {
     } else {
       setShowPasswordModal(false);
     }
-  }, [isAuthenticated, isFirstLoginRedux]);
+  }, [isAuthenticated, isFirstLoginRedux, user]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
