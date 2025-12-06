@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { login as loginAction, clearError } from '../store/slices/authSlice';
+import { login as loginAction, clearError, setUser } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {
@@ -27,21 +27,39 @@ const Login: React.FC = () => {
     };
   }, [dispatch]);
 
+  // ✅ FIX: Listen for SSO messages from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const allowedOrigin = new URL(API_URL).origin;
       
+      // Allow messages from same origin (popup) or API origin
       if (event.origin !== allowedOrigin && event.origin !== window.location.origin) {
+        console.warn('Message from unauthorized origin:', event.origin);
         return;
       }
 
+      console.log('Received SSO message:', event.data);
+
       if (event.data?.type === 'SSO_SUCCESS') {
         const { user } = event.data;
-        if (user) localStorage.setItem('user', JSON.stringify(user));
-        navigate('/dashboard', { replace: true });
+        
+        if (user) {
+          // ✅ Store user in localStorage
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          // ✅ Update Redux state
+          dispatch(setUser(user));
+          
+          console.log('SSO Success - Navigating to dashboard');
+          
+          // ✅ Navigate to dashboard
+          navigate('/dashboard', { replace: true });
+        }
       } else if (event.data?.type === 'SSO_ERROR') {
-        dispatch(clearError());
+        const error = event.data?.message || 'SSO authentication failed';
+        console.error('SSO Error:', error);
+        // Error will show in UI via Redux
       }
     };
 

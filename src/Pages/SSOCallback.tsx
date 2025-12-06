@@ -20,20 +20,34 @@ const SSOCallback: React.FC = () => {
         const firstName = queryParams.get('firstName');
         const lastName = queryParams.get('lastName');
 
-        // ✅ Token is now in HTTP-only cookie, just handle user data
         const isPopup = window.opener && !window.opener.closed;
 
-        // Handle authentication failure
+        console.log('SSO Callback params:', { 
+          user: user ? 'present' : 'null', 
+          auth, 
+          errorParam, 
+          errorMessage, 
+          email,
+          isPopup 
+        });
+
+        // ✅ Handle authentication failure
         if (auth === 'fail' || errorParam) {
           const error = errorParam || errorMessage || 'Authentication failed';
-          setMessage(error);
+          setMessage(`Error: ${error}`);
+          console.error('SSO Error:', error);
           
           if (isPopup) {
             window.opener.postMessage({
               type: 'SSO_ERROR',
               message: error
             }, window.location.origin);
-            setTimeout(() => window.close(), 1000);
+            setTimeout(() => window.close(), 2000);
+          } else {
+            // Not a popup - redirect directly
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 2000);
           }
           return;
         }
@@ -42,75 +56,87 @@ const SSOCallback: React.FC = () => {
         if (auth === 'success' && user) {
           try {
             const parsedUser = JSON.parse(decodeURIComponent(user));
+            console.log('SSO Success - User:', parsedUser);
+            
+            // ✅ Store user in localStorage (cookie is already set by backend)
+            localStorage.setItem('user', JSON.stringify(parsedUser));
             
             if (isPopup) {
+              // ✅ POPUP: Send message to parent window
+              setMessage('Success! Redirecting...');
+              
               window.opener.postMessage({
                 type: 'SSO_SUCCESS',
-                user: parsedUser // ❌ No token needed
+                user: parsedUser
               }, window.location.origin);
               
-              setMessage('Success! Closing window...');
+              // Close popup after sending message
               setTimeout(() => window.close(), 500);
             } else {
-              // ❌ No longer store token
-              localStorage.setItem('user', JSON.stringify(parsedUser));
+              // ✅ DIRECT ACCESS: Redirect to dashboard
+              setMessage('Success! Redirecting to dashboard...');
               window.location.href = '/dashboard';
             }
+            return;
           } catch (e) {
             console.error('Failed to parse user:', e);
             setMessage('Error parsing user data');
+            setTimeout(() => {
+              if (isPopup) {
+                window.close();
+              } else {
+                window.location.href = '/login';
+              }
+            }, 2000);
           }
           return;
         }
 
-        // Handle admin pending (check message parameter first)
+        // ✅ Handle admin pending
         if (errorMessage === 'admin_pending' && email) {
-          console.log('⏳ Admin pending - redirecting to pending-approval');
+          console.log('Admin pending - redirecting');
           const pendingUrl = `/pending-approval?email=${encodeURIComponent(email)}${
             sso ? '&sso=true' : ''
           }${username ? `&username=${encodeURIComponent(username)}` : ''}`;
           
-          setMessage('Account pending approval...');
-          
           if (isPopup) {
+            // ✅ INSTANT: No loading screen
             window.opener.location.href = pendingUrl;
-            setTimeout(() => window.close(), 500);
+            window.close();
           } else {
             window.location.href = pendingUrl;
           }
           return;
         }
 
-        // Handle email verification needed
+        // ✅ Handle email verification needed
         if (errorMessage === 'email_pending' && email) {
-          console.log('📧 Email verification needed');
+          console.log('Email verification needed');
           const verifyUrl = `/email-verification?email=${encodeURIComponent(email)}${
             username ? `&username=${encodeURIComponent(username)}` : ''
           }`;
           
-          setMessage('Email verification required...');
-          
           if (isPopup) {
+            // ✅ INSTANT: No loading screen
             window.opener.location.href = verifyUrl;
-            setTimeout(() => window.close(), 500);
+            window.close();
           } else {
             window.location.href = verifyUrl;
           }
           return;
         }
 
-        // Handle SSO signup flow (no account exists)
+        // ✅ Handle SSO signup flow - INSTANT REDIRECT
         if (sso === 'google' && email) {
-          console.log('📝 SSO Signup flow - redirecting to signup');
+          console.log('SSO Signup flow');
           const signupUrl = `/signup?sso=google&email=${encodeURIComponent(email)}${
             firstName ? `&firstName=${encodeURIComponent(firstName)}` : ''
           }${lastName ? `&lastName=${encodeURIComponent(lastName)}` : ''}`;
           
-          setMessage('Redirecting to signup...');
-          
           if (isPopup) {
+            // ✅ INSTANT: No loading screen or message
             window.opener.location.href = signupUrl;
-            setTimeout(() => window.close(), 500);
+            window.close();
           } else {
             window.location.href = signupUrl;
           }
@@ -118,8 +144,8 @@ const SSOCallback: React.FC = () => {
         }
 
         // No valid params - redirect to login
-        console.log('⚠️ No valid SSO params - Redirecting to login');
-        setMessage('Redirecting to login...');
+        console.warn('No valid SSO params:', { user, auth, errorParam, errorMessage });
+        setMessage('Invalid SSO response. Redirecting to login...');
         setTimeout(() => {
           if (isPopup) {
             window.opener.location.href = '/login';
@@ -127,7 +153,7 @@ const SSOCallback: React.FC = () => {
           } else {
             window.location.href = '/login';
           }
-        }, 1000);
+        }, 2000);
 
       } catch (err: any) {
         console.error('SSO Callback error:', err);
