@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
 import api from '../services/apiClient';
-import "../types/Header.css";
+import "../tailwind.css";
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
