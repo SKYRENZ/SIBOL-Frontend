@@ -46,7 +46,7 @@ interface TableProps {
   types?: string[];
 }
 
-const HEADER_BG = "bg-[#355842]";
+const HEADER_BG = "bg-[#355E3B]"; // <-- UPDATED HEADER COLOR
 const BORDER_COLOR = "border-[#00001A4D]";
 
 const Table: React.FC<TableProps> = ({
@@ -162,7 +162,7 @@ const Table: React.FC<TableProps> = ({
 
       {/* TABLET & DESKTOP VIEW */}
       <div className="hidden lg:block overflow-x-auto">
-        <ShadTable className="w-full border">
+        <ShadTable className="w-full">
           {/* SEARCH + FILTER ROW */}
           <TableHeader>
             <TableRow className="bg-white cursor-default select-none">

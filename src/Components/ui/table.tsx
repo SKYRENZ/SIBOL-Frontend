@@ -49,13 +49,14 @@ const TableRow = React.forwardRef<
   <tr
     ref={ref}
     className={cn(
-      "border-b border-[#00001A4D]",
+      "border-b border-[#00001A4D] last:border-b-0",
       className
     )}
     {...props}
   />
 ))
 TableRow.displayName = "TableRow"
+
 
 const TableHead = React.forwardRef<
   HTMLTableCellElement,
