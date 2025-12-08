@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Lock, CheckCircle, XCircle, Check, X } from 'lucide-react';
-import { useChangePassword } from '../../hooks/signup/useChangePassword';
+import { Eye, EyeOff, Check, X } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '../../store/hooks';
+import { changePassword, clearError, clearSuccess } from '../../store/slices/authSlice';
 
 type Props = {
   open: boolean;
@@ -10,51 +11,66 @@ type Props = {
 };
 
 export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstLogin = false }: Props) {
-  const {
-    currentPassword,
-    setCurrentPassword,
-    newPassword,
-    setNewPassword,
-    confirmPassword,
-    setConfirmPassword,
-    loading,
-    error,
-    success,
-    passwordValid,
-    passwordsMatch,
-    changePassword,
-    resetState
-  } = useChangePassword();
-
+  const dispatch = useAppDispatch();
+  
+  // ✅ Use Redux state instead of hook
+  const { isLoading, error: authError, successMessage } = useAppSelector((state) => state.auth);
+  
+  // ✅ Local state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  // ✅ Clear Redux state on mount/unmount
   useEffect(() => {
     if (open) {
-      resetState();
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
       setShowCurrent(false);
       setShowNew(false);
       setShowConfirm(false);
+      dispatch(clearError());
+      dispatch(clearSuccess());
     }
-  }, [open, resetState]);
+  }, [open, dispatch]);
 
+  // ✅ Handle success from Redux
   useEffect(() => {
-    if (success && onSuccess) {
+    if (successMessage && onSuccess) {
       setTimeout(() => {
         onSuccess();
         onClose();
       }, 2000);
     }
-  }, [success, onSuccess, onClose]);
+  }, [successMessage, onSuccess, onClose]);
 
   if (!open) return null;
 
   const handleSubmit = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      return;
+    }
+
     try {
-      await changePassword();
-    } catch (err) {
-      // Error handled by hook
+      await dispatch(changePassword({ currentPassword, newPassword })).unwrap();
+    } catch (error) {
+      // Error handled by Redux
+    }
+  };
+
+  // ✅ Prevent closing if first login (unless clicking Cancel when not first login)
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    // Only close if clicking the backdrop itself (not the modal content)
+    if (e.target === e.currentTarget && !isFirstLogin) {
+      onClose();
     }
   };
 
@@ -70,17 +86,24 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
   const strengthColor =
     score <= 1 ? 'bg-red-500' : score === 2 ? 'bg-rose-500' : score === 3 ? 'bg-yellow-400' : score === 4 ? 'bg-emerald-400' : 'bg-emerald-600';
 
+  const passwordValid = /(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}/.test(newPassword);
+  const passwordsMatch = newPassword === confirmPassword && newPassword.length > 0;
+
   return (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" 
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm" 
       role="dialog" 
       aria-modal="true"
+      onClick={handleBackdropClick}
     >
-      <div className="w-full max-w-md bg-white rounded-lg shadow-lg overflow-hidden">
+      <div 
+        className="w-full max-w-md bg-white rounded-lg shadow-2xl overflow-hidden"
+        onClick={(e) => e.stopPropagation()} // ✅ Prevent clicks from closing modal
+      >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center justify-between p-4 border-b bg-gradient-to-r from-green-50 to-emerald-50">
           <h3 className="text-lg font-medium text-black">
-            {isFirstLogin ? 'Set Your New Password' : 'Change Password'}
+            {isFirstLogin ? '🔐 Set Your New Password' : 'Change Password'}
           </h3>
           {!isFirstLogin && (
             <button
@@ -103,20 +126,20 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
           )}
 
           {/* Error Message */}
-          {error && (
+          {authError && (
             <div className="mb-3 bg-red-50 border border-red-200 rounded-md px-4 py-3 text-red-800 text-sm">
-              {error}
+              {authError}
             </div>
           )}
 
           {/* Success Message */}
-          {success && (
+          {successMessage && (
             <div className="mb-3 bg-green-50 border border-green-100 rounded-md px-4 py-2 text-green-800 text-sm">
-              Password changed successfully! Redirecting...
+              {successMessage}
             </div>
           )}
 
-          {!success && (
+          {!successMessage && (
             <>
               {/* Current Password */}
               <label className="block text-sm font-medium text-black mb-2">
@@ -130,12 +153,14 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-200 bg-white text-black placeholder-gray-400"
                   placeholder="Enter current password"
                   autoFocus
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowCurrent(!showCurrent)}
                   className="absolute inset-y-0 right-2 flex items-center justify-center px-2 text-gray-600 bg-transparent border-0 focus:outline-none focus:ring-0 hover:outline-none hover:ring-0"
                   aria-label={showCurrent ? 'Hide password' : 'Show password'}
+                  disabled={isLoading}
                 >
                   {showCurrent ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -152,12 +177,14 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
                   onChange={(e) => setNewPassword(e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-200 bg-white text-black placeholder-gray-400"
                   placeholder="New password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowNew(!showNew)}
                   className="absolute inset-y-0 right-2 flex items-center justify-center px-2 text-gray-600 bg-transparent border-0 focus:outline-none focus:ring-0 hover:outline-none hover:ring-0"
                   aria-label={showNew ? 'Hide password' : 'Show password'}
+                  disabled={isLoading}
                 >
                   {showNew ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -174,12 +201,14 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-sky-200 bg-white text-black placeholder-gray-400"
                   placeholder="Confirm password"
+                  disabled={isLoading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowConfirm(!showConfirm)}
                   className="absolute inset-y-0 right-2 flex items-center justify-center px-2 text-gray-600 bg-transparent border-0 focus:outline-none focus:ring-0 hover:outline-none hover:ring-0"
                   aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                  disabled={isLoading}
                 >
                   {showConfirm ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
                 </button>
@@ -202,9 +231,8 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
                 </div>
               )}
 
-              {/* Password Strength Indicator - ALWAYS VISIBLE */}
+              {/* Password Strength Indicator */}
               <div className="mb-2">
-                {/* Strength bar - ALWAYS VISIBLE */}
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex-1 h-2 rounded-full bg-gray-200 overflow-hidden flex gap-1">
                     {Array.from({ length: 5 }).map((_, i) => (
@@ -217,7 +245,7 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
                   <div className="text-xs font-medium text-gray-700 ml-2 w-20 text-right">{strengthLabel}</div>
                 </div>
 
-                {/* Password Requirements - ALWAYS VISIBLE */}
+                {/* Password Requirements */}
                 <ul className="space-y-1 text-sm">
                   <li className="flex items-center gap-2 text-gray-700">
                     {hasLength ? <Check className="h-4 w-4 text-emerald-500" /> : <X className="h-4 w-4 text-rose-500" />}
@@ -248,17 +276,17 @@ export default function ChangePasswordModal({ open, onClose, onSuccess, isFirstL
                   <button
                     onClick={onClose}
                     className="px-4 py-2 rounded-md bg-gray-100 text-gray-800 hover:bg-gray-200 transition-colors"
-                    disabled={loading}
+                    disabled={isLoading}
                   >
                     Cancel
                   </button>
                 )}
                 <button
                   onClick={handleSubmit}
-                  disabled={loading || !passwordValid || !passwordsMatch || !currentPassword}
+                  disabled={isLoading || !passwordValid || !passwordsMatch || !currentPassword}
                   className="px-4 py-2 rounded-md bg-[#2E523A] text-white hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
                 >
-                  {loading ? 'Changing...' : 'Change Password'}
+                  {isLoading ? 'Changing...' : 'Change Password'}
                 </button>
               </div>
             </>

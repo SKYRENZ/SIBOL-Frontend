@@ -4,7 +4,7 @@ import * as scheduleService from '../../services/Schedule/scheduleService';
 import EditScheduleModal from "./editScheduleModal";
 import EditButton from "../editButton";
 import { useAreas, useSchedules } from "../../hooks/household/useScheduleHooks";
-import useFilters from "../../hooks/filter/useFilter";
+import useFilters from "../../hooks/common/useFilter";
 
 interface ScheduleTabProps {
   filters?: string[];

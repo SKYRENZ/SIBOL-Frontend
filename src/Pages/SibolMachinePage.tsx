@@ -1,30 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../Components/Header';
-import * as machineService from '../services/machineService';
 import type { Machine } from '../services/machineService';
-import { useMachine } from '../hooks/sibolMachine/useMachine'; // Correctly using your existing hook
-import { useMachinesData } from '../hooks/sibolMachine/useMachinesData';
-import { useWasteContainers } from '../hooks/sibolMachine/useWasteContainers';
 import Tabs from '../Components/common/Tabs';
-import SearchBar from '../Components/common/SearchBar';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
-import Table from '../Components/common/Table';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
 import "../tailwind.css";
 
+// Custom Hooks
+import { useMachines } from '../hooks/sibolMachine/useMachines';
+import { useWasteContainer } from '../hooks/wasteContainer/useWasteContainer';
+import { useUIState } from '../hooks/common/useUIState';
+
 const SibolMachinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Machines');
-  const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-
-  // measure header height (only apply offset if header is fixed so Tabs won't be hidden)
   const [headerHeight, setHeaderHeight] = useState<number>(0);
+
+  // Redux Hooks
+  const {
+    machines,
+    areas,
+    machineStatuses,
+    loading: machinesLoading,
+    error: machinesError,
+    addMachine,
+    editMachine,
+  } = useMachines();
+
+  const {
+    loading: containersLoading,
+    addContainer,
+  } = useWasteContainer();
+
+  // UI State Hook
+  const { modals, openModal, closeModal } = useUIState();
+
+  // Local form state
+  const [formData, setFormData] = useState({
+    area: '',
+    startDate: '',
+    name: '',
+    status: '',
+  });
+  const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
+
+  const tabsConfig = [
+    { id: 'Machines', label: 'Machines' },
+    { id: 'Chemical Additives', label: 'Additives' },
+    { id: 'Waste Container', label: 'Waste Container' },
+    { id: 'Analytics', label: 'Analytics' }
+  ];
+
+  // Header height calculation
   useEffect(() => {
     const update = () => {
       const headerEl = document.querySelector('header.header') as HTMLElement | null;
@@ -40,100 +73,81 @@ const SibolMachinePage: React.FC = () => {
     window.addEventListener('resize', update);
     return () => window.removeEventListener('resize', update);
   }, []);
-  
-  // Your existing hook for form state
-  const { 
-    showAddForm, 
-    showEditForm,
-    openAddForm, 
-    closeAddForm, 
-    openEditForm,
-    closeEditForm,
-    formData, 
-    updateFormField, 
-    setFormData 
-  } = useMachine();
 
-  // New hooks for data fetching
-  const machinesHook = useMachinesData();
-  const containersHook = useWasteContainers();
-
-  const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
-
-  const tabsConfig = [
-    { id: 'Machines', label: 'Machines' },
-    { id: 'Chemical Additives', label: 'Additives' },
-    { id: 'Waste Container', label: 'Waste Container' },
-    { id: 'Analytics', label: 'Analytics' }
-  ];
-
-  // Load data based on the active tab
-  useEffect(() => {
-    if (activeTab === 'Machines') {
-      machinesHook.fetchMachineData();
-    }
-    if (activeTab === 'Waste Container') {
-      containersHook.fetchContainers();
-    }
-  }, [activeTab]);
-
-  // Reset to page 1 when search term or active tab changes
+  // Reset pagination on tab change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, activeTab]);
+  }, [activeTab]);
 
-  // Handle page size change
   const handlePageSizeChange = (newPageSize: number) => {
     setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
+    setCurrentPage(1);
   };
 
-  // ✅ Handle edit machine button click
+  // Open Add Modal
+  const handleOpenAddModal = () => {
+    setFormData({ area: '', startDate: '', name: '', status: '' });
+    setEditingMachine(null);
+    openModal('add');
+  };
+
+  // Open Edit Modal
   const handleEditMachine = (machine: Machine) => {
     setEditingMachine(machine);
     setFormData({
       area: machine.Area_id.toString(),
-      startDate: '', // Not used in machine edit
+      startDate: '',
       name: machine.Name,
-      status: machine.status_id?.toString() || ''
+      status: machine.status_id?.toString() || '',
     });
-    openEditForm();
+    openModal('edit');
   };
 
-  const handleContainerSubmit = async (payload: CreateContainerRequest) => {
-    const success = await containersHook.createContainer(payload);
-    if (success) {
-      closeAddForm();
-      alert('Waste container created successfully!');
-      return true;
-    }
-    alert(`Failed to create container: ${containersHook.error ?? 'Unknown error'}`);
-    return false;
+  // Update form field
+  const updateFormField = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmitForm = async (e: React.FormEvent) => {
+  // Handle Machine Form Submit
+  const handleMachineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const isEditing = showEditForm && editingMachine;
-    if (activeTab === 'Machines') {
-      try {
-        if (isEditing) {
-          await machineService.updateMachine(editingMachine.machine_id, {
-            name: formData.name?.trim() || editingMachine.Name,
-            areaId: parseInt(formData.area),
-            status: formData.status ? parseInt(formData.status) : undefined
-          });
-        } else {
-          await machineService.createMachine(parseInt(formData.area));
-        }
-        await machinesHook.fetchMachineData();
-        isEditing ? closeEditForm() : closeAddForm();
-        alert(`Machine ${isEditing ? 'updated' : 'created'} successfully!`);
-      } catch (err) {
-        alert(`Failed to ${isEditing ? 'update' : 'create'} machine: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    const isEditing = modals.edit && editingMachine;
+
+    if (isEditing) {
+      const result = await editMachine(editingMachine.machine_id, {
+        name: formData.name?.trim() || editingMachine.Name,
+        areaId: parseInt(formData.area),
+        status: formData.status ? parseInt(formData.status) : undefined,
+      });
+
+      if (result.success) {
+        closeModal('edit');
+        alert('Machine updated successfully!');
+      } else {
+        alert(`Failed to update machine: ${result.error}`);
       }
     } else {
-      console.log('Form submitted for other tab:', { ...formData });
-      closeAddForm();
+      const result = await addMachine(parseInt(formData.area));
+
+      if (result.success) {
+        closeModal('add');
+        alert('Machine created successfully!');
+      } else {
+        alert(`Failed to create machine: ${result.error}`);
+      }
+    }
+  };
+
+  // Handle Container Submit
+  const handleContainerSubmit = async (payload: any) => {
+    const result = await addContainer(payload);
+    if (result.success) {
+      closeModal('add');
+      alert('Waste container created successfully!');
+      return true;
+    } else {
+      alert(`Failed to create container: ${result.error}`);
+      return false;
     }
   };
 
@@ -141,109 +155,78 @@ const SibolMachinePage: React.FC = () => {
     if (activeTab === 'Machines') {
       return (
         <MachineTab
-          machines={machinesHook.machines}
-          loading={machinesHook.loading}
-          error={machinesHook.error}
-          searchTerm={searchTerm}
+          machines={machines}
+          loading={machinesLoading}
+          error={machinesError}
           onEdit={handleEditMachine}
+          onAdd={handleOpenAddModal}
           pagination={{
             currentPage,
             pageSize,
-            totalItems: machinesHook.machines.length,
+            totalItems: machines.length,
             onPageChange: setCurrentPage,
-            onPageSizeChange: setPageSize,
+            onPageSizeChange: handlePageSizeChange,
           }}
+          filterTypes={['machine-status', 'area']} // ✅ Only machine status and area
         />
       );
     }
     if (activeTab === 'Waste Container') {
       return (
         <WasteContainerTab
-          containers={containersHook.wasteContainers}
-          loading={containersHook.loading}
-          error={containersHook.error}
-          searchTerm={searchTerm}
+          filterTypes={['container-status', 'waste-type']}
         />
       );
     }
     if (activeTab === 'Chemical Additives') {
-      return <AdditivesTab searchTerm={searchTerm} onSearchChange={setSearchTerm} />;
+      return (
+        <AdditivesTab
+          filterTypes={['additive-stage', 'machine']}
+          searchTerm=""
+          onSearchChange={() => {}} // ✅ Added required props
+        />
+      );
     }
-    // Placeholder for other tabs
     return <div className="text-center py-10">Content for {activeTab}</div>;
   };
 
   return (
-    // NOTE: switched to spacer + sticky subheader approach (like MaintenancePage)
     <div className="min-h-screen bg-gray-50">
       <Header />
       
-      {/* Sub Navigation Bar - placed directly under header with no outer gap */}
       <div className="w-full bg-white border-b">
-        {/* spacer to preserve header height so sticky subheader won't overlap header */}
         <div style={{ height: `calc(${headerHeight}px)` }} aria-hidden />
         <div
           className="subheader sticky z-10 w-full bg-white px-6"
           style={{ top: `calc(${headerHeight}px)` }}
         >
           <div className="max-w-screen-2xl mx-auto py-3">
-            {/* added vertical padding (py-3) so tabs have breathing room inside the bar */}
             <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
       <div className="w-full px-6 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          {/* Search Bar and Action Buttons */}
-          <div className="mb-6 flex items-center justify-between gap-6">
-            <div className="w-3/5">
-              <SearchBar 
-                value={searchTerm} 
-                onChange={setSearchTerm}
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex space-x-3">
-              {(activeTab === 'Machines' || activeTab === 'Waste Container') && (
-                <button 
-                  onClick={openAddForm}
-                  className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-lg text-sm font-medium"
-                >
-                  {activeTab === 'Waste Container' ? 'Add Container' : 'Add Machine'}
-                </button>
-              )}
-            </div>
-          </div>
           {renderContent()}
         </div>
       </div>
 
-      {/* Add/Edit Modals */}
-      <FormModal
-        // ensure modal appears above sticky subheader/tabs by forcing a high z-index
-        isOpen={(showAddForm || showEditForm)}
-        onClose={showEditForm ? closeEditForm : closeAddForm}
-        title={showEditForm ? `Edit Machine #${editingMachine?.machine_id}` : `Add ${activeTab === 'Waste Container' ? 'Container' : 'Machine'}`}
-        width="500px"
-        style={{ zIndex: 200000 }}
-       >
-        {activeTab === 'Waste Container' && !showEditForm ? (
-          <AddWasteContainerForm
-            loading={containersHook.loading}
-            onCancel={closeAddForm}
-            onSubmit={handleContainerSubmit}
-          />
-        ) : (
-          <form onSubmit={handleSubmitForm} className="space-y-4">
-            {(activeTab === 'Waste Container' || showEditForm) && (
+      {/* Machine Form Modal */}
+      {activeTab === 'Machines' && (
+        <FormModal
+          isOpen={modals.add || modals.edit}
+          onClose={() => modals.edit ? closeModal('edit') : closeModal('add')}
+          title={modals.edit ? `Edit Machine #${editingMachine?.machine_id}` : 'Add Machine'}
+          width="500px"
+        >
+          <form onSubmit={handleMachineSubmit} className="space-y-4">
+            {modals.edit && (
               <FormField
-                label={activeTab === 'Waste Container' ? "Container Name" : "Machine Name"}
+                label="Machine Name"
                 name="name"
                 type="text"
-                placeholder={activeTab === 'Waste Container' ? "e.g., WC-101" : "e.g., SIBOL-M-001"}
+                placeholder="e.g., SIBOL-M-001"
                 value={formData.name}
                 onChange={(e) => updateFormField('name', e.target.value)}
                 required
@@ -255,43 +238,60 @@ const SibolMachinePage: React.FC = () => {
               type="select"
               value={formData.area}
               onChange={(e) => updateFormField('area', e.target.value)}
-              options={machinesHook.areas.map((area) => ({
+              options={areas.map((area) => ({
                 value: area.Area_id.toString(),
                 label: area.Area_Name
               }))}
               required
             />
-            {activeTab === 'Waste Container' && !showEditForm && (
-              <FormField
-                label="Deployment Date"
-                name="startDate"
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => updateFormField('startDate', e.target.value)}
-                required
-              />
-            )}
-            {showEditForm && (
+            {modals.edit && (
               <FormField
                 label="Status"
                 name="status"
                 type="select"
                 value={formData.status}
                 onChange={(e) => updateFormField('status', e.target.value)}
-                options={machinesHook.machineStatuses.map((s) => ({ value: s.Mach_status_id.toString(), label: s.Status }))}
+                options={machineStatuses.map((s) => ({ 
+                  value: s.Mach_status_id.toString(), 
+                  label: s.Status 
+                }))}
               />
             )}
             <div className="flex justify-center pt-2">
-              <button type="button" onClick={showEditForm ? closeEditForm : closeAddForm} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-3">
+              <button 
+                type="button" 
+                onClick={() => modals.edit ? closeModal('edit') : closeModal('add')} 
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-3"
+              >
                 Cancel
               </button>
-              <button type="submit" disabled={machinesHook.loading || containersHook.loading} className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50">
-                {machinesHook.loading || containersHook.loading ? 'Saving...' : (showEditForm ? 'Update Machine' : 'Add')}
+              <button 
+                type="submit" 
+                disabled={machinesLoading} 
+                className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50"
+              >
+                {machinesLoading ? 'Saving...' : (modals.edit ? 'Update Machine' : 'Add Machine')}
               </button>
             </div>
           </form>
-        )}
-      </FormModal>
+        </FormModal>
+      )}
+
+      {/* Container Form Modal */}
+      {activeTab === 'Waste Container' && (
+        <FormModal
+          isOpen={modals.add}
+          onClose={() => closeModal('add')}
+          title="Add Container"
+          width="500px"
+        >
+          <AddWasteContainerForm
+            loading={containersLoading}
+            onCancel={() => closeModal('add')}
+            onSubmit={handleContainerSubmit}
+          />
+        </FormModal>
+      )}
     </div>
   );
 };

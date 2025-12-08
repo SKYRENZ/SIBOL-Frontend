@@ -3,6 +3,8 @@ import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
 import api from '../services/apiClient';
 import "../tailwind.css";
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { logout as logoutAction } from '../store/slices/authSlice';
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -18,30 +20,30 @@ const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
+  const dispatch = useAppDispatch();
+  
+  // ✅ Get isFirstLogin from Redux to disable header
+  const { isFirstLogin } = useAppSelector((state) => state.auth);
   
   async function handleLogout() {
     try {
-      // Attempt to notify backend (if session-based logout exists)
-      await api.post('/api/auth/logout');
+      dispatch(logoutAction());
+      navigate('/login', { replace: true });
     } catch (err) {
-      // ignore network errors, still clear local state
-      console.warn('logout request failed', err);
+      console.warn('logout failed', err);
+      navigate('/login', { replace: true });
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login', { replace: true });
   }
   
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const normalized = await fetchAllowedModules(); // { list, get, has }
+        const normalized = await fetchAllowedModules();
         if (!mounted) return;
         setModules(normalized);
       } catch (err) {
         console.error('modules/allowed error:', err);
-        // leave modules empty so UI doesn't crash
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
@@ -73,7 +75,6 @@ const Header: React.FC = () => {
     );
   };
 
-  // fallback: check localStorage user for role/modules
   const localUser = (() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
   })();
@@ -88,7 +89,7 @@ const Header: React.FC = () => {
   });
 
   return (
-    <header className="header">
+    <header className={`header ${isFirstLogin ? 'pointer-events-none opacity-50' : ''}`}>
       <nav className="nav">
         <img
           className="nav-logo"
@@ -106,6 +107,7 @@ const Header: React.FC = () => {
           aria-expanded={menuOpen}
           aria-controls="primary-navigation"
           aria-label="Toggle navigation menu"
+          disabled={isFirstLogin}
         >
           <span />
           <span />
@@ -122,6 +124,7 @@ const Header: React.FC = () => {
                   className={({ isActive }) =>
                     `nav-link ${isActive ? "active" : ""}`
                   }
+                  style={{ pointerEvents: isFirstLogin ? 'none' : 'auto' }}
                 >
                   {link.label}
                 </NavLink>
@@ -168,14 +171,16 @@ const Header: React.FC = () => {
               title="Logout"
               aria-label="Logout"
               className="logout-btn"
+              disabled={isFirstLogin}
               style={{
                 background: 'transparent',
                 border: 'none',
                 padding: '4px 8px',
                 marginLeft: 8,
-                cursor: 'pointer',
+                cursor: isFirstLogin ? 'not-allowed' : 'pointer',
                 color: 'inherit',
                 fontSize: 14,
+                opacity: isFirstLogin ? 0.5 : 1,
               }}
             >
               Logout

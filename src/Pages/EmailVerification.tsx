@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useEmailVerification } from '../hooks/signup/useEmailVerification';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { verifyEmail, resendVerification, clearError, clearSuccess } from '../store/slices/authSlice';
 import AuthLayout from '../Components/verification/AuthLayout';
 import LoadingSpinner from '../Components/verification/LoadingSpinner';
 import StatusCard from '../Components/verification/StatusCard';
@@ -10,43 +11,167 @@ import CountdownProgress from '../Components/verification/CountdownProgress';
 const EmailVerification: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
 
+  // ✅ Redux state
+  const { isLoading, error: authError, successMessage } = useAppSelector((state) => state.auth);
+
+  // ✅ Local state
+  const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'waiting'>('waiting');
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [countdown, setCountdown] = useState(3);
+  const [resendCooldown, setResendCooldown] = useState(0);
+  const [resendAvailableAt, setResendAvailableAt] = useState<number | null>(null);
+  const [hasVerified, setHasVerified] = useState(false); // ✅ NEW: Prevent multiple verifications
+
+  const COOLDOWN_SECONDS = 60;
+
+  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
+  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
+  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
+
+  // ✅ Clear errors on unmount
   useEffect(() => {
+    return () => {
+      dispatch(clearError());
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
+
+  // ✅ Extract email and username from URL
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const usernameParam = searchParams.get('username');
+    
+    if (emailParam) setEmail(emailParam);
+    if (usernameParam) setUsername(usernameParam);
+    
+    // ✅ CHANGED: Don't redirect if there's a token
+    const token = searchParams.get('token') || searchParams.get('access_token');
+    if (!emailParam && !token) {
+      navigate('/login', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
+  // ✅ FIX: Handle verification token from URL
+  useEffect(() => {
+    // ✅ Don't run if already verified
+    if (hasVerified) return;
+
     const params = new URLSearchParams(location.search);
     const token = params.get('token') || params.get('access_token');
     const user = params.get('user');
     const auth = params.get('auth');
+
+    console.log('📧 EmailVerification params:', { token: token ? 'present' : 'none', auth, user: user ? 'present' : 'none' });
 
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem('user', JSON.stringify(parsed));
       } catch (e) {
-        console.warn('Failed to parse SSO user on EmailVerification', e);
+        console.warn('Failed to parse SSO user', e);
       }
     }
 
-    if (token) {
-      window.history.replaceState({}, '', location.pathname + (location.hash || ''));
-    } else if (auth === 'fail') {
+    // ✅ FIX: Only redirect on explicit auth=fail, not when token exists
+    if (auth === 'fail' && !token) {
+      console.log('❌ Auth failed, redirecting to login');
       navigate('/login', { replace: true });
+      return;
     }
-  }, [location, navigate]);
 
-  const {
-    status,
-    message,
-    email,
-    isResending,
-    countdown,
-    resendCooldown,
-    resendMessage,
-    topLogo,
-    leftBg,
-    leftLogo,
-    handleResendEmail,
-    goBackToLogin,
-  } = useEmailVerification();
+    if (token) {
+      console.log('✅ Token found, starting verification...');
+      setHasVerified(true); // ✅ Mark as verified
+      
+      // ✅ FIX: Don't clean URL yet - wait for verification to complete
+      setStatus('loading');
+      
+      // Add small delay to show loading state
+      setTimeout(async () => {
+        try {
+          const result = await dispatch(verifyEmail(token)).unwrap();
+          console.log('✅ Verification successful:', result);
+          setStatus('success');
+          setEmail(result.email || email);
+          
+          // ✅ NOW clean the URL after successful verification
+          window.history.replaceState({}, '', location.pathname + `?email=${encodeURIComponent(result.email || email)}${username ? `&username=${encodeURIComponent(username)}` : ''}`);
+        } catch (error) {
+          console.error('❌ Verification failed:', error);
+          setStatus('error');
+          
+          // Clean URL on error too
+          window.history.replaceState({}, '', location.pathname + (email ? `?email=${encodeURIComponent(email)}` : ''));
+        }
+      }, 500);
+    }
+  }, [location, navigate, dispatch, email, username, hasVerified]);
+
+  // ✅ Countdown after success
+  useEffect(() => {
+    if (status === 'success' && countdown > 0) {
+      const timer = setTimeout(() => {
+        setCountdown(countdown - 1);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else if (status === 'success' && countdown === 0) {
+      const redirectUrl = `/pending-approval?email=${encodeURIComponent(email)}${
+        username ? `&username=${encodeURIComponent(username)}` : ''
+      }`;
+      navigate(redirectUrl);
+    }
+  }, [status, countdown, email, username, navigate]);
+
+  // ✅ Resend cooldown timer
+  useEffect(() => {
+    if (!resendAvailableAt) {
+      setResendCooldown(0);
+      return;
+    }
+
+    const update = () => {
+      const remaining = Math.max(0, Math.ceil((resendAvailableAt - Date.now()) / 1000));
+      setResendCooldown(remaining);
+    };
+
+    update();
+    const id = window.setInterval(() => {
+      update();
+      if ((resendAvailableAt ?? 0) - Date.now() <= 0) {
+        clearInterval(id);
+        setResendAvailableAt(null);
+      }
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [resendAvailableAt]);
+
+  const handleResendEmail = async () => {
+    if (resendAvailableAt && Date.now() < resendAvailableAt) {
+      return;
+    }
+    
+    if (!email) {
+      return;
+    }
+
+    try {
+      await dispatch(resendVerification(email)).unwrap();
+      setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
+      setResendCooldown(COOLDOWN_SECONDS);
+    } catch (error) {
+      // Error is in Redux state
+    }
+  };
+
+  const goBackToLogin = () => {
+    navigate('/login');
+  };
 
   const formatSeconds = (s: number) => String(s).padStart(2, '0');
 
@@ -97,7 +222,9 @@ const EmailVerification: React.FC = () => {
             <h2 className="text-xl sm:text-2xl font-bold text-red-600 mb-3 sm:mb-4">
               Email Verification Failed
             </h2>
-            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">{message}</p>
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6">
+              {authError || 'The verification link may have expired or is invalid.'}
+            </p>
             
             <StatusCard 
               type="error" 
@@ -106,22 +233,23 @@ const EmailVerification: React.FC = () => {
             
             {email && (
               <StatusCard type="info" title="Need a new verification email?">
-                {resendMessage && (
-                  <div className={`mb-3 p-3 rounded-lg text-sm ${
-                    resendMessage.includes('error') || resendMessage.includes('Network')
-                      ? 'bg-red-50 text-red-700 border border-red-200'
-                      : 'bg-green-50 text-green-700 border border-green-200'
-                  }`}>
-                    {resendMessage}
+                {successMessage && (
+                  <div className="mb-3 p-3 rounded-lg text-sm bg-green-50 text-green-700 border border-green-200">
+                    {successMessage}
+                  </div>
+                )}
+                {authError && !successMessage && (
+                  <div className="mb-3 p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">
+                    {authError}
                   </div>
                 )}
                 <ActionButton
                   onClick={handleResendEmail}
-                  loading={isResending}
+                  loading={isLoading}
                   fullWidth
-                  disabled={isResending || (resendCooldown ?? 0) > 0}
+                  disabled={isLoading || resendCooldown > 0}
                 >
-                  {isResending ? 'Sending...' : 'Resend Verification Email'}
+                  {isLoading ? 'Sending...' : 'Resend Verification Email'}
                 </ActionButton>
                 {resendCooldown > 0 && (
                   <div className="text-center mt-2">
@@ -167,23 +295,24 @@ const EmailVerification: React.FC = () => {
             
             {email && (
               <StatusCard type="info" title="Didn't receive the email?">
-                {resendMessage && (
-                  <div className={`mb-3 p-3 rounded-lg text-sm ${
-                    resendMessage.includes('error') || resendMessage.includes('Network')
-                      ? 'bg-red-50 text-red-700 border border-red-200'
-                      : 'bg-green-50 text-green-700 border border-green-200'
-                  }`}>
-                    {resendMessage}
+                {successMessage && (
+                  <div className="mb-3 p-3 rounded-lg text-sm bg-green-50 text-green-700 border border-green-200">
+                    {successMessage}
+                  </div>
+                )}
+                {authError && !successMessage && (
+                  <div className="mb-3 p-3 rounded-lg text-sm bg-red-50 text-red-700 border border-red-200">
+                    {authError}
                   </div>
                 )}
                 <div className="space-y-3 sm:space-y-4">
                   <ActionButton
                     onClick={handleResendEmail}
-                    loading={isResending}
+                    loading={isLoading}
                     fullWidth
-                    disabled={isResending || (resendCooldown ?? 0) > 0}
+                    disabled={isLoading || resendCooldown > 0}
                   >
-                    {isResending ? 'Sending...' : 'Resend Verification Email'}
+                    {isLoading ? 'Sending...' : 'Resend Verification Email'}
                   </ActionButton>
 
                   {resendCooldown > 0 && (

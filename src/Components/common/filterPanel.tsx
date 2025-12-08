@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Filter, X } from "lucide-react";
-import useFilters from "../../hooks/filter/useFilter";
+import useFilters from "../../hooks/common/useFilter";
 
 import { Button } from "@/Components/ui/button";
 import { Badge } from "@/Components/ui/badge";

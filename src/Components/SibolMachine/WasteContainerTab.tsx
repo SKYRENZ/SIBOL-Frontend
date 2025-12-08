@@ -1,23 +1,14 @@
 import React from 'react';
-import type { WasteContainer } from '../../services/wasteContainerService';
-import WasteCollectionTab, { WasteCollectionTabProps } from './wasteCollection';
+import WasteCollectionTab from './wasteCollection';
 
 interface WasteContainerTabProps {
-  containers: WasteContainer[];
-  loading: boolean;
-  error: string | null;
-  searchTerm: string;
+  filterTypes?: string[]; // ✅ Added
 }
 
-const WasteContainerTab: React.FC<WasteContainerTabProps> = ({ containers, loading, error, searchTerm }) => {
-  return (
-    <WasteCollectionTab
-      containers={containers}
-      loading={loading}
-      error={error}
-      parentSearchTerm={searchTerm}
-    />
-  );
+const WasteContainerTab: React.FC<WasteContainerTabProps> = ({ 
+  filterTypes = ['container-status', 'waste-type'] // ✅ Default values
+}) => {
+  return <WasteCollectionTab filterTypes={filterTypes} />;
 };
 
 export default WasteContainerTab;
