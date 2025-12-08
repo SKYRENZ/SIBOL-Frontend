@@ -13,7 +13,6 @@ import RewardTab from "../Components/Household/reward";
 import LeaderboardTab from "../Components/Household/leaderboard";
 import PointSystem from "../Components/Household/pointSystem";
 import type { Reward } from "../services/rewardService";
-import "../types/Household.css";
 
 interface RowData {
   maintenance: string;

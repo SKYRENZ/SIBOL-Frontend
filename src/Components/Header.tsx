@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
+import api from '../services/apiClient';
+import "../tailwind.css";
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { logout as logoutAction } from '../store/slices/authSlice';
-import "../types/Header.css";
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },

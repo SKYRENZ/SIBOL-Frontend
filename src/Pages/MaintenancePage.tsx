@@ -9,7 +9,6 @@ import { CompletedMaintenance } from "../Components/maintenance/CompletedMainten
 import MaintenanceForm from "../Components/maintenance/MaintenanceForm"; // Import MaintenanceForm
 import * as maintenanceService from "../services/maintenanceService"; // Import maintenanceService
 import type { MaintenanceTicket } from "../types/maintenance"; // Import MaintenanceTicket type
-import "../types/Household.css";
 
 const MaintenancePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("Request Maintenance");

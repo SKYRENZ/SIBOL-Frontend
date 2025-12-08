@@ -4,11 +4,12 @@ import type { Machine } from '../services/machineService';
 import Tabs from '../Components/common/Tabs';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
-import '../types/Household.css';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
+import type { CreateContainerRequest } from '../services/wasteContainerService';
+import "../tailwind.css";
 
 // Custom Hooks
 import { useMachines } from '../hooks/sibolMachine/useMachines';

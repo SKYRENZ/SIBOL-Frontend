@@ -6,7 +6,6 @@ import { Provider } from 'react-redux';
 import { store } from './store/store';
 
 import './tailwind.css';
-import './index.css';
 import 'leaflet/dist/leaflet.css';
 
 import App from './App.jsx'; // Import the new App component
