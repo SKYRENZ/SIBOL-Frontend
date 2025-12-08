@@ -1,73 +1,95 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
-import { login as apiLogin, isAuthenticated } from '../services/auth';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { login as loginAction, clearError, setUser } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {
-  const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
-  const [loading, setLoading] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isLoading, error: authError, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({});
 
   useEffect(() => {
-    if (isAuthenticated()) {
+    if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // ✅ FIX: Listen for SSO messages from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const allowedOrigin = new URL(API_URL).origin;
       
+      // Allow messages from same origin (popup) or API origin
       if (event.origin !== allowedOrigin && event.origin !== window.location.origin) {
+        console.warn('Message from unauthorized origin:', event.origin);
         return;
       }
 
+      console.log('Received SSO message:', event.data);
+
       if (event.data?.type === 'SSO_SUCCESS') {
         const { user } = event.data;
-        if (user) localStorage.setItem('user', JSON.stringify(user));
-        navigate('/dashboard', { replace: true });
+        
+        if (user) {
+          // ✅ Store user in localStorage
+          localStorage.setItem('user', JSON.stringify(user));
+          
+          // ✅ Update Redux state
+          dispatch(setUser(user));
+          
+          console.log('SSO Success - Navigating to dashboard');
+          
+          // ✅ Navigate to dashboard
+          navigate('/dashboard', { replace: true });
+        }
       } else if (event.data?.type === 'SSO_ERROR') {
-        setServerError(event.data.message || 'Google sign-in failed');
+        const error = event.data?.message || 'SSO authentication failed';
+        console.error('SSO Error:', error);
+        // Error will show in UI via Redux
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
-  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
-
-  const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
-  const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
+  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
+  const usernameError = !username.trim() && touched.username ? 'This field is required' : '';
+  const passwordError = !password.trim() && touched.password ? 'This field is required' : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setTouched({ username: true, password: true })
-    setServerError(null)
+    e.preventDefault();
+    setTouched({ username: true, password: true });
 
-    if (!isValid) return
+    if (!isValid) return;
 
     try {
-      setLoading(true)
-      const data = await apiLogin(username.trim(), password);
-      if (data?.user) {
-        localStorage.setItem('user', JSON.stringify(data.user));
+      const result = await dispatch(loginAction({ username: username.trim(), password })).unwrap();
+      
+      // ✅ Only navigate on successful login
+      if (result?.user) {
         navigate('/dashboard', { replace: true });
-      } else {
-        setServerError(data?.message || 'Invalid response from server');
       }
-    } catch (err: any) {
-      setServerError(err?.message ?? 'Login failed')
-    } finally {
-      setLoading(false)
+    } catch (error: any) {
+      // ✅ Error is now in Redux state and will persist
+      console.error('Login failed:', error);
+      // Don't navigate - let the error show
     }
-  }
+  };
 
   const handleGoogleLogin = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -85,7 +107,7 @@ const Login: React.FC = () => {
     );
 
     if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      setServerError('Popup blocked. Please allow popups for this site.');
+      // Handle popup blocked - Redux will show error if needed
     }
   };
 
@@ -180,9 +202,9 @@ const Login: React.FC = () => {
             </div>
 
             {/* Server Error */}
-            {serverError && (
+            {authError && (
               <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 p-2 sm:p-3 rounded-lg">
-                {serverError}
+                {authError}
               </div>
             )}
 
@@ -190,9 +212,9 @@ const Login: React.FC = () => {
             <button 
               className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
               type="submit" 
-              disabled={!isValid || loading}
+              disabled={!isValid || isLoading}
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {isLoading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 

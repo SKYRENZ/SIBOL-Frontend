@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { verifyToken, getUser } from '../../services/auth';
+import { verifyToken, getUser } from '../../services/authService';
 
 interface ProtectedRouteProps {
   requiredRole?: number;

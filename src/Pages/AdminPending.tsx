@@ -1,12 +1,55 @@
-import React, { useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { useAdminPending } from '../hooks/useAdminPending';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { getQueuePosition, clearError } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const AdminPending: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
+  const dispatch = useAppDispatch();
 
+  // ✅ Redux state
+  const { isLoading, error: authError } = useAppSelector((state) => state.auth);
+
+  // ✅ Local state
+  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
+  const [isSSO, setIsSSO] = useState(false);
+  const [queueInfo, setQueueInfo] = useState<{
+    position: number;
+    totalPending: number;
+    estimatedWaitTime: string;
+  } | null>(null);
+
+  const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
+  const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
+  const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href;
+
+  // ✅ Clear errors on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // ✅ Extract params from URL
+  useEffect(() => {
+    const emailParam = searchParams.get('email');
+    const ssoParam = searchParams.get('sso');
+    const usernameParam = searchParams.get('username');
+
+    if (emailParam) setEmail(emailParam);
+    if (ssoParam === 'true') setIsSSO(true);
+    if (usernameParam) setUsername(usernameParam);
+
+    if (!emailParam && !usernameParam) {
+      navigate('/login', { replace: true });
+    }
+  }, [searchParams, navigate]);
+
+  // ✅ Handle token from SSO callback
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get('token') || params.get('access_token');
@@ -18,6 +61,7 @@ const AdminPending: React.FC = () => {
         const parsed = JSON.parse(decodeURIComponent(user));
         localStorage.setItem('user', JSON.stringify(parsed));
       } catch (e) {
+        console.warn('Failed to parse SSO user', e);
       }
     }
 
@@ -29,24 +73,36 @@ const AdminPending: React.FC = () => {
     }
   }, [location, navigate]);
 
-  const {
-    email,
-    username,
-    queueInfo,
-    loadingQueue,
-    queueError,
-    topLogo,
-    leftBg,
-    leftLogo,
-    goBackToLogin,
-  } = useAdminPending();
+  // ✅ Fetch queue position
+  useEffect(() => {
+    const fetchQueuePosition = async () => {
+      if (!email) return;
+
+      try {
+        const result = await dispatch(getQueuePosition(email)).unwrap();
+        setQueueInfo(result);
+      } catch (error) {
+        // Error handled by Redux
+      }
+    };
+
+    fetchQueuePosition();
+
+    // Poll every 30 seconds
+    const interval = setInterval(fetchQueuePosition, 30000);
+    return () => clearInterval(interval);
+  }, [email, dispatch]);
+
+  const goBackToLogin = () => {
+    navigate('/login');
+  };
 
   return (
     <div className="min-h-screen flex bg-white flex-col lg:flex-row">
-      {/* ✅ Left Panel - Background image style */}
+      {/* Left Panel */}
       <AuthLeftPanel backgroundImage={leftBg} logoImage={leftLogo} />
 
-      {/* Right Panel - Centered content with gradient background */}
+      {/* Right Panel */}
       <div className="flex-1 flex items-center justify-center p-12 bg-white">
         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full">
           <div className="text-center">
@@ -75,14 +131,14 @@ const AdminPending: React.FC = () => {
             )}
 
             {/* Queue Position */}
-            {loadingQueue ? (
+            {isLoading ? (
               <div className="py-8">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
                 <p className="text-gray-500 mt-4">Loading queue position...</p>
               </div>
-            ) : queueError ? (
+            ) : authError ? (
               <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                <p className="text-red-700">{queueError}</p>
+                <p className="text-red-700">{authError}</p>
               </div>
             ) : queueInfo ? (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-6">

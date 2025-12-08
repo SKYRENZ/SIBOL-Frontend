@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, afterEach } from 'vitest';
-import { login } from '../services/auth';
+import { login } from '../services/authService';
 
 vi.mock('../services/apiClient', async (importOriginal) => {
   const actual = (await importOriginal()) as any;
