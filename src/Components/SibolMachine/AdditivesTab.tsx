@@ -3,16 +3,26 @@ import { useDispatch, useSelector } from 'react-redux';
 import Table from '../../Components/common/Table';
 import { fetchAdditives } from '../../store/slices/additivesSlice';
 
-type Props = {
-  searchTerm: string;
-  onSearchChange: (s: string) => void;
-};
+interface AdditivesTabProps {
+  filterTypes?: string[];
+  searchTerm?: string; // ✅ Added
+  onSearchChange?: (value: string) => void; // ✅ Added
+}
 
-const AdditivesTab: React.FC<Props> = ({ searchTerm, onSearchChange }) => {
+const AdditivesTab: React.FC<AdditivesTabProps> = ({ 
+  filterTypes = ['additive-stage', 'machine'],
+  searchTerm = '',
+  onSearchChange
+}) => {
   const dispatch = useDispatch<any>();
   const { items, loading, error } = useSelector((s: any) => s.additives || { items: [], loading: false, error: null });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  // Local search state if parent doesn't provide it
+  const [localSearch, setLocalSearch] = useState('');
+  
+  const currentSearch = searchTerm || localSearch;
+  const handleSearchChange = onSearchChange || setLocalSearch;
 
   useEffect(() => {
     dispatch(fetchAdditives());
@@ -20,8 +30,8 @@ const AdditivesTab: React.FC<Props> = ({ searchTerm, onSearchChange }) => {
 
   // Use parent searchTerm (shared SearchBar) instead of local input
   const filtered = items.filter((row: any) => {
-    if (!searchTerm) return true;
-    const q = searchTerm.toLowerCase();
+    if (!currentSearch) return true;
+    const q = currentSearch.toLowerCase();
     return (
       String(row.additive_input ?? '').toLowerCase().includes(q) ||
       String(row.stage ?? '').toLowerCase().includes(q) ||
@@ -60,7 +70,13 @@ const AdditivesTab: React.FC<Props> = ({ searchTerm, onSearchChange }) => {
           onPageChange: setCurrentPage,
           onPageSizeChange: (sz: number) => { setPageSize(sz); setCurrentPage(1); }
         }}
+        filterTypes={filterTypes} // Pass filterTypes to Table
       />
+      <div className="text-center py-10 text-gray-500">
+        <p>Additives Tab - Coming Soon</p>
+        <p className="text-xs mt-2">Filter Types: {filterTypes.join(', ')}</p>
+        {currentSearch && <p className="text-xs">Search: {currentSearch}</p>}
+      </div>
     </div>
   );
 };

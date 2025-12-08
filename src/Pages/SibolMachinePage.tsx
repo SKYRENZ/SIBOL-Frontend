@@ -14,7 +14,6 @@ import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerF
 import { useMachines } from '../hooks/sibolMachine/useMachines';
 import { useWasteContainer } from '../hooks/wasteContainer/useWasteContainer';
 import { useUIState } from '../hooks/common/useUIState';
-import { useSearchFilter } from '../hooks/common/useSearchFilter';
 
 const SibolMachinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Machines');
@@ -35,18 +34,11 @@ const SibolMachinePage: React.FC = () => {
 
   const {
     loading: containersLoading,
-    error: containersError,
     addContainer,
   } = useWasteContainer();
 
   // UI State Hook
   const { modals, openModal, closeModal } = useUIState();
-
-  // Search Filter Hook for Machines
-  const { filteredData: filteredMachines } = useSearchFilter<Machine>(
-    machines,
-    (item) => [item.Name, item.Area_Name || '']
-  );
 
   // Local form state
   const [formData, setFormData] = useState({
@@ -162,26 +154,37 @@ const SibolMachinePage: React.FC = () => {
     if (activeTab === 'Machines') {
       return (
         <MachineTab
-          machines={filteredMachines}
+          machines={machines}
           loading={machinesLoading}
           error={machinesError}
           onEdit={handleEditMachine}
-          onAdd={handleOpenAddModal} // ✅ Pass add handler
+          onAdd={handleOpenAddModal}
           pagination={{
             currentPage,
             pageSize,
-            totalItems: filteredMachines.length,
+            totalItems: machines.length,
             onPageChange: setCurrentPage,
             onPageSizeChange: handlePageSizeChange,
           }}
+          filterTypes={['machine-status', 'area']} // ✅ Only machine status and area
         />
       );
     }
     if (activeTab === 'Waste Container') {
-      return <WasteContainerTab />;
+      return (
+        <WasteContainerTab
+          filterTypes={['container-status', 'waste-type']}
+        />
+      );
     }
     if (activeTab === 'Chemical Additives') {
-      return <AdditivesTab />;
+      return (
+        <AdditivesTab
+          filterTypes={['additive-stage', 'machine']}
+          searchTerm=""
+          onSearchChange={() => {}} // ✅ Added required props
+        />
+      );
     }
     return <div className="text-center py-10">Content for {activeTab}</div>;
   };
@@ -204,7 +207,6 @@ const SibolMachinePage: React.FC = () => {
 
       <div className="w-full px-6 py-8">
         <div className="max-w-screen-2xl mx-auto">
-          {/* ✅ REMOVED: External search bar and add button */}
           {renderContent()}
         </div>
       </div>

@@ -95,16 +95,23 @@ const Table = <T extends Record<string, any>>({
     if (selectedFilters.length > 0) {
       temp = temp.filter((row) => {
         // Check all possible filter fields
-        return selectedFilters.some(filter => {
+        return selectedFilters.some((filter) => {
           // Try different field patterns
           const fieldsToCheck = [
-            'status', 'status_name', 'Status',
-            'area', 'area_name', 'Area_Name', 'Area',
-            'type', 'Type',
-            'category', 'Category',
+            "status",
+            "status_name",
+            "Status",
+            "area",
+            "area_name",
+            "Area_Name",
+            "Area",
+            "type",
+            "Type",
+            "category",
+            "Category",
           ];
-          
-          return fieldsToCheck.some(field => {
+
+          return fieldsToCheck.some((field) => {
             const value = row[field];
             if (value === undefined || value === null) return false;
             return String(value).toLowerCase() === filter.toLowerCase();

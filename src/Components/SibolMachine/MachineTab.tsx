@@ -14,7 +14,8 @@ interface MachineTabProps {
     onPageSizeChange: (size: number) => void;
   };
   onEdit: (machine: Machine) => void;
-  onAdd: () => void; // ✅ NEW: Add machine handler
+  onAdd: () => void;
+  filterTypes?: string[]; // ✅ Added
 }
 
 const MachineTab: React.FC<MachineTabProps> = ({ 
@@ -23,7 +24,8 @@ const MachineTab: React.FC<MachineTabProps> = ({
   error, 
   pagination, 
   onEdit,
-  onAdd, // ✅ NEW
+  onAdd,
+  filterTypes = ['machine-status', 'area'], // ✅ Default values
 }) => {
   const columns = [
     { key: 'machine_id', label: 'Machine ID', render: (value: number) => `#${value}` },
@@ -65,12 +67,7 @@ const MachineTab: React.FC<MachineTabProps> = ({
     }
   ];
 
-  // Pagination
-  const startIndex = (pagination.currentPage - 1) * pagination.pageSize;
-  const endIndex = startIndex + pagination.pageSize;
-  const paginatedMachines = machines.slice(startIndex, endIndex);
-
-  // ✅ Custom Toolbar with Add Machine Button
+  // Custom Toolbar with Add Machine Button
   const customToolbar = (
     <button 
       onClick={onAdd}
@@ -94,12 +91,12 @@ const MachineTab: React.FC<MachineTabProps> = ({
       )}
       <Table
         columns={columns}
-        data={paginatedMachines}
+        data={machines}
         emptyMessage="No machines found. Click 'Add Machine' to create one."
         rowKey="machine_id"
         pagination={pagination}
-        customToolbar={customToolbar} // ✅ Pass custom toolbar
-        filterTypes={['status', 'area']} // ✅ Optional: Add filter types if you have them
+        customToolbar={customToolbar}
+        filterTypes={filterTypes} // ✅ Pass filter types
       />
     </div>
   );
