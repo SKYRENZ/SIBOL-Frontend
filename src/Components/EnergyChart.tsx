@@ -10,7 +10,6 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import '../types/EnergyChart.css';
 
 ChartJS.register(
   LineElement,
@@ -77,9 +76,15 @@ const EnergyChart: React.FC = () => {
     },
   };
 
-   return (
-    <div className="energy-chart-wrapper">
-      <h3 className="schedule-title">Energy Conversion</h3>
+  return (
+    <div
+      className="
+        w-full h-full relative min-h-[150px] max-h-full overflow-hidden
+        flex flex-col items-center justify-center text-[#355842]
+      "
+    >
+      <h3 className="text-lg font-semibold mb-2">Energy Conversion</h3>
+
       <Line data={data} options={options} />
     </div>
   );

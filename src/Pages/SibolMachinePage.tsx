@@ -9,7 +9,6 @@ import Tabs from '../Components/common/Tabs';
 import SearchBar from '../Components/common/SearchBar';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
-import '../types/Household.css';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
