@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import FiltersService, { FilterItem } from '../../services/filtersService';
 
+// ✅ Add index signature to match FilterData from service
 type FilterData = Record<string, FilterItem[]>;
 
 const useFilters = (types?: string | string[]) => {
@@ -16,7 +17,8 @@ const useFilters = (types?: string | string[]) => {
         if (!types) {
           // Fetch all filters
           const data = await FiltersService.getAllFilters();
-          setFilters(data);
+          // ✅ Convert FilterData to Record<string, FilterItem[]>
+          setFilters(data as Record<string, FilterItem[]>);
         } else if (typeof types === 'string') {
           // Fetch single filter type
           const data = await FiltersService.getFilter(types);
@@ -28,13 +30,14 @@ const useFilters = (types?: string | string[]) => {
         }
       } catch (err: any) {
         setError(err.message || 'Failed to load filters');
+        console.error('Filter fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
 
     fetchFilters();
-  }, [JSON.stringify(types)]);
+  }, [types?.toString()]); // ✅ Better dependency
 
   const get = (key: string) => filters[key] || [];
 

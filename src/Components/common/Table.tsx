@@ -1,4 +1,4 @@
-import React, { ReactNode, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import Pagination from "./Pagination";
 import SearchBar from "./SearchBar";
 import FilterPanel from "./filterPanel";
@@ -16,11 +16,10 @@ import {
    TYPES
 ============================================================ */
 
-interface Column {
+interface Column<T> {
   key: string;
   label: string;
-  render?: (value: any, row: any) => ReactNode;
-  sortable?: boolean;
+  render?: (value: any, row: T, index?: number) => React.ReactNode;
   hideMobile?: boolean;
   hideTablet?: boolean;
 }
@@ -33,23 +32,25 @@ interface TablePaginationConfig {
   onPageSizeChange?: (pageSize: number) => void;
 }
 
-interface TableProps {
-  columns: Column[];
-  data: any[];
-  onRowClick?: (row: any) => void;
+interface TableProps<T> {
+  columns: Column<T>[];
+  data: T[];
+  onRowClick?: (row: T) => void;
   emptyMessage?: string;
   className?: string;
   enablePagination?: boolean;
   initialPageSize?: number;
   fixedPagination?: boolean;
   pagination?: TablePaginationConfig;
-  types?: string[];
+  filterTypes?: string[]; // ✅ Filter types to fetch from API
+  rowKey?: string;
+  customToolbar?: React.ReactNode;
 }
 
 const HEADER_BG = "bg-[#355E3B]"; // <-- UPDATED HEADER COLOR
 const BORDER_COLOR = "border-[#00001A4D]";
 
-const Table: React.FC<TableProps> = ({
+const Table = <T extends Record<string, any>>({
   columns,
   data,
   onRowClick,
@@ -59,13 +60,28 @@ const Table: React.FC<TableProps> = ({
   initialPageSize = 5,
   fixedPagination = true,
   pagination,
-  types = [],
-}) => {
+  filterTypes = [], // ✅ Optional filter types
+  rowKey = "id",
+  customToolbar,
+}: TableProps<T>) => {
   const [search, setSearch] = useState("");
-  const [filters, setFilters] = useState<string[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
+  const [internalPage, setInternalPage] = useState(1);
+  const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
 
+  // Helper function to get unique row key
+  const getRowKey = (row: T, index: number): string => {
+    if (row[rowKey] !== undefined) {
+      return String(row[rowKey]);
+    }
+    return `row-${index}`;
+  };
+
+  // ✅ Process data with search and filters
   const processedData = useMemo(() => {
     let temp = [...data];
+
+    // Search filter
     if (search.trim() !== "") {
       const lower = search.toLowerCase();
       temp = temp.filter((row) =>
@@ -74,19 +90,44 @@ const Table: React.FC<TableProps> = ({
         )
       );
     }
-    if (filters.length > 0) {
-      temp = temp.filter((row) => filters.includes(row.type));
+
+    // ✅ Generic filters - works with any field
+    if (selectedFilters.length > 0) {
+      temp = temp.filter((row) => {
+        // Check all possible filter fields
+        return selectedFilters.some((filter) => {
+          // Try different field patterns
+          const fieldsToCheck = [
+            "status",
+            "status_name",
+            "Status",
+            "area",
+            "area_name",
+            "Area_Name",
+            "Area",
+            "type",
+            "Type",
+            "category",
+            "Category",
+          ];
+
+          return fieldsToCheck.some((field) => {
+            const value = row[field];
+            if (value === undefined || value === null) return false;
+            return String(value).toLowerCase() === filter.toLowerCase();
+          });
+        });
+      });
     }
+
     return temp;
-  }, [search, filters, data, columns]);
+  }, [search, selectedFilters, data, columns]);
 
-  const [internalPage, setInternalPage] = useState(1);
-  const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
-
+  // Pagination logic
   const isControlled = Boolean(pagination);
   const currentPage = isControlled ? pagination!.currentPage : internalPage;
   const pageSize = isControlled ? pagination!.pageSize : internalPageSize;
-  const totalItems = processedData.length;
+  const totalItems = isControlled ? pagination!.totalItems : processedData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
   const paginatedData =
@@ -95,16 +136,20 @@ const Table: React.FC<TableProps> = ({
       : processedData;
 
   const handlePageSizeChange = (newSize: number) => {
-    if (isControlled) pagination?.onPageSizeChange?.(newSize);
-    else {
+    if (isControlled) {
+      pagination?.onPageSizeChange?.(newSize);
+    } else {
       setInternalPageSize(newSize);
       setInternalPage(1);
     }
   };
 
   const handlePageChange = (page: number) => {
-    if (isControlled) pagination?.onPageChange(page);
-    else setInternalPage(page);
+    if (isControlled) {
+      pagination?.onPageChange(page);
+    } else {
+      setInternalPage(page);
+    }
   };
 
   const getVisibleColumns = (breakpoint: "mobile" | "tablet" | "desktop") =>
@@ -114,11 +159,21 @@ const Table: React.FC<TableProps> = ({
       return true;
     });
 
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  const toggleRowExpand = (idx: number) => {
-    const newSet = new Set(expandedRows);
-    newSet.has(idx) ? newSet.delete(idx) : newSet.add(idx);
-    setExpandedRows(newSet);
+  const handleRowClick = (row: T) => {
+    if (onRowClick) {
+      onRowClick(row);
+    }
+  };
+
+  // ✅ Handle filter changes
+  const handleFilterChange = (filters: string[]) => {
+    setSelectedFilters(filters);
+    // Reset to page 1 when filters change
+    if (isControlled) {
+      pagination?.onPageChange(1);
+    } else {
+      setInternalPage(1);
+    }
   };
 
   return (
@@ -131,17 +186,26 @@ const Table: React.FC<TableProps> = ({
           paginatedData.map((row, rowIndex) => {
             const visibleCols = getVisibleColumns("mobile");
             const primaryCol = visibleCols[0];
+            const uniqueKey = getRowKey(row, rowIndex);
+
             return (
               <div
-                key={rowIndex}
-                className={`bg-white rounded-xl shadow-md ${BORDER_COLOR}`}
+                key={uniqueKey}
+                className={`bg-white rounded-xl shadow-md ${BORDER_COLOR} ${
+                  onRowClick
+                    ? "cursor-pointer hover:shadow-lg transition-shadow"
+                    : ""
+                }`}
+                onClick={() => handleRowClick(row)}
               >
                 <div className={`px-4 py-3 ${HEADER_BG}`}>
                   <p className="text-xs font-semibold text-white uppercase tracking-wider">
                     {primaryCol.label}
                   </p>
                   <h3 className="text-sm font-bold text-white mt-1 truncate">
-                    {row[primaryCol.key]}
+                    {primaryCol.render
+                      ? primaryCol.render(row[primaryCol.key], row, rowIndex)
+                      : row[primaryCol.key]}
                   </h3>
                 </div>
                 <div className="px-4 py-3 space-y-2">
@@ -149,7 +213,9 @@ const Table: React.FC<TableProps> = ({
                     <div key={col.key}>
                       <p className="text-xs text-gray-500">{col.label}</p>
                       <p className="text-sm font-medium text-gray-900">
-                        {col.render ? col.render(row[col.key], row) : row[col.key]}
+                        {col.render
+                          ? col.render(row[col.key], row, rowIndex)
+                          : row[col.key]}
                       </p>
                     </div>
                   ))}
@@ -162,18 +228,35 @@ const Table: React.FC<TableProps> = ({
 
       {/* TABLET & DESKTOP VIEW */}
       <div className="hidden lg:block overflow-x-auto">
-        <ShadTable className="w-full">
-          {/* SEARCH + FILTER ROW */}
+        <ShadTable className="w-full border">
+          {/* ✅ SEARCH + FILTER + CUSTOM TOOLBAR ROW */}
           <TableHeader>
             <TableRow className="bg-white cursor-default select-none">
               <TableCell colSpan={columns.length} className="px-4 py-3">
                 <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-                  <div className="w-full lg:w-1/3">
-                    <SearchBar value={search} onChange={setSearch} placeholder="Search..." />
+                  <div className="flex items-center gap-3 flex-1">
+                    {/* Search Bar */}
+                    <div className="w-full lg:w-1/3">
+                      <SearchBar
+                        value={search}
+                        onChange={setSearch}
+                        placeholder="Search..."
+                      />
+                    </div>
+
+                    {/* ✅ Filter Panel - ALWAYS SHOWN (will fetch data based on filterTypes) */}
+                    <div className="w-full lg:w-auto">
+                      <FilterPanel
+                        types={filterTypes.length > 0 ? filterTypes : undefined}
+                        onFilterChange={handleFilterChange}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full lg:w-auto">
-                    <FilterPanel types={types} onFilterChange={(f) => setFilters(f)} />
-                  </div>
+
+                  {/* ✅ Custom Toolbar (e.g., Add Machine button) */}
+                  {customToolbar && (
+                    <div className="flex-shrink-0">{customToolbar}</div>
+                  )}
                 </div>
               </TableCell>
             </TableRow>
@@ -195,21 +278,46 @@ const Table: React.FC<TableProps> = ({
 
           {/* TABLE BODY */}
           <TableBody>
-            {paginatedData.map((row, idx) => (
-              <TableRow key={idx} className="cursor-default">
-                {columns.map((col) => (
-                  <TableCell key={col.key} className="px-4 py-3 text-sm">
-                    {col.render ? col.render(row[col.key], row) : row[col.key]}
-                  </TableCell>
-                ))}
+            {paginatedData.length === 0 ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="text-center py-8 text-gray-500"
+                >
+                  {emptyMessage}
+                </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              paginatedData.map((row, rowIndex) => {
+                const uniqueKey = getRowKey(row, rowIndex);
+                return (
+                  <TableRow
+                    key={uniqueKey}
+                    className={
+                      onRowClick
+                        ? "cursor-pointer hover:bg-gray-50"
+                        : "cursor-default"
+                    }
+                    onClick={() => handleRowClick(row)}
+                  >
+                    {columns.map((col) => (
+                      <TableCell
+                        key={`${uniqueKey}-${col.key}`}
+                        className="px-4 py-3 text-sm"
+                      >
+                        {col.render ? col.render(row[col.key], row, rowIndex) : row[col.key]}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </ShadTable>
       </div>
 
       {/* PAGINATION */}
-      {enablePagination && (
+      {enablePagination && totalPages > 1 && (
         <Pagination
           currentPage={currentPage}
           totalPages={totalPages}

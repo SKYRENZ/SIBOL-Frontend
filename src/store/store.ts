@@ -1,14 +1,22 @@
 import { configureStore } from '@reduxjs/toolkit';
-//import authReducer from './slices/authSlice'; // Assuming you have this from before
 import adminReducer from './slices/adminSlice';
+import additivesReducer from './slices/additivesSlice';
+import wasteContainerReducer from './slices/wasteContainerSlice';
+import machineReducer from './slices/machineSlice';
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
- //   auth: authReducer,
     admin: adminReducer,
+    additives: additivesReducer,
+    wasteContainer: wasteContainerReducer,
+    machine: machineReducer,
   },
 });
 
-// Infer the `RootState` and `AppDispatch` types from the store itself
+// export types
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
+
+// default + named export so both import styles work
+export default store;
+export { store };
