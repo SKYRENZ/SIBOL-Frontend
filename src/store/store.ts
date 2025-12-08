@@ -1,12 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
 import adminReducer from './slices/adminSlice';
 import additivesReducer from './slices/additivesSlice';
+import wasteContainerReducer from './slices/wasteContainerSlice';
 
 const store = configureStore({
   reducer: {
     admin: adminReducer,
     additives: additivesReducer,
-    // ...existing reducers...
+    wasteContainer: wasteContainerReducer,
   },
 });
 
