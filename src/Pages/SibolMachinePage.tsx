@@ -15,6 +15,7 @@ import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
 import Table from '../Components/common/Table';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
+import "../tailwind.css";
 
 const SibolMachinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Machines');
