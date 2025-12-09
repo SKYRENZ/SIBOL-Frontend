@@ -47,7 +47,7 @@ interface TableProps<T> {
   customToolbar?: React.ReactNode;
 }
 
-const HEADER_BG = "bg-[#355842]";
+const HEADER_BG = "bg-[#355E3B]"; // <-- UPDATED HEADER COLOR
 const BORDER_COLOR = "border-[#00001A4D]";
 
 const Table = <T extends Record<string, any>>({
