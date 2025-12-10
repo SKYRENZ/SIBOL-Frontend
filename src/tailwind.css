@@ -221,3 +221,232 @@ input:-webkit-autofill:active {
     to { opacity: 1; transform: translateY(0); }
   }
 }
+
+/* Date Picker Green Theme - Add to your tailwind.css */
+@layer components {
+  /* ... your existing components ... */
+
+  /* Date Picker Styling */
+  input[type="date"].date-picker-green::-webkit-calendar-picker-indicator {
+    filter: invert(27%) sepia(20%) saturate(1500%) hue-rotate(95deg) brightness(95%) contrast(90%);
+  }
+
+  /* Style for the selected date in calendar */
+  input[type="date"]:focus::-webkit-datetime-edit {
+    background-color: transparent;
+  }
+}
+
+/* Calendar day buttons - override global button styles */
+.rdp button {
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* React Day Picker v9 - override global button styles */
+.rdp-root button,
+.rdp-root .rdp-button,
+.rdp-root .rdp-day,
+.rdp-root .rdp-nav button,
+.rdp-button,
+.rdp-day,
+.rdp-chevron,
+[data-slot="day"],
+[data-slot="button"] {
+  all: unset !important;
+  background-color: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+/* ====================================
+   REACT DAY PICKER v9 - Green Theme
+==================================== */
+
+/* Reset all button styles inside calendar */
+.rdp-root *,
+.rdp * {
+  box-sizing: border-box;
+}
+
+.rdp-root button,
+.rdp button {
+  all: unset;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Calendar container */
+.rdp-root,
+.rdp {
+  --rdp-cell-size: 40px;
+  --rdp-accent-color: #355842;
+  --rdp-background-color: #D9EBD9;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 1rem !important;
+}
+
+/* Month grid layout */
+.rdp-month {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+/* Month caption */
+.rdp-month_caption,
+.rdp-caption_label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #2E523A;
+  padding: 0.5rem 0;
+}
+
+/* Navigation buttons */
+.rdp-nav button,
+.rdp-button_previous,
+.rdp-button_next {
+  width: 32px !important;
+  height: 32px !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 8px !important;
+  color: #2E523A !important;
+  opacity: 0.7;
+  transition: all 0.15s ease;
+}
+
+.rdp-nav button:hover,
+.rdp-button_previous:hover,
+.rdp-button_next:hover {
+  background: #D9EBD9 !important;
+  opacity: 1;
+}
+
+/* Weekdays row - FIXED ALIGNMENT */
+.rdp-weekdays {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  width: 100% !important;
+  margin-bottom: 0.5rem !important;
+  gap: 4px !important;
+}
+
+/* Weekday headers */
+.rdp-weekday {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 32px !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  color: #6B7280 !important;
+  text-transform: uppercase !important;
+  padding: 0 !important;
+}
+
+/* Weeks container */
+.rdp-weeks {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Week row - grid layout matching weekdays */
+.rdp-week {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  width: 100% !important;
+  gap: 4px !important;
+}
+
+/* Day cells */
+.rdp-day {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 40px !important;
+  height: 40px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  font-size: 0.875rem !important;
+  font-weight: 400 !important;
+  color: #374151 !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+  transition: all 0.15s ease !important;
+}
+
+.rdp-day:hover {
+  background: #E8F5E9 !important;
+}
+
+/* Day button inside */
+.rdp-day_button {
+  all: unset !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 10px !important;
+  cursor: pointer !important;
+}
+
+/* Selected day */
+.rdp-selected .rdp-day_button,
+.rdp-day.rdp-selected,
+[data-selected="true"],
+[data-selected="true"] button {
+  background: #355842 !important;
+  color: white !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+}
+
+/* Today */
+.rdp-today:not(.rdp-selected),
+.rdp-today:not(.rdp-selected) .rdp-day_button,
+[data-today="true"]:not([data-selected="true"]) {
+  background: #D9EBD9 !important;
+  color: #2E523A !important;
+  font-weight: 600 !important;
+  border-radius: 10px !important;
+}
+
+/* Outside days (other months) */
+.rdp-outside,
+.rdp-outside .rdp-day_button,
+[data-outside="true"] {
+  color: #D1D5DB !important;
+  opacity: 0.5 !important;
+}
+
+/* Disabled days */
+.rdp-disabled,
+.rdp-disabled .rdp-day_button {
+  color: #D1D5DB !important;
+  cursor: not-allowed !important;
+  opacity: 0.3 !important;
+}
+
+/* Remove any remaining dark backgrounds */
+.rdp-months,
+.rdp-month,
+.rdp-weeks,
+.rdp-week,
+.rdp-weekdays {
+  background: transparent !important;
+}
