@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
-import * as userService from '../../services/userService'; // Import the user service
-import CustomScrollbar from '../common/CustomScrollbar'; // Import the scrollbar component
+import DatePicker from '../common/DatePicker';
+import * as userService from '../../services/userService';
+import CustomScrollbar from '../common/CustomScrollbar';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -36,9 +37,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [assignedOptions, setAssignedOptions] = useState<{ value: string; label: string }[]>([]);
 
   useEffect(() => {
-    // This effect runs when the modal opens or the mode changes.
     if (isOpen) {
-      // Set the staff account ID when in 'assign' mode
       if (mode === 'assign') {
         const user = localStorage.getItem('user');
         if (user) {
@@ -49,60 +48,49 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             staffAccountId: String(accountId || ''),
           }));
         }
+      }
 
-        // Fetch the list of operators for the dropdown
-        const fetchOperators = async () => {
-          try {
-            const operators = await userService.getOperators();
-            // Add a default, non-selectable option at the beginning
-            const optionsWithDefault = [{ value: '', label: 'Select an option' }, ...operators];
-            setAssignedOptions(optionsWithDefault);
-          } catch (error) {
-            console.error("Failed to fetch operators", error);
-            setFormError("Could not load the list of operators.");
-          }
-        };
-        fetchOperators();
+      if (initialData) {
+        setFormData({
+          title: initialData.Title || '',
+          issue: initialData.Issue || '',
+          priority: initialData.Priority || '',
+          dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
+          file: null,
+          staffAccountId: formData.staffAccountId,
+          assignedTo: initialData.Assigned_to || '',
+          remarks: '',
+        });
+      } else {
+        setFormData({
+          title: '',
+          issue: '',
+          priority: '',
+          dueDate: '',
+          file: null,
+          staffAccountId: formData.staffAccountId,
+          assignedTo: '',
+          remarks: '',
+        });
+      }
+
+      if (mode === 'assign') {
+        userService.getOperators()
+          .then((response: any) => {
+            const operators = response.data.data || [];
+            const options = operators.map((operator: any) => ({
+              value: String(operator.Account_id),
+              label: `${operator.Firstname} ${operator.Lastname}`,
+            }));
+            setAssignedOptions(options);
+          })
+          .catch((error) => {
+            console.error('Error fetching operators:', error);
+            setFormError('Failed to load operators');
+          });
       }
     }
-  }, [isOpen, mode]);
-
-  useEffect(() => {
-    if (initialData && (mode === 'assign' || mode === 'pending')) {
-      setFormData(prev => ({
-        ...prev,
-        issue: initialData.Details || '',
-        priority: initialData.Priority || '', // Use the Priority string
-        dueDate: initialData.Due_date ? initialData.Due_date.split('T')[0] : '',
-        remarks: initialData.Remarks || '',
-      }));
-    }
-  }, [initialData, mode]);
-
-  const priorityOptions = [
-    { value: 'Urgent', label: 'Urgent' },
-    { value: 'Critical', label: 'Critical' },
-    { value: 'Mild', label: 'Mild' },
-  ];
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormError(null);
-
-    if (mode === 'create') {
-      if (!formData.title.trim()) {
-        setFormError('Title is required');
-        return;
-      }
-    } else if (mode === 'assign') {
-      if (!formData.staffAccountId.trim()) {
-        setFormError('Staff Account ID is required');
-        return;
-      }
-    }
-
-    onSubmit(formData);
-  };
+  }, [isOpen, initialData, mode]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -110,93 +98,82 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }
   };
 
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
+
+    if (mode === 'create') {
+      if (!formData.title.trim() || !formData.issue.trim() || !formData.priority || !formData.dueDate) {
+        setFormError('Please fill in all required fields');
+        return;
+      }
+    } else if (mode === 'assign') {
+      if (!formData.assignedTo) {
+        setFormError('Please assign an operator');
+        return;
+      }
+    }
+
+    onSubmit(formData);
+  };
+
   const handleClose = () => {
     setFormError(null);
-    setFormData({
-      title: '',
-      issue: '',
-      priority: '',
-      dueDate: '',
-      file: null,
-      staffAccountId: '',
-      assignedTo: '',
-      remarks: '',
-    });
     onClose();
   };
 
-  if (!isOpen) return null;
+  const noOpChange = () => {};
 
   const isCreateMode = mode === 'create';
   const isAssignMode = mode === 'assign';
   const isPendingMode = mode === 'pending';
-  const requestNumber = initialData?.Request_Id || Math.floor(Math.random() * 100000) + 100000;
-  const requestDate = initialData?.Request_date 
-    ? new Date(initialData.Request_date).toLocaleDateString() 
-    : new Date().toLocaleDateString();
-  const title = initialData?.Title || '';
 
-  const getTitleAndSubtitle = () => {
-    if (isCreateMode) return { title: "Request Maintenance", subtitle: "Provide the details below." };
-    if (isAssignMode) return { title: "View Request & Accept", subtitle: "Review details and assign to operator" };
-    if (isPendingMode) return { title: "Pending Maintenance", subtitle: "Review details and manage maintenance request" };
-    return { title: "Maintenance", subtitle: "" };
-  };
-
-  const { title: modalTitle, subtitle } = getTitleAndSubtitle();
-
-  // Empty handler for disabled fields
-  const noOpChange = () => {};
+  const priorityOptions = [
+    { value: 'Critical', label: 'Critical' },
+    { value: 'High', label: 'High' },
+    { value: 'Medium', label: 'Medium' },
+    { value: 'Low', label: 'Low' },
+  ];
 
   return (
-    <FormModal
-      isOpen={isOpen}
-      onClose={handleClose}
-      title={modalTitle}
-      subtitle={subtitle}
-      width={isCreateMode ? "600px" : "900px"}
-    >
-      {/* This container will use flexbox to manage layout */}
+    <FormModal isOpen={isOpen} onClose={handleClose} title={
+      isCreateMode ? "Request Maintenance" :
+      isAssignMode ? "Accept & Assign Maintenance" :
+      isPendingMode ? "View Pending Maintenance" :
+      "Maintenance Details"
+    }>
       <div className="flex flex-col h-full">
-        {(isAssignMode || isPendingMode) && (
-          <div className="flex justify-between items-center mb-6 pb-4 border-b flex-shrink-0">
-            <div>
-              <span className="font-bold text-lg" style={{ color: '#2E523A' }}>Request no. {requestNumber}</span>
-              <p className="text-gray-600 text-sm mt-1">{title}</p>
+        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+          {(formError || submitError) && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm flex-shrink-0">
+              {formError || submitError}
             </div>
-            <span className="text-gray-500 text-sm">Request date: {requestDate}</span>
-          </div>
-        )}
+          )}
 
-        {/* This form will also use flexbox and contain the scrollable area */}
-        <form onSubmit={handleSubmit} className="flex-grow flex flex-col overflow-hidden w-full">
-          {/* The CustomScrollbar will take up the available space and scroll when needed */}
-          <CustomScrollbar className="flex-grow pr-2">
-            <div className="space-y-4">
-              {submitError && <p className="text-sm text-red-600 bg-red-50 p-3 rounded-md">{submitError}</p>}
-              {formError && <p className="text-sm text-red-600">{formError}</p>}
-
+          <CustomScrollbar className="flex-1 overflow-y-auto pr-2">
+            <div className="pb-4">
               {isCreateMode ? (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <FormField
-                    label="Title"
+                    label="Title *"
                     name="title"
                     type="text"
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="Enter request title"
+                    placeholder="e.g., Broken conveyor belt"
                     required
                   />
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
-                      Details
+                      Issue Description *
                     </label>
                     <textarea
                       name="issue"
                       value={formData.issue}
                       onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
-                      placeholder="Describe the issue"
+                      placeholder="Describe the issue in detail..."
+                      required
                       rows={4}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent"
                     />
@@ -211,12 +188,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     options={priorityOptions}
                   />
 
-                  <FormField
+                  <DatePicker
                     label="Due Date"
                     name="dueDate"
-                    type="date"
                     value={formData.dueDate}
                     onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                    required
                   />
 
                   <div className="space-y-1">
@@ -285,10 +262,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <FormField
+                    <DatePicker
                       label="Due Date (editable)"
                       name="dueDate"
-                      type="date"
                       value={formData.dueDate}
                       onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     />
@@ -345,10 +321,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   </div>
 
                   <div className="space-y-4">
-                    <FormField
+                    <DatePicker
                       label="Due Date"
                       name="dueDate"
-                      type="date"
                       value={formData.dueDate}
                       onChange={noOpChange}
                       disabled={true}
@@ -412,7 +387,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
           </CustomScrollbar>
 
-          {/* The buttons are pushed to the bottom */}
           <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
             <button
               type="button"
