@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { MaintenanceTicket, MaintenanceTicketPayload } from "../types/maintenance";
+import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment } from "../types/maintenance";
 
 const BASE_URL = "/api/maintenance";
 
@@ -24,8 +24,50 @@ export async function getTicket(id: number): Promise<MaintenanceTicket> {
 }
 
 export async function createTicket(payload: MaintenanceTicketPayload): Promise<MaintenanceTicket> {
-  console.log("Creating ticket with payload:", payload); // Debug log
+  console.log("Creating ticket with payload:", payload);
   const response = await apiClient.post<MaintenanceTicket>(BASE_URL, payload);
+  return response.data;
+}
+
+// NEW: Upload file to Cloudinary, then save attachment metadata
+export async function uploadAttachment(
+  requestId: number,
+  uploadedBy: number,
+  file: File
+): Promise<MaintenanceAttachment> {
+  // Step 1: Upload file to Cloudinary
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const uploadResponse = await apiClient.post<{ filepath: string; publicId: string }>(
+    '/api/upload',
+    formData,
+    {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    }
+  );
+
+  // Step 2: Save attachment metadata
+  const body = {
+    uploaded_by: uploadedBy,
+    filepath: uploadResponse.data.filepath, // Cloudinary URL
+    filename: file.name,
+    filetype: file.type,
+    filesize: file.size
+  };
+
+  const response = await apiClient.post<MaintenanceAttachment>(
+    `${BASE_URL}/${requestId}/attachments`,
+    body
+  );
+  return response.data;
+}
+
+// NEW: Get all attachments for a ticket
+export async function getAttachments(requestId: number): Promise<MaintenanceAttachment[]> {
+  const response = await apiClient.get<MaintenanceAttachment[]>(
+    `${BASE_URL}/${requestId}/attachments`
+  );
   return response.data;
 }
 

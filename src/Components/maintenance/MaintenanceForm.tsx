@@ -26,7 +26,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     issue: '',
     priority: '',
     dueDate: '',
-    file: null as File | null,
+    files: [] as File[], // CHANGED: Multiple files
     staffAccountId: '',
     assignedTo: '',
     remarks: '',
@@ -105,9 +105,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, file: e.target.files[0] });
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setFormData(prev => ({ 
+        ...prev, 
+        files: [...prev.files, ...newFiles] 
+      }));
     }
+  };
+
+  const removeFile = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      files: prev.files.filter((_, i) => i !== index)
+    }));
   };
 
   const handleClose = () => {
@@ -117,7 +128,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       issue: '',
       priority: '',
       dueDate: '',
-      file: null,
+      files: [], // CHANGED
       staffAccountId: '',
       assignedTo: '',
       remarks: '',
@@ -221,18 +232,30 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                   <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">
-                      Attachment (Optional)
+                      Attachments (Optional)
                     </label>
                     <input
                       type="file"
                       onChange={handleFileChange}
                       accept="image/*,.pdf,.doc,.docx"
+                      multiple
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#355842] file:text-white hover:file:bg-[#2e4a36]"
                     />
-                    {formData.file && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        Selected: {formData.file.name}
-                      </p>
+                    {formData.files.length > 0 && (
+                      <div className="mt-2 space-y-2">
+                        {formData.files.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                            <span className="text-sm text-gray-600 truncate">{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeFile(index)}
+                              className="text-red-600 hover:text-red-800 ml-2 text-sm"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

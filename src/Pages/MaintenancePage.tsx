@@ -58,33 +58,55 @@ const MaintenancePage: React.FC = () => {
       const requestId = selectedTicket?.Request_Id || selectedTicket?.request_id;
 
       if (formMode === 'create') {
-        await maintenanceService.createTicket({
+        // Create ticket WITHOUT attachments first
+        const ticket = await maintenanceService.createTicket({
           title: formData.title,
           details: formData.issue,
           priority: formData.priority,
           created_by: createdByAccountId!,
           due_date: formData.dueDate || null,
-          attachment: formData.file ? formData.file.name : null,
         });
+
+        // Then upload attachments if any
+        if (formData.files && formData.files.length > 0) {
+          const newRequestId = ticket.Request_Id || ticket.request_id;
+          if (newRequestId) {
+            await Promise.all(
+              formData.files.map((file: File) =>
+                maintenanceService.uploadAttachment(newRequestId, createdByAccountId!, file)
+              )
+            );
+          }
+        }
+
       } else if (formMode === 'assign' && requestId) {
         const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
         const staffId = parseInt(formData.staffAccountId, 10);
         await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
+
       } else if (formMode === 'pending' && requestId) {
+        // Add remarks if provided
         if (formData.remarks?.trim()) {
           await maintenanceService.addRemarks(requestId, formData.remarks);
+        }
+
+        // Upload new attachments if any
+        if (formData.files && formData.files.length > 0) {
+          await Promise.all(
+            formData.files.map((file: File) =>
+              maintenanceService.uploadAttachment(requestId, createdByAccountId!, file)
+            )
+          );
         }
       }
       
       handleCloseForm();
-      // You might need a way to trigger a refetch in the active tab component
-      // For now, a page reload is a simple way to see the result
       window.location.reload();
 
     } catch (err: any) {
       console.error("Form submission error:", err);
       const errorMessage = err.response?.data?.message || err.message || "Failed to submit form";
-      setSubmitError(errorMessage); // This error can be shown inside the modal
+      setSubmitError(errorMessage);
       alert(`Error: ${errorMessage}`);
     }
   };
