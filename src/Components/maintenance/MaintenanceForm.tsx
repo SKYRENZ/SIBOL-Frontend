@@ -63,10 +63,14 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         if (user) {
           const userData = JSON.parse(user);
           const accountId = userData.Account_id ?? userData.account_id;
+          // ✅ Store the staff ID separately, not in staffAccountId field
           setFormData(prev => ({
             ...prev,
-            staffAccountId: String(accountId || ''),
+            staffAccountId: '', // Will be populated from initialData
           }));
+          
+          // ✅ Store staff ID in a separate state or include it in submit
+          (window as any).__currentStaffId = accountId; // Temporary solution
         }
       }
 
@@ -77,7 +81,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           priority: initialData.Priority || '',
           dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
           files: [],
-          staffAccountId: initialData.CreatedByName || 'Unknown', // ✅ Changed to display name
+          staffAccountId: initialData.CreatedByName || 'Unknown', // ✅ Display requester name
           assignedTo: initialData.Assigned_to ? String(initialData.Assigned_to) : '',
           remarks: '',
         });
