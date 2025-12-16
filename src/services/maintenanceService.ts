@@ -122,3 +122,9 @@ export async function cancelTicket(requestId: number, actor_account_id: number) 
   const response = await apiClient.put<MaintenanceTicket>(`${BASE_URL}/${requestId}/cancel`, { actor_account_id });
   return response.data;
 }
+
+// NEW: Get all priorities
+export async function getPriorities(): Promise<Array<{ Priority_id: number; Priority: string }>> {
+  const response = await apiClient.get<Array<{ Priority_id: number; Priority: string }>>(`${BASE_URL}/priorities`);
+  return response.data;
+}

@@ -3,6 +3,7 @@ import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
 import * as userService from '../../services/userService';
+import * as maintenanceService from '../../services/maintenanceService';
 import CustomScrollbar from '../common/CustomScrollbar';
 
 interface MaintenanceFormProps {
@@ -27,7 +28,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     issue: '',
     priority: '',
     dueDate: '',
-    files: [] as File[], // CHANGED: Multiple files
+    files: [] as File[],
     staffAccountId: '',
     assignedTo: '',
     remarks: '',
@@ -35,9 +36,29 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   const [formError, setFormError] = useState<string | null>(null);
   const [assignedOptions, setAssignedOptions] = useState<{ value: string; label: string }[]>([]);
+  const [priorityOptions, setPriorityOptions] = useState<{ value: string; label: string }[]>([]); // ✅ Add state
 
   useEffect(() => {
     if (isOpen) {
+      // ✅ Fetch priorities from database
+      maintenanceService.getPriorities()
+        .then((priorities) => {
+          const options = priorities.map((p) => ({
+            value: p.Priority, // Send priority name (Critical, Urgent, Mild)
+            label: p.Priority,
+          }));
+          setPriorityOptions(options);
+        })
+        .catch((error) => {
+          console.error('Error fetching priorities:', error);
+          // Fallback to default if fetch fails
+          setPriorityOptions([
+            { value: 'Critical', label: 'Critical' },
+            { value: 'Urgent', label: 'Urgent' },
+            { value: 'Mild', label: 'Mild' },
+          ]);
+        });
+
       if (mode === 'assign') {
         const user = localStorage.getItem('user');
         if (user) {
@@ -53,12 +74,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       if (initialData) {
         setFormData({
           title: initialData.Title || '',
-          issue: initialData.Issue || '',
+          issue: initialData.Details || '', // ✅ Changed from Issue to Details
           priority: initialData.Priority || '',
           dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
-          file: null,
+          files: [], // ✅ Changed from file: null to files: []
           staffAccountId: formData.staffAccountId,
-          assignedTo: initialData.Assigned_to || '',
+          assignedTo: initialData.Assigned_to ? String(initialData.Assigned_to) : '',
           remarks: '',
         });
       } else {
@@ -67,7 +88,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           issue: '',
           priority: '',
           dueDate: '',
-          file: null,
+          files: [], // ✅ Changed from file: null to files: []
           staffAccountId: formData.staffAccountId,
           assignedTo: '',
           remarks: '',
@@ -107,6 +128,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index)
     }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -147,13 +169,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isCreateMode = mode === 'create';
   const isAssignMode = mode === 'assign';
   const isPendingMode = mode === 'pending';
-
-  const priorityOptions = [
-    { value: 'Critical', label: 'Critical' },
-    { value: 'High', label: 'High' },
-    { value: 'Medium', label: 'Medium' },
-    { value: 'Low', label: 'Low' },
-  ];
 
   return (
     <FormModal isOpen={isOpen} onClose={handleClose} title={
