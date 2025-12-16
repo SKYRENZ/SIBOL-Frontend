@@ -97,11 +97,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
       if (mode === 'assign') {
         userService.getOperators()
-          .then((response: any) => {
-            const operators = response.data.data || [];
-            const options = operators.map((operator: any) => ({
-              value: String(operator.Account_id),
-              label: `${operator.Firstname} ${operator.Lastname}`,
+          .then((operators) => { // ✅ operators is already the array!
+            const options = operators.map((operator) => ({
+              value: String(operator.value), // ✅ Use 'value' property
+              label: operator.label,          // ✅ Use 'label' property
             }));
             setAssignedOptions(options);
           })
