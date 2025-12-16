@@ -44,14 +44,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       maintenanceService.getPriorities()
         .then((priorities) => {
           const options = priorities.map((p) => ({
-            value: p.Priority, // Send priority name (Critical, Urgent, Mild)
+            value: p.Priority,
             label: p.Priority,
           }));
           setPriorityOptions(options);
         })
         .catch((error) => {
           console.error('Error fetching priorities:', error);
-          // Fallback to default if fetch fails
           setPriorityOptions([
             { value: 'Critical', label: 'Critical' },
             { value: 'Urgent', label: 'Urgent' },
@@ -74,11 +73,11 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       if (initialData) {
         setFormData({
           title: initialData.Title || '',
-          issue: initialData.Details || '', // ✅ Changed from Issue to Details
+          issue: initialData.Details || '',
           priority: initialData.Priority || '',
           dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
-          files: [], // ✅ Changed from file: null to files: []
-          staffAccountId: formData.staffAccountId,
+          files: [],
+          staffAccountId: initialData.CreatedByName || 'Unknown', // ✅ Changed to display name
           assignedTo: initialData.Assigned_to ? String(initialData.Assigned_to) : '',
           remarks: '',
         });
@@ -88,7 +87,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           issue: '',
           priority: '',
           dueDate: '',
-          files: [], // ✅ Changed from file: null to files: []
+          files: [],
           staffAccountId: formData.staffAccountId,
           assignedTo: '',
           remarks: '',
@@ -97,11 +96,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
       if (mode === 'assign') {
         userService.getOperators()
-          .then((operators) => { // ✅ operators is already the array!
-            const options = operators.map((operator) => ({
-              value: String(operator.value), // ✅ Use 'value' property
-              label: operator.label,          // ✅ Use 'label' property
-            }));
+          .then((operators) => {
+            const options = operators
+              .filter(op => op.value && op.label) // ✅ Filter out invalid entries
+              .map((operator) => ({
+                value: String(operator.value),
+                label: operator.label,
+              }));
             setAssignedOptions(options);
           })
           .catch((error) => {
@@ -263,7 +264,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <FormField
-                      label="Staff Account ID"
+                      label="Requested By" // ✅ Changed label
                       name="staffAccountId"
                       type="text"
                       value={formData.staffAccountId}
