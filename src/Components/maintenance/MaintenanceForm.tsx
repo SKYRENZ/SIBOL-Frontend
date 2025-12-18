@@ -195,9 +195,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     setShowAttachmentModal(true);
   };
 
-  const handleDownloadAttachment = () => {
+  const handleDownloadAttachment = async () => {
     if (selectedAttachment?.File_path) {
-      window.open(selectedAttachment.File_path, '_blank');
+      try {
+        // Fetch the file as a blob
+        const response = await fetch(selectedAttachment.File_path);
+        const blob = await response.blob();
+        
+        // Create a temporary URL for the blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a temporary anchor element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = selectedAttachment.File_name || 'download';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Download failed:', error);
+        // Fallback to opening in new tab if download fails
+        window.open(selectedAttachment.File_path, '_blank');
+      }
     }
   };
 
