@@ -71,6 +71,12 @@ export async function getAttachments(requestId: number): Promise<MaintenanceAtta
   return response.data;
 }
 
+// NEW: Get ticket attachments (alternative function name)
+export async function getTicketAttachments(requestId: number): Promise<MaintenanceAttachment[]> {
+  const response = await apiClient.get<MaintenanceAttachment[]>(`${BASE_URL}/${requestId}/attachments`);
+  return response.data;
+}
+
 export async function acceptAndAssign(
   requestId: number,
   staffAccountId: number,

@@ -37,6 +37,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [assignedOptions, setAssignedOptions] = useState<{ value: string; label: string }[]>([]);
   const [priorityOptions, setPriorityOptions] = useState<{ value: string; label: string }[]>([]); // ✅ Add state
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -114,6 +117,19 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             setFormError('Failed to load operators');
           });
       }
+
+      // Fetch attachments if initialData has Request_Id
+      const requestId = initialData.Request_Id || initialData.request_id;
+      if (requestId) {
+        maintenanceService.getTicketAttachments(requestId)
+          .then((data) => {
+            setAttachments(data || []);
+          })
+          .catch((error) => {
+            console.error('Error fetching attachments:', error);
+            setAttachments([]);
+          });
+      }
     }
   }, [isOpen, initialData, mode]);
 
@@ -173,6 +189,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isCreateMode = mode === 'create';
   const isAssignMode = mode === 'assign';
   const isPendingMode = mode === 'pending';
+
+  const handleAttachmentClick = (attachment: any) => {
+    setSelectedAttachment(attachment);
+    setShowAttachmentModal(true);
+  };
+
+  const handleDownloadAttachment = () => {
+    if (selectedAttachment?.File_path) {
+      window.open(selectedAttachment.File_path, '_blank');
+    }
+  };
 
   return (
     <FormModal isOpen={isOpen} onClose={handleClose} title={
@@ -351,20 +378,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     />
 
-                    {initialData?.Attachment && (
+                    {/* Attachments Section */}
+                    {attachments.length > 0 && (
                       <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">
-                          Attachment
+                          Attachments
                         </label>
-                        <a
-                          href={initialData.Attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-2 text-sm text-white bg-[#355842] rounded-md hover:bg-[#2e4a36]"
-                        >
-                          View Attachment
-                        </a>
-                        <p className="text-xs text-gray-500 break-all">{initialData.Attachment}</p>
+                        <div className="space-y-2">
+                          {attachments.map((attachment) => (
+                            <button
+                              key={attachment.Attachment_Id}
+                              type="button"
+                              onClick={() => handleAttachmentClick(attachment)}
+                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-[#355842] truncate">
+                                  {attachment.File_name}
+                                </span>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -420,20 +458,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </div>
                     </div>
 
-                    {initialData?.Attachment && (
+                    {/* Attachments Section */}
+                    {attachments.length > 0 && (
                       <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">
-                          Attachment
+                          Attachments
                         </label>
-                        <a
-                          href={initialData.Attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-2 text-sm text-white bg-[#355842] rounded-md hover:bg-[#2e4a36]"
-                        >
-                          View Attachment
-                        </a>
-                        <p className="text-xs text-gray-500 break-all">{initialData.Attachment}</p>
+                        <div className="space-y-2">
+                          {attachments.map((attachment) => (
+                            <button
+                              key={attachment.Attachment_Id}
+                              type="button"
+                              onClick={() => handleAttachmentClick(attachment)}
+                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-[#355842] truncate">
+                                  {attachment.File_name}
+                                </span>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -498,6 +547,61 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Attachment Preview Modal */}
+      {showAttachmentModal && selectedAttachment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[300000]" onClick={() => setShowAttachmentModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white flex items-center justify-between">
+              <h3 className="font-semibold text-lg">{selectedAttachment.File_name}</h3>
+              <button
+                onClick={() => setShowAttachmentModal(false)}
+                className="text-white hover:bg-white/10 transition-colors rounded-full w-8 h-8 flex items-center justify-center"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {selectedAttachment.File_type?.startsWith('image/') ? (
+                <img 
+                  src={selectedAttachment.File_path} 
+                  alt={selectedAttachment.File_name}
+                  className="max-w-full h-auto mx-auto rounded"
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-gray-600 mb-2">{selectedAttachment.File_name}</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedAttachment.File_size ? `${(selectedAttachment.File_size / 1024).toFixed(2)} KB` : 'File preview not available'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowAttachmentModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleDownloadAttachment}
+                className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
+                style={{ backgroundColor: '#355842' }}
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </FormModal>
   );
 };
