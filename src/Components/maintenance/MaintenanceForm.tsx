@@ -189,6 +189,37 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
           )}
 
+          {/* ✅ Updated Request Info Header for Pending Mode */}
+          {isPendingMode && initialData && (
+            <div className="mb-6 pb-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xl font-bold text-[#2E523A] mb-3">
+                    Request No: {initialData.Request_date 
+                      ? `${new Date(initialData.Request_date).getFullYear()}${String(new Date(initialData.Request_date).getMonth() + 1).padStart(2, '0')}${initialData.Request_Id || initialData.request_id}`
+                      : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${initialData.Request_Id || initialData.request_id}`
+                    }
+                  </p>
+                  <p className="text-base text-gray-900">
+                    {initialData.Title}
+                  </p>
+                </div>
+                <div className="text-right ml-4">
+                  <p className="text-xs text-gray-500 mb-1">Request Date</p>
+                  <p className="text-sm font-semibold text-gray-700">
+                    {initialData.Request_date 
+                      ? new Date(initialData.Request_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           <CustomScrollbar className="flex-1 overflow-y-auto pr-2">
             <div className="pb-4">
               {isCreateMode ? (
@@ -410,7 +441,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               ) : null}
 
               {isPendingMode && (
-                <div className="border-t pt-4 space-y-3">
+                <div className="border-t pt-4 mt-4 space-y-3">
                   <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>Remarks</h3>
                   
                   {initialData?.Remarks && (
