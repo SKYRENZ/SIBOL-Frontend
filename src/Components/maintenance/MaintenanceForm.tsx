@@ -66,14 +66,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         if (user) {
           const userData = JSON.parse(user);
           const accountId = userData.Account_id ?? userData.account_id;
-          // ✅ Store the staff ID separately, not in staffAccountId field
           setFormData(prev => ({
             ...prev,
-            staffAccountId: '', // Will be populated from initialData
+            staffAccountId: '',
           }));
           
-          // ✅ Store staff ID in a separate state or include it in submit
-          (window as any).__currentStaffId = accountId; // Temporary solution
+          (window as any).__currentStaffId = accountId;
         }
       }
 
@@ -84,7 +82,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           priority: initialData.Priority || '',
           dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
           files: [],
-          staffAccountId: initialData.CreatedByName || 'Unknown', // ✅ Display requester name
+          staffAccountId: initialData.CreatedByName || 'Unknown',
           assignedTo: initialData.Assigned_to ? String(initialData.Assigned_to) : '',
           remarks: '',
         });
@@ -105,7 +103,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         userService.getOperators()
           .then((operators) => {
             const options = operators
-              .filter(op => op.value && op.label) // ✅ Filter out invalid entries
+              .filter(op => op.value && op.label)
               .map((operator) => ({
                 value: String(operator.value),
                 label: operator.label,
@@ -118,8 +116,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           });
       }
 
-      // Fetch attachments if initialData has Request_Id
-      const requestId = initialData.Request_Id || initialData.request_id;
+      // ✅ FIX: Check if initialData exists before accessing Request_Id
+      const requestId = initialData?.Request_Id || initialData?.request_id;
       if (requestId) {
         maintenanceService.getTicketAttachments(requestId)
           .then((data) => {
@@ -129,6 +127,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             console.error('Error fetching attachments:', error);
             setAttachments([]);
           });
+      } else {
+        // ✅ Reset attachments if no initialData
+        setAttachments([]);
       }
     }
   }, [isOpen, initialData, mode]);
