@@ -10,7 +10,7 @@ interface FormModalProps {
   children?: React.ReactNode;
 }
  
-const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '520px', children }) => {
+const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '720px', children }) => {
   if (!isOpen) return null;
  
   return ReactDOM.createPortal(
