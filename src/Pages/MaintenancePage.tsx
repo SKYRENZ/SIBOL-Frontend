@@ -79,15 +79,19 @@ const MaintenancePage: React.FC = () => {
           }
         }
 
-      } else if (formMode === 'assign' && requestId) {
-        // ✅ Get staff ID from localStorage, NOT from formData
+      } else if (formMode === 'assign') {
+        // ✅ FIX: Check if requestId exists before calling
+        if (!requestId) {
+          throw new Error('Request ID not found');
+        }
+
         const user = localStorage.getItem('user');
         if (!user) {
           throw new Error('User not found');
         }
         
         const userData = JSON.parse(user);
-        const staffId = userData.Account_id ?? userData.account_id; // ✅ Current staff accepting
+        const staffId = userData.Account_id ?? userData.account_id;
         
         if (!staffId) {
           throw new Error('Staff account ID not found');
@@ -95,22 +99,21 @@ const MaintenancePage: React.FC = () => {
 
         const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
         
-        console.log('Submitting:', { // ✅ Debug log
+        console.log('Submitting:', {
           requestId,
-          staffId, // The staff accepting (you)
-          assignToId // The operator being assigned
+          staffId,
+          assignToId
         });
 
         await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
 
-      } else if (formMode === 'pending' && requestId) {
-        // Add remarks if provided
-        if (formData.remarks?.trim()) {
-          await maintenanceService.addRemarks(requestId, formData.remarks);
-        }
-
-        // Upload new attachments if any
+      } else if (formMode === 'pending') {
+        // ✅ FIX: Check if requestId exists before uploading attachments
         if (formData.files && formData.files.length > 0) {
+          if (!requestId) {
+            throw new Error('Request ID not found');
+          }
+          
           await Promise.all(
             formData.files.map((file: File) =>
               maintenanceService.uploadAttachment(requestId, createdByAccountId!, file)

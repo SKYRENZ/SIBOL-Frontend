@@ -4,6 +4,7 @@ import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
 import * as userService from '../../services/userService';
 import * as maintenanceService from '../../services/maintenanceService';
+import type { MaintenanceRemark } from '../../types/maintenance';
 import CustomScrollbar from '../common/CustomScrollbar';
 
 interface MaintenanceFormProps {
@@ -40,6 +41,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [attachments, setAttachments] = useState<any[]>([]);
   const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+  const [remarks, setRemarks] = useState<MaintenanceRemark[]>([]); // ✅ NEW: Store remarks
+  const [loadingRemarks, setLoadingRemarks] = useState(false); // ✅ NEW: Loading state
+  const [currentUserRole, setCurrentUserRole] = useState<string>(''); // ✅ NEW: User role
 
   useEffect(() => {
     if (isOpen) {
@@ -131,6 +135,46 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         // ✅ Reset attachments if no initialData
         setAttachments([]);
       }
+
+      // ✅ Load user role
+      const user = localStorage.getItem('user');
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          const roleId = userData.Roles || userData.role;
+          
+          // Map role IDs to names
+          const roleMap: { [key: number]: string } = {
+            1: 'Admin',
+            2: 'Barangay_staff',
+            3: 'Operator',
+            4: 'Household'
+          };
+          
+          setCurrentUserRole(roleMap[roleId] || 'Unknown');
+        } catch (err) {
+          console.error('Error parsing user data:', err);
+        }
+      }
+
+      // ✅ Load remarks if in pending mode
+      const requestIdForRemarks = initialData?.Request_Id || initialData?.request_id;
+      if (requestIdForRemarks && (mode === 'pending' || mode === 'assign')) {
+        setLoadingRemarks(true);
+        maintenanceService.getTicketRemarks(requestIdForRemarks)
+          .then((data) => {
+            setRemarks(data || []);
+          })
+          .catch((error) => {
+            console.error('Error fetching remarks:', error);
+            setRemarks([]);
+          })
+          .finally(() => {
+            setLoadingRemarks(false);
+          });
+      } else {
+        setRemarks([]);
+      }
     }
   }, [isOpen, initialData, mode]);
 
@@ -151,7 +195,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -164,6 +208,44 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       if (!formData.assignedTo) {
         setFormError('Please assign an operator');
         return;
+      }
+    } else if (mode === 'pending') {
+      if (formData.remarks?.trim()) {
+        try {
+          const user = localStorage.getItem('user');
+          if (!user) {
+            setFormError('User not found');
+            return;
+          }
+          
+          const userData = JSON.parse(user);
+          const accountId = userData.Account_id ?? userData.account_id;
+          const requestId = initialData?.Request_Id || initialData?.request_id;
+
+          if (!requestId) {
+            setFormError('Request ID not found');
+            return;
+          }
+
+          await maintenanceService.addRemark(
+            requestId,
+            formData.remarks,
+            accountId,
+            currentUserRole
+          );
+
+          const updatedRemarks = await maintenanceService.getTicketRemarks(requestId);
+          setRemarks(updatedRemarks);
+          
+          setFormData(prev => ({ ...prev, remarks: '' }));
+
+          // ✅ FIX: Replace Alert with alert
+          alert('Remark added successfully');
+          return;
+        } catch (err: any) {
+          setFormError(err.message || 'Failed to add remark');
+          return;
+        }
       }
     }
 
@@ -512,20 +594,50 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
               ) : null}
 
+              {/* ✅ Remarks Section for Pending Mode */}
               {isPendingMode && (
                 <div className="border-t pt-4 mt-4 space-y-3">
-                  <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>Remarks</h3>
+                  <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>
+                    Remarks History
+                  </h3>
                   
-                  {initialData?.Remarks && (
-                    <div className="p-3 rounded bg-blue-50 border border-blue-200">
-                      <p className="text-xs text-gray-600 mb-1">Previous Remarks:</p>
-                      <p className="text-sm text-gray-800">{initialData.Remarks}</p>
+                  {/* ✅ Display remarks */}
+                  {loadingRemarks ? (
+                    <div className="text-center py-4">
+                      <p className="text-sm text-gray-500">Loading remarks...</p>
                     </div>
+                  ) : remarks.length > 0 ? (
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {remarks.map((remark) => (
+                        <div
+                          key={remark.Remark_Id}
+                          className="p-3 rounded bg-gray-50 border border-gray-200"
+                        >
+                          <div className="flex items-start justify-between mb-1">
+                            <p className="text-xs font-semibold text-gray-700">
+                              {remark.CreatedByName || 'Unknown User'}
+                              {remark.CreatedByRoleName && (
+                                <span className="ml-2 text-xs text-gray-500">
+                                  ({remark.CreatedByRoleName})
+                                </span>
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {new Date(remark.Created_at).toLocaleString()}
+                            </p>
+                          </div>
+                          <p className="text-sm text-gray-800">{remark.Remark_text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">No remarks yet</p>
                   )}
 
-                  <div className="space-y-1">
+                  {/* ✅ Add new remark */}
+                  <div className="space-y-1 mt-4">
                     <label className="block text-sm font-medium text-gray-700">
-                      Add Remarks
+                      Add New Remark
                     </label>
                     <textarea
                       name="remarks"
@@ -550,15 +662,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               {isPendingMode ? "Close" : "Cancel"}
             </button>
             
-            {isPendingMode ? (
+            {isPendingMode && (
               <button
                 type="submit"
-                className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
+                disabled={!formData.remarks?.trim()}
+                className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
                 style={{ backgroundColor: '#355842' }}
               >
-                Add Remarks
+                Add Remark
               </button>
-            ) : (
+            )}
+            
+            {!isPendingMode && (
               <button
                 type="submit"
                 className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"

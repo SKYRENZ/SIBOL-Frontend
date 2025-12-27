@@ -97,6 +97,28 @@ export async function markOnGoing(requestId: number, operator_account_id: number
   return response.data;
 }
 
+// ✅ NEW: Add a remark to a ticket
+export async function addRemark(
+  requestId: number,
+  remarkText: string,
+  createdBy: number,
+  userRole?: string
+): Promise<any> {
+  const response = await apiClient.post(`${BASE_URL}/${requestId}/remarks`, {
+    remark_text: remarkText,
+    created_by: createdBy,
+    user_role: userRole,
+  });
+  return response.data;
+}
+
+// ✅ NEW: Get all remarks for a ticket
+export async function getTicketRemarks(requestId: number): Promise<any[]> {
+  const response = await apiClient.get<any[]>(`${BASE_URL}/${requestId}/remarks`);
+  return response.data || []; // ✅ Ensure it always returns an array
+}
+
+// ✅ Keep the old addRemarks function for backward compatibility if needed
 export async function addRemarks(
   requestId: number,
   remarks: string
