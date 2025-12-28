@@ -601,52 +601,106 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     Remarks History
                   </h3>
                   
-                  {/* ✅ Display remarks */}
+                  {/* ✅ Display remarks in chat format */}
                   {loadingRemarks ? (
                     <div className="text-center py-4">
                       <p className="text-sm text-gray-500">Loading remarks...</p>
                     </div>
                   ) : remarks.length > 0 ? (
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
-                      {remarks.map((remark) => (
-                        <div
-                          key={remark.Remark_Id}
-                          className="p-3 rounded bg-gray-50 border border-gray-200"
-                        >
-                          <div className="flex items-start justify-between mb-1">
-                            <p className="text-xs font-semibold text-gray-700">
-                              {remark.CreatedByName || 'Unknown User'}
-                              {remark.CreatedByRoleName && (
-                                <span className="ml-2 text-xs text-gray-500">
-                                  ({remark.CreatedByRoleName})
-                                </span>
+                    <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-50 rounded-lg">
+                      {remarks.map((remark) => {
+                        const user = localStorage.getItem('user');
+                        const userData = user ? JSON.parse(user) : {};
+                        const currentUserId = userData.Account_id ?? userData.account_id;
+                        const isCurrentUser = remark.Created_by === currentUserId;
+                        
+                        // Format timestamp to HH:MM AM/PM
+                        const formatTime = (timestamp: string) => {
+                          const date = new Date(timestamp);
+                          let hours = date.getHours();
+                          const minutes = date.getMinutes();
+                          const ampm = hours >= 12 ? 'PM' : 'AM';
+                          hours = hours % 12;
+                          hours = hours ? hours : 12; // the hour '0' should be '12'
+                          const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                          return `${hours}:${minutesStr} ${ampm}`;
+                        };
+
+                        return (
+                          <div
+                            key={remark.Remark_Id}
+                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div
+                              className={`max-w-[70%] ${
+                                isCurrentUser
+                                  ? 'bg-[#355842] text-white'
+                                  : 'bg-white border border-gray-200'
+                              }`}
+                              style={{ borderRadius: '12px', padding: '8px 12px' }}
+                            >
+                              <div className="flex items-baseline justify-between gap-2 mb-1">
+                                <p
+                                  className={`text-xs font-semibold ${
+                                    isCurrentUser ? 'text-white' : 'text-[#355842]'
+                                  }`}
+                                >
+                                  {isCurrentUser ? 'You' : (remark.CreatedByName || 'Unknown')}
+                                </p>
+                                <p
+                                  className={`text-xs ${
+                                    isCurrentUser ? 'text-gray-200' : 'text-gray-500'
+                                  }`}
+                                >
+                                  {formatTime(remark.Created_at)}
+                                </p>
+                              </div>
+                              <p
+                                className={`text-sm ${
+                                  isCurrentUser ? 'text-white' : 'text-gray-700'
+                                }`}
+                              >
+                                {remark.Remark_text}
+                              </p>
+                              {!isCurrentUser && remark.CreatedByRoleName && (
+                                <p className="text-xs text-gray-400 mt-1">
+                                  {remark.CreatedByRoleName}
+                                </p>
                               )}
-                            </p>
-                            <p className="text-xs text-gray-500">
-                              {new Date(remark.Created_at).toLocaleString()}
-                            </p>
+                            </div>
                           </div>
-                          <p className="text-sm text-gray-800">{remark.Remark_text}</p>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
-                    <p className="text-sm text-gray-500 italic">No remarks yet</p>
+                    <p className="text-sm text-gray-500 italic text-center py-8 bg-gray-50 rounded-lg">
+                      No remarks yet
+                    </p>
                   )}
 
-                  {/* ✅ Add new remark */}
-                  <div className="space-y-1 mt-4">
+                  {/* ✅ Add new remark with button on right */}
+                  <div className="space-y-2 mt-4">
                     <label className="block text-sm font-medium text-gray-700">
-                      Add New Remark
+                      Add Remark
                     </label>
-                    <textarea
-                      name="remarks"
-                      value={formData.remarks}
-                      onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                      placeholder="Add your remarks about the maintenance..."
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent"
-                    />
+                    <div className="flex gap-2">
+                      <textarea
+                        name="remarks"
+                        value={formData.remarks}
+                        onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                        placeholder="Type your message..."
+                        rows={2}
+                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent resize-none"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!formData.remarks?.trim()}
+                        className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed self-end"
+                        style={{ backgroundColor: '#355842' }}
+                      >
+                        Send
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
@@ -662,16 +716,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               {isPendingMode ? "Close" : "Cancel"}
             </button>
             
-            {isPendingMode && (
-              <button
-                type="submit"
-                disabled={!formData.remarks?.trim()}
-                className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#355842' }}
-              >
-                Add Remark
-              </button>
-            )}
+            {/* ✅ Remove the Add Remark button from here since it's now in the chat section */}
             
             {!isPendingMode && (
               <button
