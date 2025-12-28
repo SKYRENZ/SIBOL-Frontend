@@ -751,7 +751,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       <button
                         type="button"
                         onClick={() => document.getElementById('pending-attachment')?.click()}
-                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors bg-transparent"
                         title="Attach files"
                       >
                         <Paperclip className="w-5 h-5" />
