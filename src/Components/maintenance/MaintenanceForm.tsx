@@ -689,16 +689,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         value={formData.remarks}
                         onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
                         placeholder="Type your message..."
-                        rows={2}
+                        rows={1}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent resize-none"
                       />
                       <button
                         type="submit"
                         disabled={!formData.remarks?.trim()}
-                        className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed self-end"
+                        className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed self-center"
                         style={{ backgroundColor: '#355842' }}
                       >
-                        Send
+                        Add Remark
                       </button>
                     </div>
                   </div>
