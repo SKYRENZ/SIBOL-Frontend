@@ -6,6 +6,7 @@ import * as userService from '../../services/userService';
 import * as maintenanceService from '../../services/maintenanceService';
 import type { MaintenanceRemark } from '../../types/maintenance';
 import CustomScrollbar from '../common/CustomScrollbar';
+import { Paperclip, X } from 'lucide-react';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [remarks, setRemarks] = useState<MaintenanceRemark[]>([]); // ✅ NEW: Store remarks
   const [loadingRemarks, setLoadingRemarks] = useState(false); // ✅ NEW: Loading state
   const [currentUserRole, setCurrentUserRole] = useState<string>(''); // ✅ NEW: User role
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
 
   useEffect(() => {
     if (isOpen) {
@@ -195,6 +197,19 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }));
   };
 
+  const handlePendingFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const newFiles = Array.from(e.target.files);
+      setPendingFiles(prev => [...prev, ...newFiles]);
+    }
+    // Reset input value to allow selecting the same file again
+    e.target.value = '';
+  };
+
+  const removePendingFile = (index: number) => {
+    setPendingFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
@@ -210,7 +225,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         return;
       }
     } else if (mode === 'pending') {
-      if (formData.remarks?.trim()) {
+      // ✅ Check if there's either a remark or files to submit
+      if (formData.remarks?.trim() || pendingFiles.length > 0) {
         try {
           const user = localStorage.getItem('user');
           if (!user) {
@@ -227,20 +243,37 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             return;
           }
 
-          await maintenanceService.addRemark(
-            requestId,
-            formData.remarks,
-            accountId,
-            currentUserRole
-          );
+          // Add remark if there's text
+          if (formData.remarks?.trim()) {
+            await maintenanceService.addRemark(
+              requestId,
+              formData.remarks,
+              accountId,
+              currentUserRole
+            );
+          }
 
+          // Upload files if any
+          if (pendingFiles.length > 0) {
+            await Promise.all(
+              pendingFiles.map((file: File) =>
+                maintenanceService.uploadAttachment(requestId, accountId, file)
+              )
+            );
+          }
+
+          // Refresh remarks and attachments
           const updatedRemarks = await maintenanceService.getTicketRemarks(requestId);
           setRemarks(updatedRemarks);
           
+          const updatedAttachments = await maintenanceService.getTicketAttachments(requestId);
+          setAttachments(updatedAttachments || []);
+          
+          // Clear form
           setFormData(prev => ({ ...prev, remarks: '' }));
+          setPendingFiles([]);
 
-          // ✅ FIX: Replace Alert with alert
-          alert('Remark added successfully');
+          alert('Remark/Attachment added successfully');
           return;
         } catch (err: any) {
           setFormError(err.message || 'Failed to add remark');
@@ -259,11 +292,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       issue: '',
       priority: '',
       dueDate: '',
-      files: [], // CHANGED
+      files: [],
       staffAccountId: '',
       assignedTo: '',
       remarks: '',
     });
+    setPendingFiles([]);
     onClose();
   };
 
@@ -601,7 +635,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     Remarks History
                   </h3>
                   
-                  {/* ✅ Display remarks in chat format */}
+                  {/* Display remarks in chat format */}
                   {loadingRemarks ? (
                     <div className="text-center py-4">
                       <p className="text-sm text-gray-500">Loading remarks...</p>
@@ -678,23 +712,64 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     </p>
                   )}
 
-                  {/* ✅ Add new remark with button on right */}
+                  {/* Add new remark section */}
                   <div className="space-y-2 mt-4">
                     <label className="block text-sm font-medium text-gray-700">
                       Add Remark
                     </label>
+                    
+                    {/* Show pending files */}
+                    {pendingFiles.length > 0 && (
+                      <div className="mb-2 space-y-1">
+                        {pendingFiles.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-sm">
+                            <span className="text-gray-700 truncate">{file.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removePendingFile(index)}
+                              className="text-red-500 hover:text-red-700 ml-2 bg-transparent"
+                            >
+                              <X className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    
                     <div className="flex gap-2">
+                      {/* Hidden file input */}
+                      <input
+                        type="file"
+                        id="pending-attachment"
+                        onChange={handlePendingFileChange}
+                        accept="image/*,.pdf,.doc,.docx"
+                        multiple
+                        className="hidden"
+                      />
+                      
+                      {/* Attachment button */}
+                      <button
+                        type="button"
+                        onClick={() => document.getElementById('pending-attachment')?.click()}
+                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors"
+                        title="Attach files"
+                      >
+                        <Paperclip className="w-5 h-5" />
+                      </button>
+                      
+                      {/* Textarea */}
                       <textarea
-                        name="remarks"
                         value={formData.remarks}
                         onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                        placeholder="Type your message..."
+                        placeholder="Type your remark here..."
                         rows={1}
                         className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent resize-none"
                       />
+                      
+                      {/* Add Remark button - disabled if no content */}
                       <button
                         type="submit"
-                        disabled={!formData.remarks?.trim()}
+                        disabled={!formData.remarks.trim() && pendingFiles.length === 0}
                         className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed self-center"
                         style={{ backgroundColor: '#355842' }}
                       >
