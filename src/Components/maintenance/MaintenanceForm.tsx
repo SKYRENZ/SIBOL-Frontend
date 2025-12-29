@@ -18,7 +18,7 @@ interface MaintenanceFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: any) => void;
-  mode?: 'create' | 'assign' | 'pending';
+  mode?: 'create' | 'assign' | 'pending' | 'completed';
   initialData?: any;
   submitError?: string | null;
 }
@@ -147,8 +147,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         setAttachments([]);
       }
 
-      // Fetch remarks for pending/assign mode
-      if (requestId && (mode === 'pending' || mode === 'assign')) {
+      // Fetch remarks for pending/completed mode
+      if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
         setLoadingRemarks(true);
         maintenanceService.getTicketRemarks(requestId)
           .then((data) => {
@@ -281,6 +281,133 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isCreateMode = mode === 'create';
   const isAssignMode = mode === 'assign';
   const isPendingMode = mode === 'pending';
+  const isCompletedMode = mode === 'completed';
+  const isViewMode = isPendingMode || isCompletedMode;
+
+  // ✅ Reuse the same content in mobile + desktop layouts
+  const leftDetailsContent = (
+    <div className="space-y-4">
+      {attachments.length > 0 && (
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-gray-700">Attachments</label>
+          <AttachmentsList
+            attachments={attachments}
+            onView={(attachment) => {
+              setSelectedAttachment(attachment);
+              setShowAttachmentModal(true);
+            }}
+            isReadOnly={true}
+          />
+        </div>
+      )}
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+        <div
+          className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
+          style={{ color: '#E67E22' }}
+        >
+          {initialData?.Priority || '—'}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm">
+          <span
+            className="inline-block px-2 py-1 rounded text-white text-xs font-semibold"
+            style={{ backgroundColor: '#355842' }}
+          >
+            {initialData?.Status || '—'}
+          </span>
+        </div>
+      </div>
+
+      <DatePicker
+        label="Due Date"
+        name="dueDate"
+        value={formData.dueDate}
+        onChange={noOpChange}
+        disabled={true}
+      />
+
+      <FormField
+        label="Assigned Operator"
+        name="assignedOperator"
+        type="text"
+        value={initialData?.AssignedOperatorName || 'Unassigned'}
+        onChange={noOpChange}
+        disabled={true}
+      />
+
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Issue Description</label>
+        <textarea
+          name="issue"
+          value={formData.issue}
+          disabled={true}
+          rows={5}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+        />
+      </div>
+    </div>
+  );
+
+  const remarksMessagesBody = loadingRemarks ? (
+    <div className="text-center py-8">
+      <p className="text-sm text-gray-500">Loading remarks...</p>
+    </div>
+  ) : remarks.length === 0 ? (
+    <p className="text-sm text-gray-500 italic text-center py-8">No remarks yet</p>
+  ) : (
+    <div className="space-y-3">
+      {remarks.map((remark) => (
+        <div
+          key={remark.Remark_Id}
+          className={`flex ${remark.Created_by === currentUserId ? 'justify-end' : 'justify-start'}`}
+        >
+          <div
+            className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+              remark.Created_by === currentUserId
+                ? 'bg-[#355842] text-white rounded-br-sm'
+                : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+            }`}
+          >
+            <div className="flex items-baseline gap-2 mb-1">
+              <span
+                className={`text-xs font-semibold ${
+                  remark.Created_by === currentUserId ? 'text-white' : 'text-gray-900'
+                }`}
+              >
+                {remark.CreatedByName || 'Unknown'}
+              </span>
+              <span
+                className={`text-xs ${
+                  remark.Created_by === currentUserId ? 'text-white/70' : 'text-gray-500'
+                }`}
+              >
+                {(() => {
+                  const date = new Date(remark.Created_at);
+                  const now = new Date();
+                  const diff = now.getTime() - date.getTime();
+                  const minutes = Math.floor(diff / 60000);
+                  const hours = Math.floor(diff / 3600000);
+                  const days = Math.floor(diff / 86400000);
+
+                  if (minutes < 1) return 'Just now';
+                  if (minutes < 60) return `${minutes}m ago`;
+                  if (hours < 24) return `${hours}h ago`;
+                  if (days < 7) return `${days}d ago`;
+                  return date.toLocaleDateString();
+                })()}
+              </span>
+            </div>
+            <p className="text-sm whitespace-pre-wrap break-words">{remark.Remark_text}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   return (
     <FormModal
@@ -290,11 +417,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         isCreateMode ? "Request Maintenance" :
         isAssignMode ? "Accept & Assign Maintenance" :
         isPendingMode ? "View Pending Maintenance" :
+        isCompletedMode ? "View Completed Maintenance" :
         "Maintenance Details"
       }
-      width={isPendingMode ? '960px' : '720px'}
+      width={isViewMode ? '960px' : '720px'}
     >
-      <div className="flex flex-col max-h-[80vh] h-full">
+      {/* Give the body an actual height so h-full children can size correctly */}
+      <div className="flex flex-col h-[70vh] max-h-[650px]">
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {(formError || submitError) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex-shrink-0">
@@ -302,7 +431,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
           )}
 
-          {isPendingMode && initialData && (
+          {isViewMode && initialData && (
             <div className="mb-6 pb-4 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -333,111 +462,90 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           )}
 
           <div className="flex-1 min-h-0">
-            {isPendingMode ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-full min-h-0">
-                {/* LEFT COLUMN */}
-                <div className="min-h-0">
-                  <CustomScrollbar className="h-full overflow-y-auto pr-2">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                        <div
-                          className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
-                          style={{ color: '#E67E22' }}
-                        >
-                          {initialData?.Priority || "—"}
-                        </div>
-                      </div>
+            {isViewMode ? (
+              <div className="h-full min-h-0">
+                {/* ✅ MOBILE: single scroll, stacked, remarks at bottom */}
+                <CustomScrollbar
+                  className="h-full min-h-0 pr-2 md:hidden"
+                  maxHeight="max-h-full"
+                >
+                  <div className="space-y-6">
+                    <div>{leftDetailsContent}</div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm">
-                          <span
-                            className="inline-block px-2 py-1 rounded text-white text-xs font-semibold"
-                            style={{ backgroundColor: '#355842' }}
+                    <div className="space-y-3">
+                      <h3
+                        className="font-semibold text-sm flex-shrink-0"
+                        style={{ color: '#2E523A' }}
+                      >
+                        Remarks History
+                      </h3>
+
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
+                        {/* ✅ Keep messages scrollbar on mobile */}
+                        <div className="overflow-hidden h-[40vh] max-h-[420px] min-h-[220px]">
+                          <CustomScrollbar
+                            className="h-full min-h-0 overflow-y-auto overscroll-contain"
+                            maxHeight="max-h-full"
                           >
-                            {initialData?.Status || "—"}
-                          </span>
+                            <div className="p-3">{remarksMessagesBody}</div>
+                          </CustomScrollbar>
                         </div>
-                      </div>
 
-                      <DatePicker
-                        label="Due Date"
-                        name="dueDate"
-                        value={formData.dueDate}
-                        onChange={noOpChange}
-                        disabled={true}
-                      />
-
-                      <FormField
-                        label="Assigned Operator"
-                        name="assignedOperator"
-                        type="text"
-                        value={initialData?.AssignedOperatorName || "Unassigned"}
-                        onChange={noOpChange}
-                        disabled={true}
-                      />
-
-                      <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Issue Description
-                        </label>
-                        <textarea
-                          name="issue"
-                          value={formData.issue}
-                          disabled={true}
-                          rows={5}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                        />
+                        {!isCompletedMode && (
+                          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+                            <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </CustomScrollbar>
-                </div>
+                  </div>
+                </CustomScrollbar>
 
-                {/* RIGHT COLUMN */}
-                <div className="min-h-0">
-                  <CustomScrollbar className="h-full overflow-y-auto pl-2">
-                    <div className="space-y-4">
-                      {/* ✅ Use AttachmentsList component */}
-                      {attachments.length > 0 && (
-                        <div className="space-y-1">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Attachments
-                          </label>
-                          <AttachmentsList
-                            attachments={attachments}
-                            onView={(attachment) => {
-                              setSelectedAttachment(attachment);
-                              setShowAttachmentModal(true);
-                            }}
-                            isReadOnly={true}
-                          />
+                {/* ✅ DESKTOP: two columns + pane scrolling (your current behavior) */}
+                <div className="hidden md:grid md:grid-cols-2 gap-6 h-full min-h-0">
+                  {/* LEFT COLUMN */}
+                  <div className="min-h-0 h-full overflow-hidden">
+                    <CustomScrollbar
+                      className="h-full min-h-0 pr-2 overflow-x-hidden"
+                      maxHeight="max-h-full"
+                    >
+                      {leftDetailsContent}
+                    </CustomScrollbar>
+                  </div>
+
+                  {/* RIGHT COLUMN */}
+                  <div className="min-h-0 h-full overflow-hidden">
+                    <div className="min-h-0 h-full flex flex-col border-l pl-4">
+                      <h3
+                        className="font-semibold text-sm mb-3 flex-shrink-0"
+                        style={{ color: '#2E523A' }}
+                      >
+                        Remarks History
+                      </h3>
+
+                      <div className="flex-1 min-h-0 flex flex-col border border-gray-200 rounded-lg overflow-hidden">
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                          <CustomScrollbar
+                            className="h-full min-h-0 overflow-y-auto"
+                            maxHeight="max-h-full"
+                          >
+                            <div className="p-3">{remarksMessagesBody}</div>
+                          </CustomScrollbar>
                         </div>
-                      )}
 
-                      {/* ✅ Use RemarksList and RemarksForm components */}
-                      <div className="border-t pt-4 mt-4 space-y-3">
-                        <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>
-                          Remarks History
-                        </h3>
-                        
-                        <RemarksList
-                          remarks={remarks}
-                          loading={loadingRemarks}
-                          currentUserId={currentUserId || undefined}
-                        />
-
-                        <RemarksForm
-                          onSubmit={handleRemarkSubmit}
-                          disabled={false}
-                        />
+                        {!isCompletedMode && (
+                          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+                            <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </CustomScrollbar>
+                  </div>
                 </div>
               </div>
             ) : (
-              <CustomScrollbar className="h-full overflow-y-auto pr-2">
+              // ✅ Prevent CustomScrollbar default max-h-96 from constraining height
+              <CustomScrollbar className="h-full min-h-0 overflow-y-auto pr-2" maxHeight="max-h-full">
                 <div className="pb-4">
                   {isCreateMode ? (
                     <div className="space-y-4">
@@ -483,7 +591,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         required
                       />
 
-                      {/* ✅ Use AttachmentsUpload component */}
                       <AttachmentsUpload
                         files={formData.files}
                         onChange={handleFileChange}
@@ -544,7 +651,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                       />
 
-                      {/* ✅ Use AttachmentsList component */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Attachments
@@ -581,10 +687,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               onClick={handleClose}
               className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              {isPendingMode ? "Close" : "Cancel"}
+              {isViewMode ? "Close" : "Cancel"}
             </button>
             
-            {!isPendingMode && (
+            {!isViewMode && (
               <button
                 type="submit"
                 className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
@@ -597,7 +703,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         </form>
       </div>
 
-      {/* ✅ Use AttachmentsViewer component */}
       <AttachmentsViewer
         attachment={selectedAttachment}
         isOpen={showAttachmentModal}
