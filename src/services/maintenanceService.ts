@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment } from "../types/maintenance";
+import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark } from "../types/maintenance";
 
 const BASE_URL = "/api/maintenance";
 
@@ -102,9 +102,9 @@ export async function addRemark(
   requestId: number,
   remarkText: string,
   createdBy: number,
-  userRole?: string
-): Promise<any> {
-  const response = await apiClient.post(`${BASE_URL}/${requestId}/remarks`, {
+  userRole: string
+): Promise<MaintenanceRemark> {
+  const response = await apiClient.post<MaintenanceRemark>(`/api/maintenance/${requestId}/remarks`, {
     remark_text: remarkText,
     created_by: createdBy,
     user_role: userRole,
@@ -113,9 +113,9 @@ export async function addRemark(
 }
 
 // ✅ NEW: Get all remarks for a ticket
-export async function getTicketRemarks(requestId: number): Promise<any[]> {
-  const response = await apiClient.get<any[]>(`${BASE_URL}/${requestId}/remarks`);
-  return response.data || []; // ✅ Ensure it always returns an array
+export async function getTicketRemarks(requestId: number): Promise<MaintenanceRemark[]> {
+  const response = await apiClient.get<MaintenanceRemark[]>(`/api/maintenance/${requestId}/remarks`);
+  return response.data;
 }
 
 // ✅ Keep the old addRemarks function for backward compatibility if needed
@@ -152,7 +152,7 @@ export async function cancelTicket(requestId: number, actor_account_id: number) 
 }
 
 // NEW: Get all priorities
-export async function getPriorities(): Promise<Array<{ Priority_id: number; Priority: string }>> {
-  const response = await apiClient.get<Array<{ Priority_id: number; Priority: string }>>(`${BASE_URL}/priorities`);
+export async function getPriorities(): Promise<Array<{ Priority_Id: number; Priority: string }>> {
+  const response = await apiClient.get<Array<{ Priority_Id: number; Priority: string }>>('/api/maintenance/priorities');
   return response.data;
 }
