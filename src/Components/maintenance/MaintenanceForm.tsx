@@ -724,88 +724,92 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </div>
                     </div>
                   ) : isAssignMode ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <FormField
-                          label="Requested By" // ✅ Changed label
-                          name="staffAccountId"
-                          type="text"
-                          value={formData.staffAccountId}
-                          onChange={noOpChange}
-                          placeholder="Loading..."
-                          disabled={true}
-                        />
+                    <div className="space-y-6">
+                      <FormField
+                        label="Requested By"
+                        name="staffAccountId"
+                        type="text"
+                        value={formData.staffAccountId}
+                        onChange={noOpChange}
+                        placeholder="Loading..."
+                        disabled
+                      />
 
-                        <FormField
-                          label="Assigned to *"
-                          name="assignedTo"
-                          type="select"
-                          value={formData.assignedTo}
-                          onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                          options={assignedOptions}
-                          required
-                        />
+                      <FormField
+                        label="Assigned To *"
+                        name="assignedTo"
+                        type="select"
+                        value={formData.assignedTo}
+                        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                        options={assignedOptions}
+                        required
+                      />
 
-                        <div className="space-y-1">
-                          <label className="block text-sm font-medium text-gray-700">
-                            Issue Description
-                          </label>
-                          <textarea
-                            name="issue"
-                            value={formData.issue}
-                            onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
-                            placeholder="Describe the issue..."
-                            rows={5}
-                            disabled={true}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                          />
-                        </div>
+                      <FormField
+                        label="Priority (Editable)"
+                        name="priority"
+                        type="select"
+                        value={formData.priority}
+                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                        options={priorityOptions}
+                      />
 
-                        <FormField
-                          label="Priority (editable)"
-                          name="priority"
-                          type="select"
-                          value={formData.priority}
-                          onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                          options={priorityOptions}
-                        />
-                      </div>
+                      <DatePicker
+                        label="Due Date (Editable)"
+                        name="dueDate"
+                        value={formData.dueDate}
+                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                      />
 
-                      <div className="space-y-4">
-                        <DatePicker
-                          label="Due Date (editable)"
-                          name="dueDate"
-                          value={formData.dueDate}
-                          onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                        />
-
-                        {/* Attachments Section */}
-                        {attachments.length > 0 && (
-                          <div className="space-y-1">
-                            <label className="block text-sm font-medium text-gray-700">
-                              Attachments
-                            </label>
-                            <div className="space-y-2">
-                              {attachments.map((attachment) => (
-                                <button
-                                  key={attachment.Attachment_Id}
-                                  type="button"
-                                  onClick={() => handleAttachmentClick(attachment)}
-                                  className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-sm text-[#355842] truncate">
-                                      {attachment.File_name}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Attachments
+                        </label>
+                        {attachments.length > 0 ? (
+                          <div className="flex items-center gap-3 overflow-x-auto pb-2">
+                            {attachments.map((attachment) => (
+                              <button
+                                key={attachment.Attachment_Id}
+                                type="button"
+                                onClick={() => handleAttachmentClick(attachment)}
+                                className="flex-shrink-0 bg-gray-50 border border-gray-300 rounded-xl hover:bg-white transition-colors p-1"
+                              >
+                                {attachment.File_type?.startsWith('image/') ? (
+                                  <img
+                                    src={attachment.File_path}
+                                    alt={attachment.File_name}
+                                    className="h-28 w-28 object-cover rounded-lg"
+                                  />
+                                ) : (
+                                  <div className="h-28 w-28 flex flex-col items-center justify-center rounded-lg bg-white text-xs text-gray-600 font-medium px-2 text-center">
+                                    <span className="text-[#355842] text-base font-semibold">
+                                      {attachment.File_type?.split('/')?.[1]?.slice(0, 3)?.toUpperCase() ?? 'FILE'}
                                     </span>
-                                    <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                    </svg>
+                                    <span className="mt-2 line-clamp-3">{attachment.File_name}</span>
                                   </div>
-                                </button>
-                              ))}
-                            </div>
+                                )}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="px-4 py-6 border border-dashed border-gray-200 rounded-2xl text-sm text-gray-500 bg-gray-50">
+                            No attachments uploaded.
                           </div>
                         )}
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Issue Description
+                        </label>
+                        <textarea
+                          name="issue"
+                          value={formData.issue}
+                          onChange={noOpChange}
+                          rows={5}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                        />
                       </div>
                     </div>
                   ) : isPendingMode ? (
