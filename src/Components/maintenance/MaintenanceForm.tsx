@@ -736,14 +736,28 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       />
 
                       <FormField
-                        label="Assigned To *"
-                        name="assignedTo"
-                        type="select"
-                        value={formData.assignedTo}
-                        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                        options={assignedOptions}
-                        required
+                        label="Title"
+                        name="title"
+                        type="text"
+                        value={formData.title}
+                        onChange={noOpChange}
+                        placeholder="Loading..."
+                        disabled
                       />
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Issue Description
+                        </label>
+                        <textarea
+                          name="issue"
+                          value={formData.issue}
+                          onChange={noOpChange}
+                          rows={5}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                        />
+                      </div>
 
                       <FormField
                         label="Priority (Editable)"
@@ -798,19 +812,15 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         )}
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Issue Description
-                        </label>
-                        <textarea
-                          name="issue"
-                          value={formData.issue}
-                          onChange={noOpChange}
-                          rows={5}
-                          disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                        />
-                      </div>
+                      <FormField
+                        label="Assign To *"
+                        name="assignedTo"
+                        type="select"
+                        value={formData.assignedTo}
+                        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                        options={assignedOptions}
+                        required
+                      />
                     </div>
                   ) : isPendingMode ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
