@@ -284,6 +284,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isCompletedMode = mode === 'completed';
   const isViewMode = isPendingMode || isCompletedMode;
 
+  const modalHeightClass = isViewMode
+    ? 'h-[72vh] max-h-[72vh]'
+    : 'h-[60vh] max-h-[60vh]';
+
   // ✅ Attachments block (reused in mobile + desktop, right side)
   const attachmentsContent = (
     <div className="space-y-1">
@@ -424,8 +428,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       }
       width={isViewMode ? '960px' : '720px'}
     >
-      {/* Desired height is 60vh */}
-      <div className="flex flex-col h-[65vh] max-h-[65vh]">
+      <div className={`flex flex-col ${modalHeightClass}`}>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {(formError || submitError) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex-shrink-0">
@@ -481,20 +484,22 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
                         {/* ✅ smaller messages so "Add Remark" stays visible */}
-                        <div className="overflow-hidden h-[22vh] max-h-[220px] min-h-[140px]">
-                          <CustomScrollbar
-                            className="h-full min-h-0 overflow-y-auto overscroll-contain"
-                            maxHeight="max-h-full"
-                          >
-                            <div className="p-3">{remarksMessagesBody}</div>
-                          </CustomScrollbar>
-                        </div>
+                        <div className="flex flex-col h-[32vh] min-h-[240px] max-h-[360px]">
+                          <div className="flex-1 min-h-0 overflow-hidden">
+                            <CustomScrollbar
+                              className="h-full min-h-0 overflow-y-auto overscroll-contain"
+                              maxHeight="max-h-full"
+                            >
+                              <div className="p-3">{remarksMessagesBody}</div>
+                            </CustomScrollbar>
+                          </div>
 
                         {!isCompletedMode && (
                           <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
                             <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
                           </div>
                         )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -521,17 +526,19 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
                         {/* ✅ smaller messages so input is visible */}
-                        <div className="overflow-hidden h-[28vh] max-h-[300px] min-h-[180px]">
-                          <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
-                            <div className="p-3">{remarksMessagesBody}</div>
-                          </CustomScrollbar>
-                        </div>
+                        <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 min-h-0 overflow-hidden">
+                            <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
+                              <div className="p-3">{remarksMessagesBody}</div>
+                            </CustomScrollbar>
+                          </div>
 
                         {!isCompletedMode && (
                           <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
                             <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
                           </div>
                         )}
+                        </div>
                       </div>
                     </div>
                   </div>
