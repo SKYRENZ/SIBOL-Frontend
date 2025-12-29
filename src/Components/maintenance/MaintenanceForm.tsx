@@ -11,8 +11,8 @@ import CustomScrollbar from '../common/CustomScrollbar';
 import AttachmentsList from './attachments/AttachmentsList';
 import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
-import RemarksList from './remarks/RemarksList';
-import RemarksForm from './remarks/RemarksForm';
+import RemarksForm from './remarks/RemarksForm'; // ✅ keep
+// ❌ remove: import RemarksList from './remarks/RemarksList';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -284,22 +284,35 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isCompletedMode = mode === 'completed';
   const isViewMode = isPendingMode || isCompletedMode;
 
-  // ✅ Reuse the same content in mobile + desktop layouts
+  // ✅ Attachments block (reused in mobile + desktop, right side)
+  const attachmentsContent = (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">Attachments</label>
+      <AttachmentsList
+        attachments={attachments}
+        onView={(attachment) => {
+          setSelectedAttachment(attachment);
+          setShowAttachmentModal(true);
+        }}
+        isReadOnly={true}
+        size="sm"
+      />
+    </div>
+  );
+
+  // ✅ Reuse the same content in mobile + desktop layouts (LEFT SIDE — no attachments here anymore)
   const leftDetailsContent = (
     <div className="space-y-4">
-      {attachments.length > 0 && (
-        <div className="space-y-1">
-          <label className="block text-sm font-medium text-gray-700">Attachments</label>
-          <AttachmentsList
-            attachments={attachments}
-            onView={(attachment) => {
-              setSelectedAttachment(attachment);
-              setShowAttachmentModal(true);
-            }}
-            isReadOnly={true}
-          />
-        </div>
-      )}
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Issue Description</label>
+        <textarea
+          name="issue"
+          value={formData.issue}
+          disabled={true}
+          rows={5}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+        />
+      </div>
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
@@ -339,17 +352,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         onChange={noOpChange}
         disabled={true}
       />
-
-      <div className="space-y-1">
-        <label className="block text-sm font-medium text-gray-700">Issue Description</label>
-        <textarea
-          name="issue"
-          value={formData.issue}
-          disabled={true}
-          rows={5}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-        />
-      </div>
     </div>
   );
 
@@ -422,8 +424,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       }
       width={isViewMode ? '960px' : '720px'}
     >
-      {/* Give the body an actual height so h-full children can size correctly */}
-      <div className="flex flex-col h-[70vh] max-h-[650px]">
+      {/* Desired height is 60vh */}
+      <div className="flex flex-col h-[65vh] max-h-[65vh]">
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {(formError || submitError) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex-shrink-0">
@@ -464,25 +466,22 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           <div className="flex-1 min-h-0">
             {isViewMode ? (
               <div className="h-full min-h-0">
-                {/* ✅ MOBILE: single scroll, stacked, remarks at bottom */}
-                <CustomScrollbar
-                  className="h-full min-h-0 pr-2 md:hidden"
-                  maxHeight="max-h-full"
-                >
+                {/* ✅ MOBILE: single scroll, stacked; attachments ABOVE remarks history */}
+                <CustomScrollbar className="h-full min-h-0 pr-2 md:hidden" maxHeight="max-h-full">
                   <div className="space-y-6">
                     <div>{leftDetailsContent}</div>
 
+                    {/* ✅ Attachments moved here (right-side equivalent on mobile) */}
+                    <div>{attachmentsContent}</div>
+
                     <div className="space-y-3">
-                      <h3
-                        className="font-semibold text-sm flex-shrink-0"
-                        style={{ color: '#2E523A' }}
-                      >
+                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
                         Remarks History
                       </h3>
 
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
-                        {/* ✅ Keep messages scrollbar on mobile */}
-                        <div className="overflow-hidden h-[40vh] max-h-[420px] min-h-[220px]">
+                        {/* ✅ smaller messages so "Add Remark" stays visible */}
+                        <div className="overflow-hidden h-[22vh] max-h-[220px] min-h-[140px]">
                           <CustomScrollbar
                             className="h-full min-h-0 overflow-y-auto overscroll-contain"
                             maxHeight="max-h-full"
@@ -501,34 +500,29 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   </div>
                 </CustomScrollbar>
 
-                {/* ✅ DESKTOP: two columns + pane scrolling (your current behavior) */}
+                {/* ✅ DESKTOP: two columns */}
                 <div className="hidden md:grid md:grid-cols-2 gap-6 h-full min-h-0">
                   {/* LEFT COLUMN */}
                   <div className="min-h-0 h-full overflow-hidden">
-                    <CustomScrollbar
-                      className="h-full min-h-0 pr-2 overflow-x-hidden"
-                      maxHeight="max-h-full"
-                    >
+                    <CustomScrollbar className="h-full min-h-0 pr-2 overflow-x-hidden" maxHeight="max-h-full">
                       {leftDetailsContent}
                     </CustomScrollbar>
                   </div>
 
-                  {/* RIGHT COLUMN */}
+                  {/* RIGHT COLUMN (NOT scrollable as a whole) */}
                   <div className="min-h-0 h-full overflow-hidden">
-                    <div className="min-h-0 h-full flex flex-col border-l pl-4">
-                      <h3
-                        className="font-semibold text-sm mb-3 flex-shrink-0"
-                        style={{ color: '#2E523A' }}
-                      >
+                    <div className="min-h-0 h-full flex flex-col border-l pl-4 gap-4">
+                      {/* ✅ Attachments moved to right, above remarks history */}
+                      {attachmentsContent}
+
+                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
                         Remarks History
                       </h3>
 
-                      <div className="flex-1 min-h-0 flex flex-col border border-gray-200 rounded-lg overflow-hidden">
-                        <div className="flex-1 min-h-0 overflow-hidden">
-                          <CustomScrollbar
-                            className="h-full min-h-0 overflow-y-auto"
-                            maxHeight="max-h-full"
-                          >
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
+                        {/* ✅ smaller messages so input is visible */}
+                        <div className="overflow-hidden h-[28vh] max-h-[300px] min-h-[180px]">
+                          <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
                             <div className="p-3">{remarksMessagesBody}</div>
                           </CustomScrollbar>
                         </div>

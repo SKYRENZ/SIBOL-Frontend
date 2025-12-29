@@ -7,6 +7,7 @@ interface AttachmentsListProps {
   onView?: (attachment: MaintenanceAttachment) => void;
   onRemove?: (index: number) => void;
   isReadOnly?: boolean;
+  size?: 'sm' | 'md';
 }
 
 const AttachmentsList: React.FC<AttachmentsListProps> = ({
@@ -14,6 +15,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
   onView,
   onRemove,
   isReadOnly = false,
+  size = 'md',
 }) => {
   if (attachments.length === 0) {
     return (
@@ -23,12 +25,17 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
     );
   }
 
+  const boxClass = size === 'sm' ? 'w-16 h-16 rounded-md' : 'w-24 h-24 rounded-lg';
+  const iconClass = size === 'sm' ? 'w-6 h-6' : 'w-8 h-8';
+  const eyeClass = size === 'sm' ? 'w-5 h-5' : 'w-6 h-6';
+  const nameClass = size === 'sm' ? 'text-[10px]' : 'text-xs';
+
   return (
     <div className="flex items-center gap-3 overflow-x-auto pb-2">
       {attachments.map((attachment, index) => (
         <div
           key={index}
-          className="relative group flex-shrink-0 w-24 h-24 border border-gray-200 rounded-lg overflow-hidden bg-gray-50 cursor-pointer hover:border-[#355842] transition-colors"
+          className={`relative group flex-shrink-0 ${boxClass} border border-gray-200 overflow-hidden bg-gray-50 cursor-pointer hover:border-[#355842] transition-colors`}
           onClick={() => onView?.(attachment)}
         >
           {attachment.File_type?.startsWith('image/') ? (
@@ -39,12 +46,12 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
-              <File className="w-8 h-8 text-gray-400" />
+              <File className={`${iconClass} text-gray-400`} />
             </div>
           )}
-          
+
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-opacity flex items-center justify-center">
-            <Eye className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+            <Eye className={`${eyeClass} text-white opacity-0 group-hover:opacity-100 transition-opacity`} />
           </div>
 
           {!isReadOnly && onRemove && (
@@ -60,7 +67,7 @@ const AttachmentsList: React.FC<AttachmentsListProps> = ({
           )}
 
           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/50 to-transparent p-1">
-            <p className="text-xs text-white truncate">{attachment.File_name}</p>
+            <p className={`${nameClass} text-white truncate`}>{attachment.File_name}</p>
           </div>
         </div>
       ))}
