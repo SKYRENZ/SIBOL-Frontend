@@ -341,12 +341,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   };
 
   return (
-    <FormModal isOpen={isOpen} onClose={handleClose} title={
-      isCreateMode ? "Request Maintenance" :
-      isAssignMode ? "Accept & Assign Maintenance" :
-      isPendingMode ? "View Pending Maintenance" :
-      "Maintenance Details"
-    }>
+    <FormModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={
+        isCreateMode ? "Request Maintenance" :
+        isAssignMode ? "Accept & Assign Maintenance" :
+        isPendingMode ? "View Pending Maintenance" :
+        "Maintenance Details"
+      }
+      width={isPendingMode ? '960px' : '720px'}
+    >
       <div className="flex flex-col h-full">
         <form onSubmit={handleSubmit} className="flex flex-col h-full">
           {(formError || submitError) && (
@@ -548,13 +553,37 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 </div>
               ) : isPendingMode ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {/* LEFT COLUMN: Priority, Status, Due Date, Assigned Operator, Issue Description */}
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold" style={{ color: '#E67E22' }}>
+                      <div
+                        className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
+                        style={{ color: '#E67E22' }}
+                      >
                         {initialData?.Priority || "—"}
                       </div>
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm">
+                        <span
+                          className="inline-block px-2 py-1 rounded text-white text-xs font-semibold"
+                          style={{ backgroundColor: '#355842' }}
+                        >
+                          {initialData?.Status || "—"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <DatePicker
+                      label="Due Date"
+                      name="dueDate"
+                      value={formData.dueDate}
+                      onChange={noOpChange}
+                      disabled={true}
+                    />
 
                     <FormField
                       label="Assigned Operator"
@@ -579,206 +608,197 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     </div>
                   </div>
 
+                  {/* RIGHT COLUMN: Attachments (horizontal) + Remarks History */}
                   <div className="space-y-4">
-                    <DatePicker
-                      label="Due Date"
-                      name="dueDate"
-                      value={formData.dueDate}
-                      onChange={noOpChange}
-                      disabled={true}
-                    />
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm">
-                        <span className="inline-block px-2 py-1 rounded text-white text-xs font-semibold" style={{ backgroundColor: '#355842' }}>
-                          {initialData?.Status || "—"}
-                        </span>
-                      </div>
-                    </div>
-
                     {/* Attachments Section */}
                     {attachments.length > 0 && (
                       <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">
                           Attachments
                         </label>
-                        <div className="space-y-2">
+                        <div className="flex items-center space-x-3 overflow-x-auto pb-2">
                           {attachments.map((attachment) => (
                             <button
                               key={attachment.Attachment_Id}
                               type="button"
                               onClick={() => handleAttachmentClick(attachment)}
-                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+                              className="flex-shrink-0 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors p-1"
                             >
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-[#355842] truncate">
-                                  {attachment.File_name}
-                                </span>
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </div>
+                              {attachment.File_type?.startsWith('image/') ? (
+                                <img
+                                  src={attachment.File_path}
+                                  alt={attachment.File_name}
+                                  className="h-24 w-24 object-cover rounded-md"
+                                />
+                              ) : (
+                                <div className="h-24 w-24 flex items-center justify-center bg-gray-50 rounded-md">
+                                  <svg
+                                    className="w-8 h-8 text-gray-400"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                                    />
+                                  </svg>
+                                </div>
+                              )}
                             </button>
                           ))}
                         </div>
                       </div>
                     )}
+
+                    {/* Remarks History + Add Remark (existing design, unchanged) */}
+                    <div className="border-t pt-4 mt-4 space-y-3">
+                      <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>
+                        Remarks History
+                      </h3>
+                      
+                      {loadingRemarks ? (
+                        <div className="text-center py-4">
+                          <p className="text-sm text-gray-500">Loading remarks...</p>
+                        </div>
+                      ) : remarks.length > 0 ? (
+                        <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-50 rounded-lg">
+                          {remarks.map((remark) => {
+                            const user = localStorage.getItem('user');
+                            const userData = user ? JSON.parse(user) : {};
+                            const currentUserId = userData.Account_id ?? userData.account_id;
+                            const isCurrentUser = remark.Created_by === currentUserId;
+
+                            const formatTime = (timestamp: string) => {
+                              const date = new Date(timestamp);
+                              let hours = date.getHours();
+                              const minutes = date.getMinutes();
+                              const ampm = hours >= 12 ? 'PM' : 'AM';
+                              hours = hours % 12 || 12;
+                              const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                              return `${hours}:${minutesStr} ${ampm}`;
+                            };
+
+                            return (
+                              <div
+                                key={remark.Remark_Id}
+                                className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
+                              >
+                                <div
+                                  className={`max-w-[70%] ${
+                                    isCurrentUser
+                                      ? 'bg-[#355842] text-white'
+                                      : 'bg-white border border-gray-200'
+                                  }`}
+                                  style={{ borderRadius: '12px', padding: '8px 12px' }}
+                                >
+                                  <div className="flex items-baseline justify-between gap-2 mb-1">
+                                    <p
+                                      className={`text-xs font-semibold ${
+                                        isCurrentUser ? 'text-white' : 'text-[#355842]'
+                                      }`}
+                                    >
+                                      {isCurrentUser ? 'You' : (remark.CreatedByName || 'Unknown')}
+                                    </p>
+                                    <p
+                                      className={`text-xs ${
+                                        isCurrentUser ? 'text-gray-200' : 'text-gray-500'
+                                      }`}
+                                    >
+                                      {formatTime(remark.Created_at)}
+                                    </p>
+                                  </div>
+                                  <p
+                                    className={`text-sm ${
+                                      isCurrentUser ? 'text-white' : 'text-gray-700'
+                                    }`}
+                                  >
+                                    {remark.Remark_text}
+                                  </p>
+                                  {!isCurrentUser && remark.CreatedByRoleName && (
+                                    <p className="text-xs text-gray-400 mt-1">
+                                      {remark.CreatedByRoleName}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic text-center py-8 bg-gray-50 rounded-lg">
+                          No remarks yet
+                        </p>
+                      )}
+
+                      <div className="space-y-2 mt-4">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Add Remark
+                        </label>
+
+                        {pendingFiles.length > 0 && (
+                          <div className="mb-2 space-y-1">
+                            {pendingFiles.map((file, index) => (
+                              <div
+                                key={index}
+                                className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-sm"
+                              >
+                                <span className="text-gray-700 truncate">{file.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => removePendingFile(index)}
+                                  className="text-red-500 hover:text-red-700 ml-2 bg-transparent"
+                                >
+                                  <X className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <input
+                            type="file"
+                            id="pending-attachment"
+                            onChange={handlePendingFileChange}
+                            accept="image/*,.pdf,.doc,.docx"
+                            multiple
+                            className="hidden"
+                          />
+
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById('pending-attachment')?.click()}
+                            className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors bg-transparent"
+                            title="Attach files"
+                          >
+                            <Paperclip className="w-5 h-5" />
+                          </button>
+
+                          <textarea
+                            value={formData.remarks}
+                            onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
+                            placeholder="Type your remark here..."
+                            rows={1}
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent resize-none"
+                          />
+
+                          <button
+                            type="submit"
+                            disabled={!formData.remarks.trim() && pendingFiles.length === 0}
+                            className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed self-center"
+                            style={{ backgroundColor: '#355842' }}
+                          >
+                            Add Remark
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               ) : null}
-
-              {/* ✅ Remarks Section for Pending Mode */}
-              {isPendingMode && (
-                <div className="border-t pt-4 mt-4 space-y-3">
-                  <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>
-                    Remarks History
-                  </h3>
-                  
-                  {/* Display remarks in chat format */}
-                  {loadingRemarks ? (
-                    <div className="text-center py-4">
-                      <p className="text-sm text-gray-500">Loading remarks...</p>
-                    </div>
-                  ) : remarks.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto p-3 bg-gray-50 rounded-lg">
-                      {remarks.map((remark) => {
-                        const user = localStorage.getItem('user');
-                        const userData = user ? JSON.parse(user) : {};
-                        const currentUserId = userData.Account_id ?? userData.account_id;
-                        const isCurrentUser = remark.Created_by === currentUserId;
-                        
-                        // Format timestamp to HH:MM AM/PM
-                        const formatTime = (timestamp: string) => {
-                          const date = new Date(timestamp);
-                          let hours = date.getHours();
-                          const minutes = date.getMinutes();
-                          const ampm = hours >= 12 ? 'PM' : 'AM';
-                          hours = hours % 12;
-                          hours = hours ? hours : 12; // the hour '0' should be '12'
-                          const minutesStr = minutes < 10 ? '0' + minutes : minutes;
-                          return `${hours}:${minutesStr} ${ampm}`;
-                        };
-
-                        return (
-                          <div
-                            key={remark.Remark_Id}
-                            className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div
-                              className={`max-w-[70%] ${
-                                isCurrentUser
-                                  ? 'bg-[#355842] text-white'
-                                  : 'bg-white border border-gray-200'
-                              }`}
-                              style={{ borderRadius: '12px', padding: '8px 12px' }}
-                            >
-                              <div className="flex items-baseline justify-between gap-2 mb-1">
-                                <p
-                                  className={`text-xs font-semibold ${
-                                    isCurrentUser ? 'text-white' : 'text-[#355842]'
-                                  }`}
-                                >
-                                  {isCurrentUser ? 'You' : (remark.CreatedByName || 'Unknown')}
-                                </p>
-                                <p
-                                  className={`text-xs ${
-                                    isCurrentUser ? 'text-gray-200' : 'text-gray-500'
-                                  }`}
-                                >
-                                  {formatTime(remark.Created_at)}
-                                </p>
-                              </div>
-                              <p
-                                className={`text-sm ${
-                                  isCurrentUser ? 'text-white' : 'text-gray-700'
-                                }`}
-                              >
-                                {remark.Remark_text}
-                              </p>
-                              {!isCurrentUser && remark.CreatedByRoleName && (
-                                <p className="text-xs text-gray-400 mt-1">
-                                  {remark.CreatedByRoleName}
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-gray-500 italic text-center py-8 bg-gray-50 rounded-lg">
-                      No remarks yet
-                    </p>
-                  )}
-
-                  {/* Add new remark section */}
-                  <div className="space-y-2 mt-4">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Add Remark
-                    </label>
-                    
-                    {/* Show pending files */}
-                    {pendingFiles.length > 0 && (
-                      <div className="mb-2 space-y-1">
-                        {pendingFiles.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded text-sm">
-                            <span className="text-gray-700 truncate">{file.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => removePendingFile(index)}
-                              className="text-red-500 hover:text-red-700 ml-2 bg-transparent"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="flex gap-2">
-                      {/* Hidden file input */}
-                      <input
-                        type="file"
-                        id="pending-attachment"
-                        onChange={handlePendingFileChange}
-                        accept="image/*,.pdf,.doc,.docx"
-                        multiple
-                        className="hidden"
-                      />
-                      
-                      {/* Attachment button */}
-                      <button
-                        type="button"
-                        onClick={() => document.getElementById('pending-attachment')?.click()}
-                        className="p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded transition-colors bg-transparent"
-                        title="Attach files"
-                      >
-                        <Paperclip className="w-5 h-5" />
-                      </button>
-                      
-                      {/* Textarea */}
-                      <textarea
-                        value={formData.remarks}
-                        onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                        placeholder="Type your remark here..."
-                        rows={1}
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent resize-none"
-                      />
-                      
-                      {/* Add Remark button - disabled if no content */}
-                      <button
-                        type="submit"
-                        disabled={!formData.remarks.trim() && pendingFiles.length === 0}
-                        className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed self-center"
-                        style={{ backgroundColor: '#355842' }}
-                      >
-                        Add Remark
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </CustomScrollbar>
 
