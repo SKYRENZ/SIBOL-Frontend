@@ -359,22 +359,94 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     </div>
   );
 
+  const formatRelativeTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // ✅ Combine remarks + attachments into one timeline (sorted)
+  type TimelineItem =
+    | {
+        kind: 'remark';
+        key: string;
+        createdAt: string;
+        isCurrentUser: boolean;
+        authorName: string;
+        text: string;
+      }
+    | {
+        kind: 'attachment';
+        key: string;
+        createdAt: string;
+        isCurrentUser: boolean;
+        authorName: string;
+        attachment: MaintenanceAttachment;
+        isImage: boolean;
+      };
+
+  const timelineItems: TimelineItem[] = (() => {
+    const remarkItems: TimelineItem[] = (remarks || []).map((r) => ({
+      kind: 'remark',
+      key: `r-${r.Remark_Id}`,
+      createdAt: r.Created_at,
+      isCurrentUser: r.Created_by === currentUserId,
+      authorName: r.CreatedByName || 'Unknown',
+      text: r.Remark_text,
+    }));
+
+    const attachmentItems: TimelineItem[] = (attachments || []).map((a) => {
+      const createdAt =
+        // backend usually returns Uploaded_at
+        (a as any).Uploaded_at ||
+        (a as any).uploaded_at ||
+        // fallback so sort still works
+        new Date().toISOString();
+
+      const isImage = !!a.File_type?.startsWith('image/');
+
+      return {
+        kind: 'attachment',
+        key: `a-${a.Attachment_Id ?? a.File_path}`,
+        createdAt,
+        isCurrentUser: (a as any).Uploaded_by === currentUserId,
+        authorName: (a as any).UploaderName || (a as any).CreatedByName || 'Unknown',
+        attachment: a,
+        isImage,
+      };
+    });
+
+    return [...remarkItems, ...attachmentItems].sort(
+      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
+    );
+  })();
+
+  // ✅ Replace old remarksMessagesBody with a timeline body that includes attachments
   const remarksMessagesBody = loadingRemarks ? (
     <div className="text-center py-8">
       <p className="text-sm text-gray-500">Loading remarks...</p>
     </div>
-  ) : remarks.length === 0 ? (
+  ) : timelineItems.length === 0 ? (
     <p className="text-sm text-gray-500 italic text-center py-8">No remarks yet</p>
   ) : (
     <div className="space-y-3">
-      {remarks.map((remark) => (
+      {timelineItems.map((item) => (
         <div
-          key={remark.Remark_Id}
-          className={`flex ${remark.Created_by === currentUserId ? 'justify-end' : 'justify-start'}`}
+          key={item.key}
+          className={`flex ${item.isCurrentUser ? 'justify-end' : 'justify-start'}`}
         >
           <div
             className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-              remark.Created_by === currentUserId
+              item.isCurrentUser
                 ? 'bg-[#355842] text-white rounded-br-sm'
                 : 'bg-gray-100 text-gray-800 rounded-bl-sm'
             }`}
@@ -382,33 +454,51 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             <div className="flex items-baseline gap-2 mb-1">
               <span
                 className={`text-xs font-semibold ${
-                  remark.Created_by === currentUserId ? 'text-white' : 'text-gray-900'
+                  item.isCurrentUser ? 'text-white' : 'text-gray-900'
                 }`}
               >
-                {remark.CreatedByName || 'Unknown'}
+                {item.authorName}
               </span>
               <span
                 className={`text-xs ${
-                  remark.Created_by === currentUserId ? 'text-white/70' : 'text-gray-500'
+                  item.isCurrentUser ? 'text-white/70' : 'text-gray-500'
                 }`}
               >
-                {(() => {
-                  const date = new Date(remark.Created_at);
-                  const now = new Date();
-                  const diff = now.getTime() - date.getTime();
-                  const minutes = Math.floor(diff / 60000);
-                  const hours = Math.floor(diff / 3600000);
-                  const days = Math.floor(diff / 86400000);
-
-                  if (minutes < 1) return 'Just now';
-                  if (minutes < 60) return `${minutes}m ago`;
-                  if (hours < 24) return `${hours}h ago`;
-                  if (days < 7) return `${days}d ago`;
-                  return date.toLocaleDateString();
-                })()}
+                {formatRelativeTime(item.createdAt)}
               </span>
             </div>
-            <p className="text-sm whitespace-pre-wrap break-words">{remark.Remark_text}</p>
+
+            {item.kind === 'remark' ? (
+              <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedAttachment(item.attachment);
+                  setShowAttachmentModal(true);
+                }}
+                // ✅ transparent background + no outline/ring on hover/click
+                className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
+                title="View attachment"
+              >
+                {item.isImage ? (
+                  <img
+                    src={item.attachment.File_path}
+                    alt="Attachment"
+                    // ✅ no hover outline; keep only a subtle border (remove if you want fully borderless)
+                    className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
+                    <span className={`text-sm ${item.isCurrentUser ? 'text-white' : 'text-gray-700'}`}>
+                      Attachment
+                    </span>
+                  </div>
+                )}
+              </button>
+            )}
           </div>
         </div>
       ))}
