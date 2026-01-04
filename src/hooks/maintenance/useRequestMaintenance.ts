@@ -11,8 +11,8 @@ export function useRequestMaintenance() {
     setLoading(true);
     setError(null);
     try {
-      // ✅ include Cancel Requested in this tab
-      const data = await maintenanceService.listTickets({ status: "Requested,Cancel Requested" });
+      // ✅ Request Maintenance = Requested only
+      const data = await maintenanceService.listTickets({ status: "Requested" });
       setTickets(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error("Fetch error:", err);
@@ -26,15 +26,14 @@ export function useRequestMaintenance() {
     fetch();
   }, [fetch]);
 
-  const create = useCallback(async (payload: MaintenanceTicketPayload) => {
-    try {
+  const create = useCallback(
+    async (payload: MaintenanceTicketPayload) => {
       const result = await maintenanceService.createTicket(payload);
       await fetch();
-    } catch (err: any) {
-      console.error("Create error:", err);
-      throw err;
-    }
-  }, [fetch]);
+      return result;
+    },
+    [fetch]
+  );
 
   return { tickets, loading, error, refetch: fetch, createTicket: create };
 }

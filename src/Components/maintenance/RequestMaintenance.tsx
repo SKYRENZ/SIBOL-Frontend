@@ -3,44 +3,35 @@ import Table from "../common/Table";
 import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMaintenance";
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
+import CancelConfirmModal from "./CancelConfirmModal"; // ✅ add
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
 }
 
-export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ 
-  onOpenForm 
-}) => {
-  const { tickets, loading, error, refetch } = useRequestMaintenance(); // ✅ include refetch
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenForm }) => {
+  const { tickets, loading, error, refetch } = useRequestMaintenance();
+
+  const [selectedTicketForDelete, setSelectedTicketForDelete] = useState<MaintenanceTicket | null>(null); // ✅ add
+  const [isDeleting, setIsDeleting] = useState(false); // ✅ add
 
   const columns = useMemo(
     () => [
-      { 
-        key: "Title", 
-        label: "Title"
-      },
+      { key: "Title", label: "Title" },
       {
         key: "Priority",
         label: "Priority",
         render: (value: any) => value ?? "—",
       },
       {
-        key: "Status",
-        label: "Status",
-        render: (_: any, row: MaintenanceTicket) => row.Status ?? "—",
-      },
-      {
         key: "Request_date",
         label: "Date Created",
-        render: (value: any) =>
-          value ? new Date(value).toLocaleString() : "—",
+        render: (value: any) => (value ? new Date(value).toLocaleDateString() : "—"),
       },
       {
         key: "Due_date",
         label: "Due Date",
-        render: (value: any) =>
-          value ? new Date(value).toLocaleDateString() : "—",
+        render: (value: any) => (value ? new Date(value).toLocaleDateString() : "—"),
       },
       {
         key: "actions",
@@ -58,43 +49,43 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
               </button>
 
               <button
-                onClick={async () => {
-                  if (!requestId) return;
-
-                  const ok = window.confirm(
-                    `Delete this request?\n\nThis will remove the request and its remarks/attachments from the database.`
-                  );
-                  if (!ok) return;
-
-                  try {
-                    setDeletingId(requestId);
-
-                    const user = localStorage.getItem("user");
-                    const userData = user ? JSON.parse(user) : {};
-                    const actorId = userData.Account_id ?? userData.account_id;
-
-                    if (!actorId) throw new Error("actor_account_id not found");
-
-                    await maintenanceService.deleteTicket(requestId, actorId);
-                    await refetch();
-                  } catch (e: any) {
-                    alert(e?.response?.data?.message || e?.message || "Failed to delete request");
-                  } finally {
-                    setDeletingId(null);
-                  }
-                }}
-                disabled={!requestId || deletingId === requestId}
+                onClick={() => setSelectedTicketForDelete(row)} // ✅ open modal
+                disabled={!requestId || isDeleting}
                 className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
               >
-                {deletingId === requestId ? "Deleting..." : "Delete"}
+                Delete
               </button>
             </div>
           );
         },
       },
     ],
-    [onOpenForm, refetch, deletingId]
+    [onOpenForm, isDeleting]
   );
+
+  const handleConfirmDelete = async () => {
+    if (!selectedTicketForDelete) return;
+
+    const requestId = selectedTicketForDelete.Request_Id ?? selectedTicketForDelete.request_id;
+    if (!requestId) return;
+
+    try {
+      setIsDeleting(true);
+
+      const user = localStorage.getItem("user");
+      const userData = user ? JSON.parse(user) : {};
+      const actorId = userData.Account_id ?? userData.account_id;
+      if (!actorId) throw new Error("actor_account_id not found");
+
+      await maintenanceService.deleteTicket(requestId, actorId);
+      setSelectedTicketForDelete(null);
+      await refetch();
+    } catch (e: any) {
+      alert(e?.response?.data?.message || e?.message || "Failed to delete request");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="space-y-4 p-4">
@@ -104,6 +95,15 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         columns={columns}
         data={tickets}
         emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
+      />
+
+      {/* ✅ Reused modal for delete */}
+      <CancelConfirmModal
+        isOpen={!!selectedTicketForDelete}
+        onClose={() => setSelectedTicketForDelete(null)}
+        onConfirm={handleConfirmDelete}
+        isLoading={isDeleting}
+        mode="delete"
       />
     </div>
   );

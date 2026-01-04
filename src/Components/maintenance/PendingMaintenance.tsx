@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Table from "../common/Table";
 import CompletionConfirmModal from "./CompletionConfirmModal";
+import CancelConfirmModal from "./CancelConfirmModal"; // ✅ add
 import { usePendingMaintenance } from "../../hooks/maintenance/usePendingMaintenance";
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
@@ -11,14 +12,19 @@ interface PendingMaintenanceProps {
 
 export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenForm }) => {
   const { tickets, loading, error, refetch } = usePendingMaintenance();
+
   const [selectedTicketForCompletion, setSelectedTicketForCompletion] = useState<MaintenanceTicket | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ✅ cancel state
+  const [selectedTicketForCancel, setSelectedTicketForCancel] = useState<MaintenanceTicket | null>(null);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   const columns = useMemo(
     () => [
       { key: "Title", label: "Title" },
-      { 
-        key: "Priority", 
+      {
+        key: "Priority",
         label: "Priority",
         render: (_: any, row: MaintenanceTicket) => row.Priority ?? "—",
       },
@@ -43,12 +49,22 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
             >
               View Details
             </button>
-            {row.Status === "For Verification" && (
+
+            {/* ✅ If "completed" stage (For Verification), show Complete only */}
+            {row.Status === "For Verification" ? (
               <button
                 onClick={() => setSelectedTicketForCompletion(row)}
                 className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
               >
                 Complete
+              </button>
+            ) : (
+              /* ✅ Otherwise, Cancel is default (On-going, Cancel Requested) */
+              <button
+                onClick={() => setSelectedTicketForCancel(row)}
+                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
+              >
+                Cancel
               </button>
             )}
           </div>
@@ -62,13 +78,11 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
     if (!selectedTicketForCompletion) return;
 
     const requestId = selectedTicketForCompletion.Request_Id ?? selectedTicketForCompletion.request_id;
-    if (!requestId) {
-      console.error("No request ID found");
-      return;
-    }
+    if (!requestId) return;
 
     try {
       setIsSubmitting(true);
+
       const user = localStorage.getItem('user');
       const userData = user ? JSON.parse(user) : {};
       const staffId = userData.Account_id ?? userData.account_id;
@@ -76,13 +90,40 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
       if (staffId) {
         await maintenanceService.verifyCompletion(requestId, staffId);
       }
-      
+
       setSelectedTicketForCompletion(null);
       await refetch();
     } catch (err: any) {
       console.error("Failed to complete:", err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!selectedTicketForCancel) return;
+
+    const requestId = selectedTicketForCancel.Request_Id ?? selectedTicketForCancel.request_id;
+    if (!requestId) return;
+
+    try {
+      setIsCancelling(true);
+
+      const user = localStorage.getItem('user');
+      const userData = user ? JSON.parse(user) : {};
+      const actorId = userData.Account_id ?? userData.account_id;
+
+      if (!actorId) throw new Error("actor_account_id not found");
+
+      // ✅ Staff/Admin cancels immediately (no reason required)
+      await maintenanceService.cancelTicket(requestId, actorId);
+
+      setSelectedTicketForCancel(null);
+      await refetch();
+    } catch (err: any) {
+      console.error("Failed to cancel:", err);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -103,6 +144,13 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
         isLoading={isSubmitting}
       />
 
+      <CancelConfirmModal
+        isOpen={!!selectedTicketForCancel}
+        onClose={() => setSelectedTicketForCancel(null)}
+        onConfirm={handleCancelRequest}
+        isLoading={isCancelling}
+        mode="cancel" // ✅ add
+      />
     </div>
   );
 };
