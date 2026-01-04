@@ -9,6 +9,9 @@ export interface MaintenanceAttachment {
   Uploaded_at: string;
   UploaderName?: string;
   UploaderRole?: number;
+
+  // ✅ NEW
+  Public_id?: string | null;
 }
 
 export interface MaintenanceRemark {

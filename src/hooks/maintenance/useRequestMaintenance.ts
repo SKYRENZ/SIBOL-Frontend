@@ -11,11 +11,11 @@ export function useRequestMaintenance() {
     setLoading(true);
     setError(null);
     try {
-      const data = await maintenanceService.listTickets({ status: "Requested" });
-      console.log("Fetched tickets:", data); // Debug log
+      // ✅ include Cancel Requested in this tab
+      const data = await maintenanceService.listTickets({ status: "Requested,Cancel Requested" });
       setTickets(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      console.error("Fetch error:", err); // Debug log
+      console.error("Fetch error:", err);
       setError(err.message || "Failed to load maintenance requests");
     } finally {
       setLoading(false);
@@ -29,10 +29,9 @@ export function useRequestMaintenance() {
   const create = useCallback(async (payload: MaintenanceTicketPayload) => {
     try {
       const result = await maintenanceService.createTicket(payload);
-      console.log("Created ticket:", result); // Debug log
-      await fetch(); // Refetch to show new ticket
+      await fetch();
     } catch (err: any) {
-      console.error("Create error:", err); // Debug log
+      console.error("Create error:", err);
       throw err;
     }
   }, [fetch]);
