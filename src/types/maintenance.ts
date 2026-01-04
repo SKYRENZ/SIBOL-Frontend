@@ -46,6 +46,7 @@ export interface MaintenanceTicket {
   AttachmentCount?: number;
   Attachments?: MaintenanceAttachment[];
   RemarksHistory?: MaintenanceRemark[]; // ✅ NEW: Array of remarks
+  Cancel_reason?: string | null; // ✅ add
 }
 
 export interface MaintenanceTicketPayload {

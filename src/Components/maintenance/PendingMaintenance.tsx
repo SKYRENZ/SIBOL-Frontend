@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import Table from "../common/Table";
 import CompletionConfirmModal from "./CompletionConfirmModal";
-import CancelConfirmModal from "./CancelConfirmModal"; // ✅ add
+import CancelConfirmModal from "./CancelConfirmModal";
+
 import { usePendingMaintenance } from "../../hooks/maintenance/usePendingMaintenance";
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
@@ -149,7 +150,8 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
         onClose={() => setSelectedTicketForCancel(null)}
         onConfirm={handleCancelRequest}
         isLoading={isCancelling}
-        mode="cancel" // ✅ add
+        mode="cancel"
+        reason={selectedTicketForCancel?.Cancel_reason ?? null} // ✅ NEW
       />
     </div>
   );
