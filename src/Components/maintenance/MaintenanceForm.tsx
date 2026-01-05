@@ -3,6 +3,7 @@ import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
 import * as userService from '../../services/userService';
+import * as maintenanceService from '../../services/maintenanceService';
 import CustomScrollbar from '../common/CustomScrollbar';
 
 interface MaintenanceFormProps {
@@ -27,7 +28,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     issue: '',
     priority: '',
     dueDate: '',
-    files: [] as File[], // CHANGED: Multiple files
+    files: [] as File[],
     staffAccountId: '',
     assignedTo: '',
     remarks: '',
@@ -35,9 +36,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   const [formError, setFormError] = useState<string | null>(null);
   const [assignedOptions, setAssignedOptions] = useState<{ value: string; label: string }[]>([]);
+  const [priorityOptions, setPriorityOptions] = useState<{ value: string; label: string }[]>([]); // ✅ Add state
+  const [attachments, setAttachments] = useState<any[]>([]);
+  const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
+      // ✅ Fetch priorities from database
+      maintenanceService.getPriorities()
+        .then((priorities) => {
+          const options = priorities.map((p) => ({
+            value: p.Priority,
+            label: p.Priority,
+          }));
+          setPriorityOptions(options);
+        })
+        .catch((error) => {
+          console.error('Error fetching priorities:', error);
+          setPriorityOptions([
+            { value: 'Critical', label: 'Critical' },
+            { value: 'Urgent', label: 'Urgent' },
+            { value: 'Mild', label: 'Mild' },
+          ]);
+        });
+
       if (mode === 'assign') {
         const user = localStorage.getItem('user');
         if (user) {
@@ -45,20 +68,22 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           const accountId = userData.Account_id ?? userData.account_id;
           setFormData(prev => ({
             ...prev,
-            staffAccountId: String(accountId || ''),
+            staffAccountId: '',
           }));
+          
+          (window as any).__currentStaffId = accountId;
         }
       }
 
       if (initialData) {
         setFormData({
           title: initialData.Title || '',
-          issue: initialData.Issue || '',
+          issue: initialData.Details || '',
           priority: initialData.Priority || '',
           dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
-          file: null,
-          staffAccountId: formData.staffAccountId,
-          assignedTo: initialData.Assigned_to || '',
+          files: [],
+          staffAccountId: initialData.CreatedByName || 'Unknown',
+          assignedTo: initialData.Assigned_to ? String(initialData.Assigned_to) : '',
           remarks: '',
         });
       } else {
@@ -67,7 +92,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           issue: '',
           priority: '',
           dueDate: '',
-          file: null,
+          files: [],
           staffAccountId: formData.staffAccountId,
           assignedTo: '',
           remarks: '',
@@ -76,18 +101,35 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
       if (mode === 'assign') {
         userService.getOperators()
-          .then((response: any) => {
-            const operators = response.data.data || [];
-            const options = operators.map((operator: any) => ({
-              value: String(operator.Account_id),
-              label: `${operator.Firstname} ${operator.Lastname}`,
-            }));
+          .then((operators) => {
+            const options = operators
+              .filter(op => op.value && op.label)
+              .map((operator) => ({
+                value: String(operator.value),
+                label: operator.label,
+              }));
             setAssignedOptions(options);
           })
           .catch((error) => {
             console.error('Error fetching operators:', error);
             setFormError('Failed to load operators');
           });
+      }
+
+      // ✅ FIX: Check if initialData exists before accessing Request_Id
+      const requestId = initialData?.Request_Id || initialData?.request_id;
+      if (requestId) {
+        maintenanceService.getTicketAttachments(requestId)
+          .then((data) => {
+            setAttachments(data || []);
+          })
+          .catch((error) => {
+            console.error('Error fetching attachments:', error);
+            setAttachments([]);
+          });
+      } else {
+        // ✅ Reset attachments if no initialData
+        setAttachments([]);
       }
     }
   }, [isOpen, initialData, mode]);
@@ -107,6 +149,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       ...prev,
       files: prev.files.filter((_, i) => i !== index)
     }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -148,12 +191,38 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isAssignMode = mode === 'assign';
   const isPendingMode = mode === 'pending';
 
-  const priorityOptions = [
-    { value: 'Critical', label: 'Critical' },
-    { value: 'High', label: 'High' },
-    { value: 'Medium', label: 'Medium' },
-    { value: 'Low', label: 'Low' },
-  ];
+  const handleAttachmentClick = (attachment: any) => {
+    setSelectedAttachment(attachment);
+    setShowAttachmentModal(true);
+  };
+
+  const handleDownloadAttachment = async () => {
+    if (selectedAttachment?.File_path) {
+      try {
+        // Fetch the file as a blob
+        const response = await fetch(selectedAttachment.File_path);
+        const blob = await response.blob();
+        
+        // Create a temporary URL for the blob
+        const url = window.URL.createObjectURL(blob);
+        
+        // Create a temporary anchor element and trigger download
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = selectedAttachment.File_name || 'download';
+        document.body.appendChild(link);
+        link.click();
+        
+        // Cleanup
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Download failed:', error);
+        // Fallback to opening in new tab if download fails
+        window.open(selectedAttachment.File_path, '_blank');
+      }
+    }
+  };
 
   return (
     <FormModal isOpen={isOpen} onClose={handleClose} title={
@@ -167,6 +236,37 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           {(formError || submitError) && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm flex-shrink-0">
               {formError || submitError}
+            </div>
+          )}
+
+          {/* ✅ Updated Request Info Header for Pending Mode */}
+          {isPendingMode && initialData && (
+            <div className="mb-6 pb-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <p className="text-xl font-bold text-[#2E523A] mb-3">
+                    Request No: {initialData.Request_date 
+                      ? `${new Date(initialData.Request_date).getFullYear()}${String(new Date(initialData.Request_date).getMonth() + 1).padStart(2, '0')}${initialData.Request_Id || initialData.request_id}`
+                      : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${initialData.Request_Id || initialData.request_id}`
+                    }
+                  </p>
+                  <p className="text-base text-gray-900">
+                    {initialData.Title}
+                  </p>
+                </div>
+                <div className="text-right ml-4">
+                  <p className="text-xs text-gray-500 mb-1">Request Date</p>
+                  <p className="text-sm font-semibold text-gray-700">
+                    {initialData.Request_date 
+                      ? new Date(initialData.Request_date).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })
+                      : '—'}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
@@ -249,7 +349,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div className="space-y-4">
                     <FormField
-                      label="Staff Account ID"
+                      label="Requested By" // ✅ Changed label
                       name="staffAccountId"
                       type="text"
                       value={formData.staffAccountId}
@@ -301,20 +401,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                     />
 
-                    {initialData?.Attachment && (
+                    {/* Attachments Section */}
+                    {attachments.length > 0 && (
                       <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">
-                          Attachment
+                          Attachments
                         </label>
-                        <a
-                          href={initialData.Attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-2 text-sm text-white bg-[#355842] rounded-md hover:bg-[#2e4a36]"
-                        >
-                          View Attachment
-                        </a>
-                        <p className="text-xs text-gray-500 break-all">{initialData.Attachment}</p>
+                        <div className="space-y-2">
+                          {attachments.map((attachment) => (
+                            <button
+                              key={attachment.Attachment_Id}
+                              type="button"
+                              onClick={() => handleAttachmentClick(attachment)}
+                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-[#355842] truncate">
+                                  {attachment.File_name}
+                                </span>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -370,20 +481,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                       </div>
                     </div>
 
-                    {initialData?.Attachment && (
+                    {/* Attachments Section */}
+                    {attachments.length > 0 && (
                       <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">
-                          Attachment
+                          Attachments
                         </label>
-                        <a
-                          href={initialData.Attachment}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center px-3 py-2 text-sm text-white bg-[#355842] rounded-md hover:bg-[#2e4a36]"
-                        >
-                          View Attachment
-                        </a>
-                        <p className="text-xs text-gray-500 break-all">{initialData.Attachment}</p>
+                        <div className="space-y-2">
+                          {attachments.map((attachment) => (
+                            <button
+                              key={attachment.Attachment_Id}
+                              type="button"
+                              onClick={() => handleAttachmentClick(attachment)}
+                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="text-sm text-[#355842] truncate">
+                                  {attachment.File_name}
+                                </span>
+                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -391,7 +513,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               ) : null}
 
               {isPendingMode && (
-                <div className="border-t pt-4 space-y-3">
+                <div className="border-t pt-4 mt-4 space-y-3">
                   <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>Remarks</h3>
                   
                   {initialData?.Remarks && (
@@ -448,6 +570,61 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Attachment Preview Modal */}
+      {showAttachmentModal && selectedAttachment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[300000]" onClick={() => setShowAttachmentModal(false)}>
+          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="px-6 py-4 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white flex items-center justify-between">
+              <h3 className="font-semibold text-lg">{selectedAttachment.File_name}</h3>
+              <button
+                onClick={() => setShowAttachmentModal(false)}
+                className="text-white hover:bg-white/10 transition-colors rounded-full w-8 h-8 flex items-center justify-center"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {selectedAttachment.File_type?.startsWith('image/') ? (
+                <img 
+                  src={selectedAttachment.File_path} 
+                  alt={selectedAttachment.File_name}
+                  className="max-w-full h-auto mx-auto rounded"
+                />
+              ) : (
+                <div className="text-center py-12">
+                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-gray-600 mb-2">{selectedAttachment.File_name}</p>
+                  <p className="text-sm text-gray-500">
+                    {selectedAttachment.File_size ? `${(selectedAttachment.File_size / 1024).toFixed(2)} KB` : 'File preview not available'}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => setShowAttachmentModal(false)}
+                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Close
+              </button>
+              <button
+                onClick={handleDownloadAttachment}
+                className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
+                style={{ backgroundColor: '#355842' }}
+              >
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </FormModal>
   );
 };

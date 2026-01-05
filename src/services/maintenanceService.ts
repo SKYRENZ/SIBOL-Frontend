@@ -71,6 +71,12 @@ export async function getAttachments(requestId: number): Promise<MaintenanceAtta
   return response.data;
 }
 
+// NEW: Get ticket attachments (alternative function name)
+export async function getTicketAttachments(requestId: number): Promise<MaintenanceAttachment[]> {
+  const response = await apiClient.get<MaintenanceAttachment[]>(`${BASE_URL}/${requestId}/attachments`);
+  return response.data;
+}
+
 export async function acceptAndAssign(
   requestId: number,
   staffAccountId: number,
@@ -120,5 +126,11 @@ export async function verifyCompletion(
 
 export async function cancelTicket(requestId: number, actor_account_id: number) {
   const response = await apiClient.put<MaintenanceTicket>(`${BASE_URL}/${requestId}/cancel`, { actor_account_id });
+  return response.data;
+}
+
+// NEW: Get all priorities
+export async function getPriorities(): Promise<Array<{ Priority_id: number; Priority: string }>> {
+  const response = await apiClient.get<Array<{ Priority_id: number; Priority: string }>>(`${BASE_URL}/priorities`);
   return response.data;
 }

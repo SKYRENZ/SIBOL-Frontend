@@ -23,14 +23,16 @@ export interface MaintenanceTicket {
   Due_date?: string | null;
   Main_stat_id: number;
   Remarks?: string;
-  Completed_at?: string; // Add this for completed tickets
+  Completed_at?: string;
   
   // Properties from JOINs
   Priority?: string;
   Status?: string;
   AssignedOperatorName?: string;
-  AttachmentCount?: number; // For list view
-  Attachments?: MaintenanceAttachment[]; // For detail view - CHANGED from single Attachment
+  CreatedByName?: string; // ✅ Add this
+  CreatorRole?: number;    // ✅ Add this
+  AttachmentCount?: number;
+  Attachments?: MaintenanceAttachment[];
 }
 
 export interface MaintenanceTicketPayload {
@@ -39,5 +41,4 @@ export interface MaintenanceTicketPayload {
   priority?: string;
   created_by: number;
   due_date?: string | null;
-  // Remove attachment from here - will be uploaded separately
 }

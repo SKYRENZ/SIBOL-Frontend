@@ -80,8 +80,27 @@ const MaintenancePage: React.FC = () => {
         }
 
       } else if (formMode === 'assign' && requestId) {
+        // ✅ Get staff ID from localStorage, NOT from formData
+        const user = localStorage.getItem('user');
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        const userData = JSON.parse(user);
+        const staffId = userData.Account_id ?? userData.account_id; // ✅ Current staff accepting
+        
+        if (!staffId) {
+          throw new Error('Staff account ID not found');
+        }
+
         const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
-        const staffId = parseInt(formData.staffAccountId, 10);
+        
+        console.log('Submitting:', { // ✅ Debug log
+          requestId,
+          staffId, // The staff accepting (you)
+          assignToId // The operator being assigned
+        });
+
         await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
 
       } else if (formMode === 'pending' && requestId) {
