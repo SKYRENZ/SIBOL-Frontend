@@ -3,7 +3,7 @@ import Table from "../common/Table";
 import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMaintenance";
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
-import CancelConfirmModal from "./CancelConfirmModal"; // ✅ add
+import CancelConfirmModal from "./CancelConfirmModal";
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
@@ -12,12 +12,30 @@ interface RequestMaintenanceProps {
 export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenForm }) => {
   const { tickets, loading, error, refetch } = useRequestMaintenance();
 
-  const [selectedTicketForDelete, setSelectedTicketForDelete] = useState<MaintenanceTicket | null>(null); // ✅ add
-  const [isDeleting, setIsDeleting] = useState(false); // ✅ add
+  const [selectedTicketForDelete, setSelectedTicketForDelete] = useState<MaintenanceTicket | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const columns = useMemo(
     () => [
-      { key: "Title", label: "Title" },
+      {
+        key: "Title",
+        label: "Title",
+        render: (_: any, row: MaintenanceTicket) => {
+          const status = row.Status ?? "";
+          const isCancelled = status === "Cancelled";
+
+          return (
+            <div className="flex items-center gap-2">
+              <span>{row.Title}</span>
+              {isCancelled && (
+                <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 text-red-700">
+                  Cancelled
+                </span>
+              )}
+            </div>
+          );
+        },
+      },
       {
         key: "Priority",
         label: "Priority",
@@ -38,23 +56,31 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
         label: "Actions",
         render: (_: any, row: MaintenanceTicket) => {
           const requestId = row.Request_Id ?? row.request_id;
+          const status = row.Status ?? "";
+
+          // ✅ Treat Cancelled like Requested for actions
+          const canAcceptOrAssign = status === "Requested" || status === "Cancelled";
+          const canDelete = status === "Requested" || status === "Cancelled";
 
           return (
             <div className="flex gap-2">
               <button
                 onClick={() => onOpenForm('assign', row)}
-                className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
+                disabled={!canAcceptOrAssign}
+                className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36] disabled:opacity-50"
               >
                 View & Accept
               </button>
 
-              <button
-                onClick={() => setSelectedTicketForDelete(row)} // ✅ open modal
-                disabled={!requestId || isDeleting}
-                className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
-              >
-                Delete
-              </button>
+              {canDelete && (
+                <button
+                  onClick={() => setSelectedTicketForDelete(row)}
+                  disabled={!requestId || isDeleting}
+                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              )}
             </div>
           );
         },
@@ -97,7 +123,6 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
         emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
       />
 
-      {/* ✅ Reused modal for delete */}
       <CancelConfirmModal
         isOpen={!!selectedTicketForDelete}
         onClose={() => setSelectedTicketForDelete(null)}

@@ -11,8 +11,8 @@ export function useRequestMaintenance() {
     setLoading(true);
     setError(null);
     try {
-      // ✅ Request Maintenance = Requested only
-      const data = await maintenanceService.listTickets({ status: "Requested" });
+      // ✅ Request Maintenance = Requested + Cancelled
+      const data = await maintenanceService.listTickets({ status: "Requested,Cancelled" });
       setTickets(Array.isArray(data) ? data : []);
     } catch (err: any) {
       console.error("Fetch error:", err);
