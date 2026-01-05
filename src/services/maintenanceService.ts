@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment } from "../types/maintenance";
+import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark } from "../types/maintenance";
 
 const BASE_URL = "/api/maintenance";
 
@@ -97,6 +97,28 @@ export async function markOnGoing(requestId: number, operator_account_id: number
   return response.data;
 }
 
+// ✅ NEW: Add a remark to a ticket
+export async function addRemark(
+  requestId: number,
+  remarkText: string,
+  createdBy: number,
+  userRole: string
+): Promise<MaintenanceRemark> {
+  const response = await apiClient.post<MaintenanceRemark>(`/api/maintenance/${requestId}/remarks`, {
+    remark_text: remarkText,
+    created_by: createdBy,
+    user_role: userRole,
+  });
+  return response.data;
+}
+
+// ✅ NEW: Get all remarks for a ticket
+export async function getTicketRemarks(requestId: number): Promise<MaintenanceRemark[]> {
+  const response = await apiClient.get<MaintenanceRemark[]>(`/api/maintenance/${requestId}/remarks`);
+  return response.data;
+}
+
+// ✅ Keep the old addRemarks function for backward compatibility if needed
 export async function addRemarks(
   requestId: number,
   remarks: string
@@ -130,7 +152,7 @@ export async function cancelTicket(requestId: number, actor_account_id: number) 
 }
 
 // NEW: Get all priorities
-export async function getPriorities(): Promise<Array<{ Priority_id: number; Priority: string }>> {
-  const response = await apiClient.get<Array<{ Priority_id: number; Priority: string }>>(`${BASE_URL}/priorities`);
+export async function getPriorities(): Promise<Array<{ Priority_Id: number; Priority: string }>> {
+  const response = await apiClient.get<Array<{ Priority_Id: number; Priority: string }>>('/api/maintenance/priorities');
   return response.data;
 }

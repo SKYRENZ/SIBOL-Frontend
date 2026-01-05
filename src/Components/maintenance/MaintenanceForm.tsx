@@ -4,13 +4,21 @@ import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
 import * as userService from '../../services/userService';
 import * as maintenanceService from '../../services/maintenanceService';
+import type { MaintenanceRemark, MaintenanceAttachment } from '../../types/maintenance';
 import CustomScrollbar from '../common/CustomScrollbar';
+
+// ✅ Import new separated components
+import AttachmentsList from './attachments/AttachmentsList';
+import AttachmentsViewer from './attachments/AttachmentsViewer';
+import AttachmentsUpload from './attachments/AttachmentsUpload';
+import RemarksForm from './remarks/RemarksForm'; // ✅ keep
+// ❌ remove: import RemarksList from './remarks/RemarksList';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: any) => void;
-  mode?: 'create' | 'assign' | 'pending';
+  mode?: 'create' | 'assign' | 'pending' | 'completed';
   initialData?: any;
   submitError?: string | null;
 }
@@ -36,14 +44,34 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   const [formError, setFormError] = useState<string | null>(null);
   const [assignedOptions, setAssignedOptions] = useState<{ value: string; label: string }[]>([]);
-  const [priorityOptions, setPriorityOptions] = useState<{ value: string; label: string }[]>([]); // ✅ Add state
-  const [attachments, setAttachments] = useState<any[]>([]);
-  const [selectedAttachment, setSelectedAttachment] = useState<any>(null);
+  const [priorityOptions, setPriorityOptions] = useState<{ value: string; label: string }[]>([]);
+  const [attachments, setAttachments] = useState<MaintenanceAttachment[]>([]);
+  const [selectedAttachment, setSelectedAttachment] = useState<MaintenanceAttachment | null>(null);
   const [showAttachmentModal, setShowAttachmentModal] = useState(false);
+  const [remarks, setRemarks] = useState<MaintenanceRemark[]>([]);
+  const [loadingRemarks, setLoadingRemarks] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
-      // ✅ Fetch priorities from database
+      // Load user data
+      const user = localStorage.getItem('user');
+      if (user) {
+        try {
+          const userData = JSON.parse(user);
+          const accountId = userData.Account_id ?? userData.account_id;
+          setCurrentUserId(accountId);
+
+          if (mode === 'assign') {
+            setFormData(prev => ({ ...prev, staffAccountId: '' }));
+            (window as any).__currentStaffId = accountId;
+          }
+        } catch (err) {
+          console.error('Error parsing user data:', err);
+        }
+      }
+
+      // Fetch priorities
       maintenanceService.getPriorities()
         .then((priorities) => {
           const options = priorities.map((p) => ({
@@ -61,20 +89,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           ]);
         });
 
-      if (mode === 'assign') {
-        const user = localStorage.getItem('user');
-        if (user) {
-          const userData = JSON.parse(user);
-          const accountId = userData.Account_id ?? userData.account_id;
-          setFormData(prev => ({
-            ...prev,
-            staffAccountId: '',
-          }));
-          
-          (window as any).__currentStaffId = accountId;
-        }
-      }
-
+      // Set initial form data
       if (initialData) {
         setFormData({
           title: initialData.Title || '',
@@ -99,6 +114,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         });
       }
 
+      // Fetch operators for assign mode
       if (mode === 'assign') {
         userService.getOperators()
           .then((operators) => {
@@ -116,7 +132,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           });
       }
 
-      // ✅ FIX: Check if initialData exists before accessing Request_Id
+      // Fetch attachments
       const requestId = initialData?.Request_Id || initialData?.request_id;
       if (requestId) {
         maintenanceService.getTicketAttachments(requestId)
@@ -128,8 +144,25 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             setAttachments([]);
           });
       } else {
-        // ✅ Reset attachments if no initialData
         setAttachments([]);
+      }
+
+      // Fetch remarks for pending/completed mode
+      if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
+        setLoadingRemarks(true);
+        maintenanceService.getTicketRemarks(requestId)
+          .then((data) => {
+            setRemarks(data || []);
+          })
+          .catch((error) => {
+            console.error('Error fetching remarks:', error);
+            setRemarks([]);
+          })
+          .finally(() => {
+            setLoadingRemarks(false);
+          });
+      } else {
+        setRemarks([]);
       }
     }
   }, [isOpen, initialData, mode]);
@@ -151,7 +184,46 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // ✅ New handler for remarks submission
+  const handleRemarkSubmit = async (remarkText: string, files: File[]) => {
+    try {
+      const requestId = initialData?.Request_Id || initialData?.request_id;
+      if (!requestId || !currentUserId) {
+        throw new Error('Request ID or User ID not found');
+      }
+
+      // Add remark if there's text
+      if (remarkText.trim()) {
+        await maintenanceService.addRemark(
+          requestId,
+          remarkText,
+          currentUserId,
+          '' // Role can be fetched from localStorage if needed
+        );
+      }
+
+      // Upload files if any
+      if (files.length > 0) {
+        await Promise.all(
+          files.map((file: File) =>
+            maintenanceService.uploadAttachment(requestId, currentUserId, file)
+          )
+        );
+      }
+
+      // Refresh remarks and attachments
+      const updatedRemarks = await maintenanceService.getTicketRemarks(requestId);
+      setRemarks(updatedRemarks);
+      
+      const updatedAttachments = await maintenanceService.getTicketAttachments(requestId);
+      setAttachments(updatedAttachments || []);
+    } catch (error: any) {
+      console.error('Failed to add remark:', error);
+      throw error;
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setFormError(null);
 
@@ -177,7 +249,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       issue: '',
       priority: '',
       dueDate: '',
-      files: [], // CHANGED
+      files: [],
       staffAccountId: '',
       assignedTo: '',
       remarks: '',
@@ -185,62 +257,276 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     onClose();
   };
 
-  const noOpChange = () => {};
-
-  const isCreateMode = mode === 'create';
-  const isAssignMode = mode === 'assign';
-  const isPendingMode = mode === 'pending';
-
-  const handleAttachmentClick = (attachment: any) => {
-    setSelectedAttachment(attachment);
-    setShowAttachmentModal(true);
-  };
-
   const handleDownloadAttachment = async () => {
     if (selectedAttachment?.File_path) {
       try {
-        // Fetch the file as a blob
         const response = await fetch(selectedAttachment.File_path);
         const blob = await response.blob();
-        
-        // Create a temporary URL for the blob
         const url = window.URL.createObjectURL(blob);
-        
-        // Create a temporary anchor element and trigger download
         const link = document.createElement('a');
         link.href = url;
         link.download = selectedAttachment.File_name || 'download';
         document.body.appendChild(link);
         link.click();
-        
-        // Cleanup
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
       } catch (error) {
         console.error('Download failed:', error);
-        // Fallback to opening in new tab if download fails
         window.open(selectedAttachment.File_path, '_blank');
       }
     }
   };
 
+  const noOpChange = () => {};
+  const isCreateMode = mode === 'create';
+  const isAssignMode = mode === 'assign';
+  const isPendingMode = mode === 'pending';
+  const isCompletedMode = mode === 'completed';
+  const isViewMode = isPendingMode || isCompletedMode;
+
+  const modalHeightClass = isViewMode
+    ? 'h-[72vh] max-h-[72vh]'
+    : 'h-[60vh] max-h-[60vh]';
+
+  // ✅ Attachments block (reused in mobile + desktop, right side)
+  const attachmentsContent = (
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-gray-700">Attachments</label>
+      <AttachmentsList
+        attachments={attachments}
+        onView={(attachment) => {
+          setSelectedAttachment(attachment);
+          setShowAttachmentModal(true);
+        }}
+        isReadOnly={true}
+        size="sm"
+      />
+    </div>
+  );
+
+  // ✅ Reuse the same content in mobile + desktop layouts (LEFT SIDE — no attachments here anymore)
+  const leftDetailsContent = (
+    <div className="space-y-4">
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">Issue Description</label>
+        <textarea
+          name="issue"
+          value={formData.issue}
+          disabled={true}
+          rows={5}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+        <div
+          className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
+          style={{ color: '#E67E22' }}
+        >
+          {initialData?.Priority || '—'}
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+        <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm">
+          <span
+            className="inline-block px-2 py-1 rounded text-white text-xs font-semibold"
+            style={{ backgroundColor: '#355842' }}
+          >
+            {initialData?.Status || '—'}
+          </span>
+        </div>
+      </div>
+
+      <DatePicker
+        label="Due Date"
+        name="dueDate"
+        value={formData.dueDate}
+        onChange={noOpChange}
+        disabled={true}
+      />
+
+      <FormField
+        label="Assigned Operator"
+        name="assignedOperator"
+        type="text"
+        value={initialData?.AssignedOperatorName || 'Unassigned'}
+        onChange={noOpChange}
+        disabled={true}
+      />
+    </div>
+  );
+
+  const formatRelativeTime = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    if (days < 7) return `${days}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // ✅ Combine remarks + attachments into one timeline (sorted)
+  type TimelineItem =
+    | {
+        kind: 'remark';
+        key: string;
+        createdAt: string;
+        isCurrentUser: boolean;
+        authorName: string;
+        text: string;
+      }
+    | {
+        kind: 'attachment';
+        key: string;
+        createdAt: string;
+        isCurrentUser: boolean;
+        authorName: string;
+        attachment: MaintenanceAttachment;
+        isImage: boolean;
+      };
+
+  const timelineItems: TimelineItem[] = (() => {
+    const remarkItems: TimelineItem[] = (remarks || []).map((r) => ({
+      kind: 'remark',
+      key: `r-${r.Remark_Id}`,
+      createdAt: r.Created_at,
+      isCurrentUser: r.Created_by === currentUserId,
+      authorName: r.CreatedByName || 'Unknown',
+      text: r.Remark_text,
+    }));
+
+    const attachmentItems: TimelineItem[] = (attachments || []).map((a) => {
+      const createdAt =
+        // backend usually returns Uploaded_at
+        (a as any).Uploaded_at ||
+        (a as any).uploaded_at ||
+        // fallback so sort still works
+        new Date().toISOString();
+
+      const isImage = !!a.File_type?.startsWith('image/');
+
+      return {
+        kind: 'attachment',
+        key: `a-${a.Attachment_Id ?? a.File_path}`,
+        createdAt,
+        isCurrentUser: (a as any).Uploaded_by === currentUserId,
+        authorName: (a as any).UploaderName || (a as any).CreatedByName || 'Unknown',
+        attachment: a,
+        isImage,
+      };
+    });
+
+    return [...remarkItems, ...attachmentItems].sort(
+      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
+    );
+  })();
+
+  // ✅ Replace old remarksMessagesBody with a timeline body that includes attachments
+  const remarksMessagesBody = loadingRemarks ? (
+    <div className="text-center py-8">
+      <p className="text-sm text-gray-500">Loading remarks...</p>
+    </div>
+  ) : timelineItems.length === 0 ? (
+    <p className="text-sm text-gray-500 italic text-center py-8">No remarks yet</p>
+  ) : (
+    <div className="space-y-3">
+      {timelineItems.map((item) => (
+        <div
+          key={item.key}
+          className={`flex ${item.isCurrentUser ? 'justify-end' : 'justify-start'}`}
+        >
+          <div
+            className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+              item.isCurrentUser
+                ? 'bg-[#355842] text-white rounded-br-sm'
+                : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+            }`}
+          >
+            <div className="flex items-baseline gap-2 mb-1">
+              <span
+                className={`text-xs font-semibold ${
+                  item.isCurrentUser ? 'text-white' : 'text-gray-900'
+                }`}
+              >
+                {item.authorName}
+              </span>
+              <span
+                className={`text-xs ${
+                  item.isCurrentUser ? 'text-white/70' : 'text-gray-500'
+                }`}
+              >
+                {formatRelativeTime(item.createdAt)}
+              </span>
+            </div>
+
+            {item.kind === 'remark' ? (
+              <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedAttachment(item.attachment);
+                  setShowAttachmentModal(true);
+                }}
+                // ✅ transparent background + no outline/ring on hover/click
+                className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
+                title="View attachment"
+              >
+                {item.isImage ? (
+                  <img
+                    src={item.attachment.File_path}
+                    alt="Attachment"
+                    // ✅ no hover outline; keep only a subtle border (remove if you want fully borderless)
+                    className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
+                    loading="lazy"
+                    draggable={false}
+                  />
+                ) : (
+                  <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
+                    <span className={`text-sm ${item.isCurrentUser ? 'text-white' : 'text-gray-700'}`}>
+                      Attachment
+                    </span>
+                  </div>
+                )}
+              </button>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   return (
-    <FormModal isOpen={isOpen} onClose={handleClose} title={
-      isCreateMode ? "Request Maintenance" :
-      isAssignMode ? "Accept & Assign Maintenance" :
-      isPendingMode ? "View Pending Maintenance" :
-      "Maintenance Details"
-    }>
-      <div className="flex flex-col h-full">
-        <form onSubmit={handleSubmit} className="flex flex-col h-full">
+    <FormModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      title={
+        isCreateMode ? "Request Maintenance" :
+        isAssignMode ? "Accept & Assign Maintenance" :
+        isPendingMode ? "View Pending Maintenance" :
+        isCompletedMode ? "View Completed Maintenance" :
+        "Maintenance Details"
+      }
+      width={isViewMode ? '960px' : '720px'}
+    >
+      <div className={`flex flex-col ${modalHeightClass}`}>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           {(formError || submitError) && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm flex-shrink-0">
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-700 text-sm flex-shrink-0">
               {formError || submitError}
             </div>
           )}
 
-          {/* ✅ Updated Request Info Header for Pending Mode */}
-          {isPendingMode && initialData && (
+          {isViewMode && initialData && (
             <div className="mb-6 pb-4 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -270,276 +556,221 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
           )}
 
-          <CustomScrollbar className="flex-1 overflow-y-auto pr-2">
-            <div className="pb-4">
-              {isCreateMode ? (
-                <div className="space-y-4">
-                  <FormField
-                    label="Title *"
-                    name="title"
-                    type="text"
-                    value={formData.title}
-                    onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                    placeholder="e.g., Broken conveyor belt"
-                    required
-                  />
+          <div className="flex-1 min-h-0">
+            {isViewMode ? (
+              <div className="h-full min-h-0">
+                {/* ✅ MOBILE: single scroll, stacked; attachments ABOVE remarks history */}
+                <CustomScrollbar className="h-full min-h-0 pr-2 md:hidden" maxHeight="max-h-full">
+                  <div className="space-y-6">
+                    <div>{leftDetailsContent}</div>
 
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Issue Description *
-                    </label>
-                    <textarea
-                      name="issue"
-                      value={formData.issue}
-                      onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
-                      placeholder="Describe the issue in detail..."
-                      required
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent"
-                    />
-                  </div>
+                    {/* ✅ Attachments moved here (right-side equivalent on mobile) */}
+                    <div>{attachmentsContent}</div>
 
-                  <FormField
-                    label="Priority"
-                    name="priority"
-                    type="select"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                    options={priorityOptions}
-                  />
+                    <div className="space-y-3">
+                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
+                        Remarks History
+                      </h3>
 
-                  <DatePicker
-                    label="Due Date"
-                    name="dueDate"
-                    value={formData.dueDate}
-                    onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    required
-                  />
-
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Attachments (Optional)
-                    </label>
-                    <input
-                      type="file"
-                      onChange={handleFileChange}
-                      accept="image/*,.pdf,.doc,.docx"
-                      multiple
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-[#355842] file:text-white hover:file:bg-[#2e4a36]"
-                    />
-                    {formData.files.length > 0 && (
-                      <div className="mt-2 space-y-2">
-                        {formData.files.map((file, index) => (
-                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                            <span className="text-sm text-gray-600 truncate">{file.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => removeFile(index)}
-                              className="text-red-600 hover:text-red-800 ml-2 text-sm"
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
+                        {/* ✅ smaller messages so "Add Remark" stays visible */}
+                        <div className="flex flex-col h-[32vh] min-h-[240px] max-h-[360px]">
+                          <div className="flex-1 min-h-0 overflow-hidden">
+                            <CustomScrollbar
+                              className="h-full min-h-0 overflow-y-auto overscroll-contain"
+                              maxHeight="max-h-full"
                             >
-                              Remove
-                            </button>
+                              <div className="p-3">{remarksMessagesBody}</div>
+                            </CustomScrollbar>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ) : isAssignMode ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <FormField
-                      label="Requested By" // ✅ Changed label
-                      name="staffAccountId"
-                      type="text"
-                      value={formData.staffAccountId}
-                      onChange={noOpChange}
-                      placeholder="Loading..."
-                      disabled={true}
-                    />
 
-                    <FormField
-                      label="Assigned to *"
-                      name="assignedTo"
-                      type="select"
-                      value={formData.assignedTo}
-                      onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                      options={assignedOptions}
-                      required
-                    />
-
-                    <div className="space-y-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Issue Description
-                      </label>
-                      <textarea
-                        name="issue"
-                        value={formData.issue}
-                        onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
-                        placeholder="Describe the issue..."
-                        rows={5}
-                        disabled={true}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                      />
-                    </div>
-
-                    <FormField
-                      label="Priority (editable)"
-                      name="priority"
-                      type="select"
-                      value={formData.priority}
-                      onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                      options={priorityOptions}
-                    />
-                  </div>
-
-                  <div className="space-y-4">
-                    <DatePicker
-                      label="Due Date (editable)"
-                      name="dueDate"
-                      value={formData.dueDate}
-                      onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                    />
-
-                    {/* Attachments Section */}
-                    {attachments.length > 0 && (
-                      <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Attachments
-                        </label>
-                        <div className="space-y-2">
-                          {attachments.map((attachment) => (
-                            <button
-                              key={attachment.Attachment_Id}
-                              type="button"
-                              onClick={() => handleAttachmentClick(attachment)}
-                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-[#355842] truncate">
-                                  {attachment.File_name}
-                                </span>
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </div>
-                            </button>
-                          ))}
+                        {!isCompletedMode && (
+                          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+                            <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
+                          </div>
+                        )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ) : isPendingMode ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold" style={{ color: '#E67E22' }}>
-                        {initialData?.Priority || "—"}
-                      </div>
-                    </div>
-
-                    <FormField
-                      label="Assigned Operator"
-                      name="assignedOperator"
-                      type="text"
-                      value={initialData?.AssignedOperatorName || "Unassigned"}
-                      onChange={noOpChange}
-                      disabled={true}
-                    />
-
-                    <div className="space-y-1">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Issue Description
-                      </label>
-                      <textarea
-                        name="issue"
-                        value={formData.issue}
-                        disabled={true}
-                        rows={5}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                      />
                     </div>
                   </div>
+                </CustomScrollbar>
 
-                  <div className="space-y-4">
-                    <DatePicker
-                      label="Due Date"
-                      name="dueDate"
-                      value={formData.dueDate}
-                      onChange={noOpChange}
-                      disabled={true}
-                    />
+                {/* ✅ DESKTOP: two columns */}
+                <div className="hidden md:grid md:grid-cols-2 gap-6 h-full min-h-0">
+                  {/* LEFT COLUMN */}
+                  <div className="min-h-0 h-full overflow-hidden">
+                    <CustomScrollbar className="h-full min-h-0 pr-2 overflow-x-hidden" maxHeight="max-h-full">
+                      {leftDetailsContent}
+                    </CustomScrollbar>
+                  </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                      <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm">
-                        <span className="inline-block px-2 py-1 rounded text-white text-xs font-semibold" style={{ backgroundColor: '#355842' }}>
-                          {initialData?.Status || "—"}
-                        </span>
-                      </div>
-                    </div>
+                  {/* RIGHT COLUMN (NOT scrollable as a whole) */}
+                  <div className="min-h-0 h-full overflow-hidden">
+                    <div className="min-h-0 h-full flex flex-col border-l pl-4 gap-4">
+                      {/* ✅ Attachments moved to right, above remarks history */}
+                      {attachmentsContent}
 
-                    {/* Attachments Section */}
-                    {attachments.length > 0 && (
-                      <div className="space-y-1">
-                        <label className="block text-sm font-medium text-gray-700">
-                          Attachments
-                        </label>
-                        <div className="space-y-2">
-                          {attachments.map((attachment) => (
-                            <button
-                              key={attachment.Attachment_Id}
-                              type="button"
-                              onClick={() => handleAttachmentClick(attachment)}
-                              className="w-full text-left px-3 py-2 bg-gray-50 border border-gray-300 rounded-md hover:bg-gray-100 transition-colors"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="text-sm text-[#355842] truncate">
-                                  {attachment.File_name}
-                                </span>
-                                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </div>
-                            </button>
-                          ))}
+                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
+                        Remarks History
+                      </h3>
+
+                      <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
+                        {/* ✅ smaller messages so input is visible */}
+                        <div className="flex-1 min-h-0 flex flex-col">
+                          <div className="flex-1 min-h-0 overflow-hidden">
+                            <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
+                              <div className="p-3">{remarksMessagesBody}</div>
+                            </CustomScrollbar>
+                          </div>
+
+                        {!isCompletedMode && (
+                          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+                            <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
+                          </div>
+                        )}
                         </div>
                       </div>
-                    )}
-                  </div>
-                </div>
-              ) : null}
-
-              {isPendingMode && (
-                <div className="border-t pt-4 mt-4 space-y-3">
-                  <h3 className="font-semibold text-sm" style={{ color: '#2E523A' }}>Remarks</h3>
-                  
-                  {initialData?.Remarks && (
-                    <div className="p-3 rounded bg-blue-50 border border-blue-200">
-                      <p className="text-xs text-gray-600 mb-1">Previous Remarks:</p>
-                      <p className="text-sm text-gray-800">{initialData.Remarks}</p>
                     </div>
-                  )}
-
-                  <div className="space-y-1">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Add Remarks
-                    </label>
-                    <textarea
-                      name="remarks"
-                      value={formData.remarks}
-                      onChange={(e) => setFormData({ ...formData, remarks: e.target.value })}
-                      placeholder="Add your remarks about the maintenance..."
-                      rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent"
-                    />
                   </div>
                 </div>
-              )}
-            </div>
-          </CustomScrollbar>
+              </div>
+            ) : (
+              // ✅ Prevent CustomScrollbar default max-h-96 from constraining height
+              <CustomScrollbar className="h-full min-h-0 overflow-y-auto pr-2" maxHeight="max-h-full">
+                <div className="pb-4">
+                  {isCreateMode ? (
+                    <div className="space-y-4">
+                      <FormField
+                        label="Title *"
+                        name="title"
+                        type="text"
+                        value={formData.title}
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                        placeholder="e.g., Broken conveyor belt"
+                        required
+                      />
+
+                      <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">
+                          Issue Description *
+                        </label>
+                        <textarea
+                          name="issue"
+                          value={formData.issue}
+                          onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
+                          placeholder="Describe the issue in detail..."
+                          required
+                          rows={4}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent"
+                        />
+                      </div>
+
+                      <FormField
+                        label="Priority"
+                        name="priority"
+                        type="select"
+                        value={formData.priority}
+                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                        options={priorityOptions}
+                      />
+
+                      <DatePicker
+                        label="Due Date"
+                        name="dueDate"
+                        value={formData.dueDate}
+                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                        required
+                      />
+
+                      <AttachmentsUpload
+                        files={formData.files}
+                        onChange={handleFileChange}
+                        onRemove={removeFile}
+                        label="Attachments (Optional)"
+                        required={false}
+                      />
+                    </div>
+                  ) : isAssignMode ? (
+                    <div className="space-y-6">
+                      <FormField
+                        label="Requested By"
+                        name="staffAccountId"
+                        type="text"
+                        value={formData.staffAccountId}
+                        onChange={noOpChange}
+                        placeholder="Loading..."
+                        disabled
+                      />
+
+                      <FormField
+                        label="Title"
+                        name="title"
+                        type="text"
+                        value={formData.title}
+                        onChange={noOpChange}
+                        placeholder="Loading..."
+                        disabled
+                      />
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Issue Description
+                        </label>
+                        <textarea
+                          name="issue"
+                          value={formData.issue}
+                          onChange={noOpChange}
+                          rows={5}
+                          disabled
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
+                        />
+                      </div>
+
+                      <FormField
+                        label="Priority (Editable)"
+                        name="priority"
+                        type="select"
+                        value={formData.priority}
+                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                        options={priorityOptions}
+                      />
+
+                      <DatePicker
+                        label="Due Date (Editable)"
+                        name="dueDate"
+                        value={formData.dueDate}
+                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                      />
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Attachments
+                        </label>
+                        <AttachmentsList
+                          attachments={attachments}
+                          onView={(attachment) => {
+                            setSelectedAttachment(attachment);
+                            setShowAttachmentModal(true);
+                          }}
+                          isReadOnly={true}
+                        />
+                      </div>
+
+                      <FormField
+                        label="Assign To *"
+                        name="assignedTo"
+                        type="select"
+                        value={formData.assignedTo}
+                        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+                        options={assignedOptions}
+                        required
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              </CustomScrollbar>
+            )}
+          </div>
 
           <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
             <button
@@ -547,18 +778,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
               onClick={handleClose}
               className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
             >
-              {isPendingMode ? "Close" : "Cancel"}
+              {isViewMode ? "Close" : "Cancel"}
             </button>
             
-            {isPendingMode ? (
-              <button
-                type="submit"
-                className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
-                style={{ backgroundColor: '#355842' }}
-              >
-                Add Remarks
-              </button>
-            ) : (
+            {!isViewMode && (
               <button
                 type="submit"
                 className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
@@ -571,60 +794,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         </form>
       </div>
 
-      {/* Attachment Preview Modal */}
-      {showAttachmentModal && selectedAttachment && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[300000]" onClick={() => setShowAttachmentModal(false)}>
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
-            <div className="px-6 py-4 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white flex items-center justify-between">
-              <h3 className="font-semibold text-lg">{selectedAttachment.File_name}</h3>
-              <button
-                onClick={() => setShowAttachmentModal(false)}
-                className="text-white hover:bg-white/10 transition-colors rounded-full w-8 h-8 flex items-center justify-center"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              {selectedAttachment.File_type?.startsWith('image/') ? (
-                <img 
-                  src={selectedAttachment.File_path} 
-                  alt={selectedAttachment.File_name}
-                  className="max-w-full h-auto mx-auto rounded"
-                />
-              ) : (
-                <div className="text-center py-12">
-                  <svg className="w-16 h-16 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-gray-600 mb-2">{selectedAttachment.File_name}</p>
-                  <p className="text-sm text-gray-500">
-                    {selectedAttachment.File_size ? `${(selectedAttachment.File_size / 1024).toFixed(2)} KB` : 'File preview not available'}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="px-6 py-4 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => setShowAttachmentModal(false)}
-                className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                Close
-              </button>
-              <button
-                onClick={handleDownloadAttachment}
-                className="px-4 py-2 text-sm text-white rounded-md hover:opacity-90"
-                style={{ backgroundColor: '#355842' }}
-              >
-                Download
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <AttachmentsViewer
+        attachment={selectedAttachment}
+        isOpen={showAttachmentModal}
+        onClose={() => setShowAttachmentModal(false)}
+        onDownload={handleDownloadAttachment}
+      />
     </FormModal>
   );
 };
