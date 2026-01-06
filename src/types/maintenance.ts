@@ -46,7 +46,20 @@ export interface MaintenanceTicket {
   AttachmentCount?: number;
   Attachments?: MaintenanceAttachment[];
   RemarksHistory?: MaintenanceRemark[]; // ✅ NEW: Array of remarks
-  Cancel_reason?: string | null; // ✅ add
+  Cancel_reason?: string | null;
+
+  // ✅ NEW: cancel actor display fields (from backend joins)
+  CancelRequestedByName?: string | null;
+  CancelRequestedByRole?: string | null;     // e.g. "Operator"
+  CancelRequestedByRoleId?: number | null;
+
+  CancelledByName?: string | null;
+  CancelledByRole?: string | null;           // e.g. "Barangay" / "Admin"
+  CancelledByRoleId?: number | null;
+
+  // (optional if you want to use timestamps for bookmark placement)
+  Cancel_requested_at?: string | null;
+  Cancelled_at?: string | null;
 }
 
 export interface MaintenanceTicketPayload {

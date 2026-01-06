@@ -289,21 +289,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   // ✅ NEW: helpful derived values
   const ticketStatus = (initialData?.Status ?? '').trim();
-  const cancelReasonText = typeof initialData?.Cancel_reason === 'string' ? initialData.Cancel_reason.trim() : '';
+  const cancelReasonText =
+    typeof initialData?.Cancel_reason === 'string' ? initialData.Cancel_reason.trim() : '';
 
-  // Show operator reason in View Details left side (instead of the cancel modal)
+  // ✅ NEW: cancel actor display (Name + Role)
+  const cancelRequestedByName = (initialData?.CancelRequestedByName ?? '').trim();
+  const cancelRequestedByRole = (initialData?.CancelRequestedByRole ?? '').trim();
+  const cancelledByName = (initialData?.CancelledByName ?? '').trim();
+  const cancelledByRole = (initialData?.CancelledByRole ?? '').trim();
+
+  const cancelRequestedByDisplay = cancelRequestedByName
+    ? `${cancelRequestedByName}${cancelRequestedByRole ? ` (${cancelRequestedByRole})` : ''}`
+    : 'Unknown';
+
+  const cancelledByDisplay = cancelledByName
+    ? `${cancelledByName}${cancelledByRole ? ` (${cancelledByRole})` : ''}`
+    : 'Unknown';
+
+  // ✅ keep your reason box logic
   const showOperatorReasonBox =
     !!cancelReasonText && (ticketStatus === 'Cancel Requested' || ticketStatus === 'Cancelled');
 
   const operatorDisplayName = (initialData?.AssignedOperatorName || 'Operator').trim();
 
-  // ✅ NEW: bookmark line for remarks section
-  const remarksBookmarkText =
-    ticketStatus === 'Completed'
-      ? `Completed Request by ${operatorDisplayName}`
-      : (ticketStatus === 'Cancel Requested' || ticketStatus === 'Cancelled')
-        ? `Cancel Requested by ${operatorDisplayName}`
-        : null;
+  // ✅ CHANGED: remove the old “bookmark at the top” source (we now put it in the logs)
+  const remarksBookmarkText = null;
 
   // ✅ Attachments block (right side)
   const attachmentsContent = (
@@ -430,15 +440,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         />
       ) : null}
 
-      <FormField
-        // ✅ CHANGED LABEL
-        label="Previously Assigned Operator"
-        name="assignedOperator"
-        type="text"
-        value={initialData?.AssignedOperatorName || 'Unassigned'}
-        onChange={noOpChange}
-        disabled={true}
-      />
+      {/* ✅ Requirement #3:
+          Hide "Previously Assigned Operator" if Status is "Requested" AND in assign mode */}
+      {!(isAssignMode && ticketStatus === 'Requested') && (
+        <FormField
+          label="Previously Assigned Operator"
+          name="assignedOperator"
+          type="text"
+          value={initialData?.AssignedOperatorName || 'Unassigned'}
+          onChange={noOpChange}
+          disabled={true}
+        />
+      )}
 
       {/* ✅ more noticeable “slice” before assignControls */}
       {isAssignMode && <div className="border-t-2 border-[#355842]/20 pt-2" />}
@@ -463,8 +476,14 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     return date.toLocaleDateString();
   };
 
-  // ✅ Combine remarks + attachments into one timeline (sorted)
+  // ✅ Combine remarks + attachments + bookmark into one timeline (sorted)
   type TimelineItem =
+    | {
+        kind: 'bookmark';
+        key: string;
+        createdAt: string;
+        text: string;
+      }
     | {
         kind: 'remark';
         key: string;
@@ -512,9 +531,44 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       };
     });
 
-    return [...remarkItems, ...attachmentItems].sort(
-      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
-    );
+    // ✅ Requirement #1 + #2: Bookmark INSIDE message logs and uses Name+Role rules
+    let bookmark: TimelineItem | null = null;
+
+    if (ticketStatus === 'Completed') {
+      bookmark = {
+        kind: 'bookmark',
+        key: 'bm-completed',
+        createdAt: initialData?.Completed_at || new Date().toISOString(),
+        text: `Completed Request by ${operatorDisplayName}`,
+      };
+    } else if (ticketStatus === 'Cancel Requested') {
+      bookmark = {
+        kind: 'bookmark',
+        key: 'bm-cancel-requested',
+        createdAt: initialData?.Cancel_requested_at || new Date().toISOString(),
+        text: `Cancel Requested by ${cancelRequestedByDisplay}`,
+      };
+    } else if (ticketStatus === 'Cancelled') {
+      // ✅ If NO reason => direct cancel by staff/admin => show Cancelled by
+      // ✅ If reason EXISTS => comes from operator cancel request flow => show Cancel Requested by
+      const text =
+        cancelReasonText.length === 0
+          ? `Cancelled by ${cancelledByDisplay}`
+          : `Cancel Requested by ${cancelRequestedByDisplay}`;
+
+      bookmark = {
+        kind: 'bookmark',
+        key: 'bm-cancelled',
+        createdAt: initialData?.Cancelled_at || new Date().toISOString(),
+        text,
+      };
+    }
+
+    const combined = bookmark
+      ? [...remarkItems, ...attachmentItems, bookmark]
+      : [...remarkItems, ...attachmentItems];
+
+    return combined.sort((x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime());
   })();
 
   const remarksMessagesBody = loadingRemarks ? (
@@ -525,67 +579,79 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     <p className="text-sm text-gray-500 italic text-center py-8">No remarks yet</p>
   ) : (
     <div className="space-y-3">
-      {timelineItems.map((item) => (
-        <div
-          key={item.key}
-          className={`flex ${item.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-        >
-          <div
-            className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-              item.isCurrentUser
-                ? 'bg-[#355842] text-white rounded-br-sm'
-                : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-            }`}
-          >
-            <div className="flex items-baseline gap-2 mb-1">
-              <span
-                className={`text-xs font-semibold ${
-                  item.isCurrentUser ? 'text-white' : 'text-gray-900'
-                }`}
-              >
-                {item.authorName}
-              </span>
-              <span
-                className={`text-xs ${
-                  item.isCurrentUser ? 'text-white/70' : 'text-gray-500'
-                }`}
-              >
-                {formatRelativeTime(item.createdAt)}
-              </span>
+      {timelineItems.map((item) => {
+        if (item.kind === 'bookmark') {
+          return (
+            <div key={item.key} className="flex justify-center">
+              <div className="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-700">
+                {item.text}
+              </div>
             </div>
+          );
+        }
 
-            {item.kind === 'remark' ? (
-              <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedAttachment(item.attachment);
-                  setShowAttachmentModal(true);
-                }}
-                className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
-                title="View attachment"
-              >
-                {item.isImage ? (
-                  <img
-                    src={item.attachment.File_path}
-                    alt="Attachment"
-                    className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
-                    loading="lazy"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
-                    <span className={`text-sm ${item.isCurrentUser ? 'text-white' : 'text-gray-700'}`}>
-                      Attachment
-                    </span>
-                  </div>
-                )}
-              </button>
-            )}
+        return (
+          <div
+            key={item.key}
+            className={`flex ${item.isCurrentUser ? 'justify-end' : 'justify-start'}`}
+          >
+            <div
+              className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                item.isCurrentUser
+                  ? 'bg-[#355842] text-white rounded-br-sm'
+                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
+              }`}
+            >
+              <div className="flex items-baseline gap-2 mb-1">
+                <span
+                  className={`text-xs font-semibold ${
+                    item.isCurrentUser ? 'text-white' : 'text-gray-900'
+                  }`}
+                >
+                  {item.authorName}
+                </span>
+                <span
+                  className={`text-xs ${
+                    item.isCurrentUser ? 'text-white/70' : 'text-gray-500'
+                  }`}
+                >
+                  {formatRelativeTime(item.createdAt)}
+                </span>
+              </div>
+
+              {item.kind === 'remark' ? (
+                <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedAttachment(item.attachment);
+                    setShowAttachmentModal(true);
+                  }}
+                  className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
+                  title="View attachment"
+                >
+                  {item.isImage ? (
+                    <img
+                      src={item.attachment.File_path}
+                      alt="Attachment"
+                      className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
+                      loading="lazy"
+                      draggable={false}
+                    />
+                  ) : (
+                    <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
+                      <span className={`text-sm ${item.isCurrentUser ? 'text-white' : 'text-gray-700'}`}>
+                        Attachment
+                      </span>
+                    </div>
+                  )}
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
