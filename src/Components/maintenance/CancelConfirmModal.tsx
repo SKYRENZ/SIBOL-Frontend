@@ -43,9 +43,6 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
 
   const confirmText = isDelete ? 'Delete' : 'Confirm';
 
-  const trimmedReason = (reason ?? '').trim();
-  const showOperatorReason = !isDelete && trimmedReason.length > 0;
-
   const deleteReasonTrimmed = deleteReason.trim();
   const canConfirm = isDelete ? deleteReasonTrimmed.length > 0 && !isLoading : !isLoading;
 
@@ -66,7 +63,7 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
         <h3 className="text-lg font-semibold text-center mb-2">{title}</h3>
         <p className="text-gray-600 text-center mb-4 text-sm">{description}</p>
 
-        {/* ✅ NEW: Delete reason input */}
+        {/* ✅ Delete reason input stays */}
         {isDelete && (
           <div className="mb-5">
             <label className="block text-sm font-medium text-gray-700 mb-1">Reason</label>
@@ -81,14 +78,6 @@ const CancelConfirmModal: React.FC<CancelConfirmModalProps> = ({
             {deleteReasonTrimmed.length === 0 && (
               <p className="text-xs text-red-600 mt-1">Reason is required.</p>
             )}
-          </div>
-        )}
-
-        {/* ✅ Operator reason (Cancel Requested) */}
-        {showOperatorReason && (
-          <div className="mb-6 border border-red-200 bg-red-50 rounded-md p-3">
-            <p className="text-xs font-semibold text-red-800 mb-1">Operator Reason</p>
-            <p className="text-sm text-red-900 whitespace-pre-wrap break-words">{trimmedReason}</p>
           </div>
         )}
 

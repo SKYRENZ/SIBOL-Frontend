@@ -12,7 +12,6 @@ import AttachmentsList from './attachments/AttachmentsList';
 import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
 import RemarksForm from './remarks/RemarksForm'; // ✅ keep
-// ❌ remove: import RemarksList from './remarks/RemarksList';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -23,10 +22,10 @@ interface MaintenanceFormProps {
   submitError?: string | null;
 }
 
-const MaintenanceForm: React.FC<MaintenanceFormProps> = ({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
+const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
+  isOpen,
+  onClose,
+  onSubmit,
   mode = 'create',
   initialData,
   submitError
@@ -136,9 +135,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       const requestId = initialData?.Request_Id || initialData?.request_id;
       if (requestId) {
         maintenanceService.getTicketAttachments(requestId)
-          .then((data) => {
-            setAttachments(data || []);
-          })
+          .then((data) => setAttachments(data || []))
           .catch((error) => {
             console.error('Error fetching attachments:', error);
             setAttachments([]);
@@ -147,20 +144,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         setAttachments([]);
       }
 
-      // Fetch remarks for pending/completed mode
+      // Fetch remarks for pending/completed/assign (view remarks too)
       if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
         setLoadingRemarks(true);
         maintenanceService.getTicketRemarks(requestId)
-          .then((data) => {
-            setRemarks(data || []);
-          })
+          .then((data) => setRemarks(data || []))
           .catch((error) => {
             console.error('Error fetching remarks:', error);
             setRemarks([]);
           })
-          .finally(() => {
-            setLoadingRemarks(false);
-          });
+          .finally(() => setLoadingRemarks(false));
       } else {
         setRemarks([]);
       }
@@ -170,9 +163,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
       const newFiles = Array.from(e.target.files);
-      setFormData(prev => ({ 
-        ...prev, 
-        files: [...prev.files, ...newFiles] 
+      setFormData(prev => ({
+        ...prev,
+        files: [...prev.files, ...newFiles]
       }));
     }
   };
@@ -184,7 +177,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }));
   };
 
-  // ✅ New handler for remarks submission
+  // ✅ New handler for remarks submission (used by Pending view only)
   const handleRemarkSubmit = async (remarkText: string, files: File[]) => {
     try {
       const requestId = initialData?.Request_Id || initialData?.request_id;
@@ -214,7 +207,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       // Refresh remarks and attachments
       const updatedRemarks = await maintenanceService.getTicketRemarks(requestId);
       setRemarks(updatedRemarks);
-      
+
       const updatedAttachments = await maintenanceService.getTicketAttachments(requestId);
       setAttachments(updatedAttachments || []);
     } catch (error: any) {
@@ -282,13 +275,37 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const isAssignMode = mode === 'assign';
   const isPendingMode = mode === 'pending';
   const isCompletedMode = mode === 'completed';
+
+  // ✅ FIX: define these (they are used later in JSX)
+  const isDetailsMode = isPendingMode || isCompletedMode || isAssignMode;
+
+  // ✅ “view-only” modes (no submit button)
   const isViewMode = isPendingMode || isCompletedMode;
 
-  const modalHeightClass = isViewMode
+  // ✅ modal height used in wrapper div
+  const modalHeightClass = isDetailsMode
     ? 'h-[72vh] max-h-[72vh]'
     : 'h-[60vh] max-h-[60vh]';
 
-  // ✅ Attachments block (reused in mobile + desktop, right side)
+  // ✅ NEW: helpful derived values
+  const ticketStatus = (initialData?.Status ?? '').trim();
+  const cancelReasonText = typeof initialData?.Cancel_reason === 'string' ? initialData.Cancel_reason.trim() : '';
+
+  // Show operator reason in View Details left side (instead of the cancel modal)
+  const showOperatorReasonBox =
+    !!cancelReasonText && (ticketStatus === 'Cancel Requested' || ticketStatus === 'Cancelled');
+
+  const operatorDisplayName = (initialData?.AssignedOperatorName || 'Operator').trim();
+
+  // ✅ NEW: bookmark line for remarks section
+  const remarksBookmarkText =
+    ticketStatus === 'Completed'
+      ? `Completed Request by ${operatorDisplayName}`
+      : (ticketStatus === 'Cancel Requested' || ticketStatus === 'Cancelled')
+        ? `Cancel Requested by ${operatorDisplayName}`
+        : null;
+
+  // ✅ Attachments block (right side)
   const attachmentsContent = (
     <div className="space-y-1">
       <label className="block text-sm font-medium text-gray-700">Attachments</label>
@@ -304,7 +321,56 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     </div>
   );
 
-  // ✅ Reuse the same content in mobile + desktop layouts (LEFT SIDE — no attachments here anymore)
+  // ✅ Assign controls (shown inside the details layout LEFT column for Assign mode)
+  const assignControls = isAssignMode ? (
+    <div className="space-y-4 rounded-lg p-4 bg-[#355842]/5 border border-[#355842]/30 ring-1 ring-[#355842]/10">
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-semibold text-[#2E523A]">Accept & Assign</p>
+        <span className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-[#355842]/20 text-[#2E523A]">
+          Editable
+        </span>
+      </div>
+
+      <div className="border-t border-[#355842]/20 pt-3">
+        <FormField
+          label="Requested By"
+          name="staffAccountId"
+          type="text"
+          value={formData.staffAccountId}
+          onChange={noOpChange}
+          disabled
+        />
+      </div>
+
+      <FormField
+        label="Priority (Editable)"
+        name="priority"
+        type="select"
+        value={formData.priority}
+        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+        options={priorityOptions}
+      />
+
+      <DatePicker
+        label="Due Date (Editable)"
+        name="dueDate"
+        value={formData.dueDate}
+        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+      />
+
+      <FormField
+        label="Assign To *"
+        name="assignedTo"
+        type="select"
+        value={formData.assignedTo}
+        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
+        options={assignedOptions}
+        required
+      />
+    </div>
+  ) : null;
+
+  // ✅ LEFT SIDE details (same as pending), plus assign controls when assign mode
   const leftDetailsContent = (
     <div className="space-y-4">
       <div className="space-y-1">
@@ -318,15 +384,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-        <div
-          className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
-          style={{ color: '#E67E22' }}
-        >
-          {initialData?.Priority || '—'}
+      {/* Priority: show read-only badge in Pending/Completed, editable select in Assign */}
+      {!isAssignMode ? (
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
+          <div
+            className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
+            style={{ color: '#E67E22' }}
+          >
+            {initialData?.Priority || '—'}
+          </div>
         </div>
-      </div>
+      ) : null}
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
@@ -340,22 +409,42 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         </div>
       </div>
 
-      <DatePicker
-        label="Due Date"
-        name="dueDate"
-        value={formData.dueDate}
-        onChange={noOpChange}
-        disabled={true}
-      />
+      {/* ✅ NEW: Operator reason is shown here (left side), not in CancelConfirmModal */}
+      {showOperatorReasonBox && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-xs font-semibold text-red-800 mb-1">Operator Reason</p>
+          <p className="text-sm text-red-900 whitespace-pre-wrap break-words">
+            {cancelReasonText}
+          </p>
+        </div>
+      )}
+
+      {/* Due Date: read-only in Pending/Completed; editable in Assign via assignControls */}
+      {!isAssignMode ? (
+        <DatePicker
+          label="Due Date"
+          name="dueDate"
+          value={formData.dueDate}
+          onChange={noOpChange}
+          disabled={true}
+        />
+      ) : null}
 
       <FormField
-        label="Assigned Operator"
+        // ✅ CHANGED LABEL
+        label="Previously Assigned Operator"
         name="assignedOperator"
         type="text"
         value={initialData?.AssignedOperatorName || 'Unassigned'}
         onChange={noOpChange}
         disabled={true}
       />
+
+      {/* ✅ more noticeable “slice” before assignControls */}
+      {isAssignMode && <div className="border-t-2 border-[#355842]/20 pt-2" />}
+
+      {/* ✅ Accept & Assign controls inside the same details UI */}
+      {assignControls}
     </div>
   );
 
@@ -406,10 +495,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
     const attachmentItems: TimelineItem[] = (attachments || []).map((a) => {
       const createdAt =
-        // backend usually returns Uploaded_at
         (a as any).Uploaded_at ||
         (a as any).uploaded_at ||
-        // fallback so sort still works
         new Date().toISOString();
 
       const isImage = !!a.File_type?.startsWith('image/');
@@ -430,7 +517,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     );
   })();
 
-  // ✅ Replace old remarksMessagesBody with a timeline body that includes attachments
   const remarksMessagesBody = loadingRemarks ? (
     <div className="text-center py-8">
       <p className="text-sm text-gray-500">Loading remarks...</p>
@@ -477,7 +563,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   setSelectedAttachment(item.attachment);
                   setShowAttachmentModal(true);
                 }}
-                // ✅ transparent background + no outline/ring on hover/click
                 className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
                 title="View attachment"
               >
@@ -485,7 +570,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                   <img
                     src={item.attachment.File_path}
                     alt="Attachment"
-                    // ✅ no hover outline; keep only a subtle border (remove if you want fully borderless)
                     className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
                     loading="lazy"
                     draggable={false}
@@ -505,6 +589,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     </div>
   );
 
+  // ✅ only Pending mode can add remarks in this modal
+  const canAddRemarksHere = isPendingMode;
+
   return (
     <FormModal
       isOpen={isOpen}
@@ -516,7 +603,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         isCompletedMode ? "View Completed Maintenance" :
         "Maintenance Details"
       }
-      width={isViewMode ? '960px' : '720px'}
+      width={isDetailsMode ? '960px' : '720px'}
     >
       <div className={`flex flex-col ${modalHeightClass}`}>
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
@@ -526,12 +613,13 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             </div>
           )}
 
-          {isViewMode && initialData && (
+          {/* ✅ header block for Pending/Completed/Assign */}
+          {isDetailsMode && initialData && (
             <div className="mb-6 pb-4 border-b border-gray-200 flex-shrink-0">
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <p className="text-xl font-bold text-[#2E523A] mb-3">
-                    Request No: {initialData.Request_date 
+                    Request No: {initialData.Request_date
                       ? `${new Date(initialData.Request_date).getFullYear()}${String(new Date(initialData.Request_date).getMonth() + 1).padStart(2, '0')}${initialData.Request_Id || initialData.request_id}`
                       : `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}${initialData.Request_Id || initialData.request_id}`
                     }
@@ -543,7 +631,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                 <div className="text-right ml-4">
                   <p className="text-xs text-gray-500 mb-1">Request Date</p>
                   <p className="text-sm font-semibold text-gray-700">
-                    {initialData.Request_date 
+                    {initialData.Request_date
                       ? new Date(initialData.Request_date).toLocaleDateString('en-US', {
                           month: 'short',
                           day: 'numeric',
@@ -557,14 +645,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           )}
 
           <div className="flex-1 min-h-0">
-            {isViewMode ? (
+            {isDetailsMode ? (
               <div className="h-full min-h-0">
-                {/* ✅ MOBILE: single scroll, stacked; attachments ABOVE remarks history */}
+                {/* ✅ MOBILE */}
                 <CustomScrollbar className="h-full min-h-0 pr-2 md:hidden" maxHeight="max-h-full">
                   <div className="space-y-6">
                     <div>{leftDetailsContent}</div>
-
-                    {/* ✅ Attachments moved here (right-side equivalent on mobile) */}
                     <div>{attachmentsContent}</div>
 
                     <div className="space-y-3">
@@ -572,8 +658,14 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         Remarks History
                       </h3>
 
+                      {/* ✅ NEW: bookmark line */}
+                      {remarksBookmarkText && (
+                        <div className="rounded-md border-l-4 border-[#355842] bg-[#355842]/5 px-3 py-2 text-sm text-[#2E523A]">
+                          {remarksBookmarkText}
+                        </div>
+                      )}
+
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
-                        {/* ✅ smaller messages so "Add Remark" stays visible */}
                         <div className="flex flex-col h-[32vh] min-h-[240px] max-h-[360px]">
                           <div className="flex-1 min-h-0 overflow-hidden">
                             <CustomScrollbar
@@ -584,38 +676,43 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             </CustomScrollbar>
                           </div>
 
-                        {!isCompletedMode && (
-                          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
-                            <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
-                          </div>
-                        )}
+                          {canAddRemarksHere && (
+                            <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+                              <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                 </CustomScrollbar>
 
-                {/* ✅ DESKTOP: two columns */}
+                {/* ✅ DESKTOP */}
                 <div className="hidden md:grid md:grid-cols-2 gap-6 h-full min-h-0">
-                  {/* LEFT COLUMN */}
+                  {/* LEFT */}
                   <div className="min-h-0 h-full overflow-hidden">
                     <CustomScrollbar className="h-full min-h-0 pr-2 overflow-x-hidden" maxHeight="max-h-full">
                       {leftDetailsContent}
                     </CustomScrollbar>
                   </div>
 
-                  {/* RIGHT COLUMN (NOT scrollable as a whole) */}
+                  {/* RIGHT */}
                   <div className="min-h-0 h-full overflow-hidden">
                     <div className="min-h-0 h-full flex flex-col border-l pl-4 gap-4">
-                      {/* ✅ Attachments moved to right, above remarks history */}
                       {attachmentsContent}
 
                       <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
                         Remarks History
                       </h3>
 
+                      {/* ✅ NEW: bookmark line */}
+                      {remarksBookmarkText && (
+                        <div className="rounded-md border-l-4 border-[#355842] bg-[#355842]/5 px-3 py-2 text-sm text-[#2E523A]">
+                          {remarksBookmarkText}
+                        </div>
+                      )}
+
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
-                        {/* ✅ smaller messages so input is visible */}
                         <div className="flex-1 min-h-0 flex flex-col">
                           <div className="flex-1 min-h-0 overflow-hidden">
                             <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
@@ -623,19 +720,19 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                             </CustomScrollbar>
                           </div>
 
-                        {!isCompletedMode && (
-                          <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
-                            <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
-                          </div>
-                        )}
+                          {canAddRemarksHere && (
+                            <div className="p-3 bg-white border-t border-gray-200 flex-shrink-0">
+                              <RemarksForm onSubmit={handleRemarkSubmit} disabled={false} />
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+
               </div>
             ) : (
-              // ✅ Prevent CustomScrollbar default max-h-96 from constraining height
               <CustomScrollbar className="h-full min-h-0 overflow-y-auto pr-2" maxHeight="max-h-full">
                 <div className="pb-4">
                   {isCreateMode ? (
@@ -690,82 +787,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         required={false}
                       />
                     </div>
-                  ) : isAssignMode ? (
-                    <div className="space-y-6">
-                      <FormField
-                        label="Requested By"
-                        name="staffAccountId"
-                        type="text"
-                        value={formData.staffAccountId}
-                        onChange={noOpChange}
-                        placeholder="Loading..."
-                        disabled
-                      />
-
-                      <FormField
-                        label="Title"
-                        name="title"
-                        type="text"
-                        value={formData.title}
-                        onChange={noOpChange}
-                        placeholder="Loading..."
-                        disabled
-                      />
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Issue Description
-                        </label>
-                        <textarea
-                          name="issue"
-                          value={formData.issue}
-                          onChange={noOpChange}
-                          rows={5}
-                          disabled
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50"
-                        />
-                      </div>
-
-                      <FormField
-                        label="Priority (Editable)"
-                        name="priority"
-                        type="select"
-                        value={formData.priority}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        options={priorityOptions}
-                      />
-
-                      <DatePicker
-                        label="Due Date (Editable)"
-                        name="dueDate"
-                        value={formData.dueDate}
-                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                      />
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Attachments
-                        </label>
-                        <AttachmentsList
-                          attachments={attachments}
-                          onView={(attachment) => {
-                            setSelectedAttachment(attachment);
-                            setShowAttachmentModal(true);
-                          }}
-                          isReadOnly={true}
-                        />
-                      </div>
-
-                      <FormField
-                        label="Assign To *"
-                        name="assignedTo"
-                        type="select"
-                        value={formData.assignedTo}
-                        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-                        options={assignedOptions}
-                        required
-                      />
-                    </div>
                   ) : null}
                 </div>
               </CustomScrollbar>
@@ -780,7 +801,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             >
               {isViewMode ? "Close" : "Cancel"}
             </button>
-            
+
+            {/* ✅ show submit for create + assign */}
             {!isViewMode && (
               <button
                 type="submit"

@@ -151,7 +151,6 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
         onConfirm={handleCancelRequest}
         isLoading={isCancelling}
         mode="cancel"
-        reason={selectedTicketForCancel?.Cancel_reason ?? null} // ✅ NEW
       />
     </div>
   );
