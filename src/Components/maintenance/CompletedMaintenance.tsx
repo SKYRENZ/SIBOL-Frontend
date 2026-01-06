@@ -4,7 +4,7 @@ import { useCompletedMaintenance } from "../../hooks/maintenance/useCompletedMai
 import type { MaintenanceTicket } from "../../types/maintenance";
 
 interface CompletedMaintenanceProps {
-  onOpenForm: (mode: "pending", ticket: MaintenanceTicket) => void;
+  onOpenForm: (mode: "completed", ticket: MaintenanceTicket) => void; // ✅ Changed from "pending" to "completed"
 }
 
 export const CompletedMaintenance: React.FC<CompletedMaintenanceProps> = ({
@@ -37,7 +37,7 @@ export const CompletedMaintenance: React.FC<CompletedMaintenanceProps> = ({
         label: "Actions",
         render: (_: any, row: MaintenanceTicket) => (
           <button
-            onClick={() => onOpenForm("pending", row)}
+            onClick={() => onOpenForm("completed", row)} // ✅ Changed from "pending" to "completed"
             className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
           >
             View Details

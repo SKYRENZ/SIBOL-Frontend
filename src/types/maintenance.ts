@@ -11,26 +11,38 @@ export interface MaintenanceAttachment {
   UploaderRole?: number;
 }
 
+export interface MaintenanceRemark {
+  Remark_Id: number;
+  Request_Id: number;
+  Remark_text: string;
+  Created_by: number;
+  User_role?: string;
+  Created_at: string;
+  CreatedByName?: string;
+  CreatedByRoleName?: string;
+}
+
 export interface MaintenanceTicket {
   Request_Id?: number;
   request_id?: number;
   Title: string;
-  Details: string;
-  Priority_Id: number;
-  Created_by: number;
-  Assigned_to: number | null;
-  Request_date: string;
-  Due_date?: string | null;
-  Main_stat_id: number;
-  Remarks?: string;
-  Completed_at?: string; // Add this for completed tickets
-  
-  // Properties from JOINs
+  Details?: string;
   Priority?: string;
+  Priority_Id?: number;
   Status?: string;
+  Main_stat_id?: number;
+  Created_by: number;
+  Assigned_to?: number;
+  Due_date?: string;
+  Request_date?: string;
+  Completed_at?: string;
+  Remarks?: string; // Legacy field
   AssignedOperatorName?: string;
-  AttachmentCount?: number; // For list view
-  Attachments?: MaintenanceAttachment[]; // For detail view - CHANGED from single Attachment
+  CreatedByName?: string;
+  CreatorRole?: number;
+  AttachmentCount?: number;
+  Attachments?: MaintenanceAttachment[];
+  RemarksHistory?: MaintenanceRemark[]; // ✅ NEW: Array of remarks
 }
 
 export interface MaintenanceTicketPayload {
@@ -39,5 +51,4 @@ export interface MaintenanceTicketPayload {
   priority?: string;
   created_by: number;
   due_date?: string | null;
-  // Remove attachment from here - will be uploaded separately
 }
