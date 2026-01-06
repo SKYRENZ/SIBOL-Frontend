@@ -155,9 +155,18 @@ export async function getPriorities(): Promise<Array<{ Priority_Id: number; Prio
 }
 
 // NEW: Delete a ticket
-export async function deleteTicket(requestId: number, actor_account_id: number): Promise<{ deleted: boolean }> {
+export async function deleteTicket(
+  requestId: number,
+  actor_account_id: number
+): Promise<{ deleted: boolean }> {
   const response = await apiClient.delete<{ deleted: boolean }>(`${BASE_URL}/${requestId}`, {
-    data: { actor_account_id }, // ✅ axios delete body
+    params: { actor_account_id }, // ✅ use query param (no DELETE body typing issues)
   });
+  return response.data;
+}
+
+// ✅ NEW: List all soft-deleted tickets (backend: GET /api/maintenance/deleted)
+export async function listDeletedTickets(): Promise<MaintenanceTicket[]> {
+  const response = await apiClient.get<MaintenanceTicket[]>(`${BASE_URL}/deleted`);
   return response.data;
 }
