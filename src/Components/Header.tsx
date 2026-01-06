@@ -21,10 +21,9 @@ const Header: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  
-  // ✅ Get isFirstLogin from Redux to disable header
+
   const { isFirstLogin } = useAppSelector((state) => state.auth);
-  
+
   async function handleLogout() {
     try {
       dispatch(logoutAction());
@@ -34,7 +33,7 @@ const Header: React.FC = () => {
       navigate('/login', { replace: true });
     }
   }
-  
+
   useEffect(() => {
     let mounted = true;
     (async () => {
@@ -60,7 +59,6 @@ const Header: React.FC = () => {
         setMenuOpen(false);
       }
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -78,8 +76,12 @@ const Header: React.FC = () => {
   const localUser = (() => {
     try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
   })();
-  const isAdminRole = localUser && (localUser.Roles === 1 || localUser.roleId === 1 || localUser.role === 'Admin');
-  const hasModule6 = localUser && Array.isArray(localUser.user_modules) && localUser.user_modules.includes(6);
+
+  const isAdminRole =
+    localUser && (localUser.Roles === 1 || localUser.roleId === 1 || localUser.role === 'Admin');
+
+  const hasModule6 =
+    localUser && Array.isArray(localUser.user_modules) && localUser.user_modules.includes(6);
 
   const showAdmin = isAdminRole || hasModule6 || hasModule('admin') || hasModule(1);
 
@@ -93,10 +95,7 @@ const Header: React.FC = () => {
       <nav className="nav">
         <img
           className="nav-logo"
-          src={new URL(
-            "../assets/images/collection.png",
-            import.meta.url
-          ).href}
+          src={new URL("../assets/images/collection.png", import.meta.url).href}
           alt="SIBOL"
         />
 
@@ -114,7 +113,6 @@ const Header: React.FC = () => {
           <span />
         </button>
 
-        {/* Navigation Links */}
         <div className={`nav-menu ${menuOpen ? "open" : ""}`} id="primary-navigation">
           <ul className="nav-links">
             {links.map((link) => (
@@ -132,15 +130,15 @@ const Header: React.FC = () => {
             ))}
           </ul>
 
-          {/* Right-side Icons */}
+          {/* RIGHT ICONS */}
           <div className="nav-icons">
+            {/* Notifications */}
             <svg
               className="icon"
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
               <path
@@ -149,22 +147,32 @@ const Header: React.FC = () => {
               />
             </svg>
 
-            <svg
-              className="icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
+            {/* ✅ PROFILE ICON → /profile */}
+            <NavLink
+              to="/profile"
+              title="Profile"
+              aria-label="Profile"
+              className={({ isActive }) =>
+                `icon-btn ${isActive ? "active-icon" : ""}`
+              }
+              style={{ pointerEvents: isFirstLogin ? 'none' : 'auto' }}
             >
-              <path
-                d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6Z"
-                fill="currentColor"
-              />
-            </svg>
+              <svg
+                className="icon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </NavLink>
 
-            {/* Logout button */}
+            {/* Logout */}
             <button
               type="button"
               onClick={handleLogout}

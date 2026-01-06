@@ -40,7 +40,8 @@ const FormField: React.FC<FormFieldProps> = ({
           required={required}
           className="w-full px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm bg-white text-gray-900 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#AFC8AD]/40 focus:border-transparent transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
-          <option value="">Select an option</option>
+          {/* ✅ Only show placeholder if no value is selected */}
+          {!value && <option value="">Select an option</option>}
           {options.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}

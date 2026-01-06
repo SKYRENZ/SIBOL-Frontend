@@ -8,19 +8,9 @@ interface FormModalProps {
   title?: string;
   width?: string; // optional override for max width
   children?: React.ReactNode;
-  showCloseButton?: boolean; // control X button visibility
-  hasCancelButton?: boolean; // hide X if form has Cancel button
 }
-
-const FormModal: React.FC<FormModalProps> = ({
-  isOpen,
-  onClose,
-  title,
-  width,
-  children,
-  showCloseButton = true,
-  hasCancelButton = false,
-}) => {
+ 
+const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '720px', children }) => {
   if (!isOpen) return null;
 
   const shouldShowCloseButton = showCloseButton && !hasCancelButton;

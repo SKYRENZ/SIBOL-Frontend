@@ -79,19 +79,41 @@ const MaintenancePage: React.FC = () => {
           }
         }
 
-      } else if (formMode === 'assign' && requestId) {
-        const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
-        const staffId = parseInt(formData.staffAccountId, 10);
-        await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
-
-      } else if (formMode === 'pending' && requestId) {
-        // Add remarks if provided
-        if (formData.remarks?.trim()) {
-          await maintenanceService.addRemarks(requestId, formData.remarks);
+      } else if (formMode === 'assign') {
+        // ✅ FIX: Check if requestId exists before calling
+        if (!requestId) {
+          throw new Error('Request ID not found');
         }
 
-        // Upload new attachments if any
+        const user = localStorage.getItem('user');
+        if (!user) {
+          throw new Error('User not found');
+        }
+        
+        const userData = JSON.parse(user);
+        const staffId = userData.Account_id ?? userData.account_id;
+        
+        if (!staffId) {
+          throw new Error('Staff account ID not found');
+        }
+
+        const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
+        
+        console.log('Submitting:', {
+          requestId,
+          staffId,
+          assignToId
+        });
+
+        await maintenanceService.acceptAndAssign(requestId, staffId, assignToId);
+
+      } else if (formMode === 'pending') {
+        // ✅ FIX: Check if requestId exists before uploading attachments
         if (formData.files && formData.files.length > 0) {
+          if (!requestId) {
+            throw new Error('Request ID not found');
+          }
+          
           await Promise.all(
             formData.files.map((file: File) =>
               maintenanceService.uploadAttachment(requestId, createdByAccountId!, file)
