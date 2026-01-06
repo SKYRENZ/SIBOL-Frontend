@@ -89,11 +89,17 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
     [onOpenForm, isDeleting]
   );
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmDelete = async (reason?: string) => {
     if (!selectedTicketForDelete) return;
 
     const requestId = selectedTicketForDelete.Request_Id ?? selectedTicketForDelete.request_id;
     if (!requestId) return;
+
+    const trimmed = (reason ?? "").trim();
+    if (!trimmed) {
+      alert("Reason is required.");
+      return;
+    }
 
     try {
       setIsDeleting(true);
@@ -103,7 +109,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
       const actorId = userData.Account_id ?? userData.account_id;
       if (!actorId) throw new Error("actor_account_id not found");
 
-      await maintenanceService.deleteTicket(requestId, actorId);
+      await maintenanceService.deleteTicket(requestId, actorId, trimmed);
       setSelectedTicketForDelete(null);
       await refetch();
     } catch (e: any) {
@@ -126,7 +132,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
       <CancelConfirmModal
         isOpen={!!selectedTicketForDelete}
         onClose={() => setSelectedTicketForDelete(null)}
-        onConfirm={handleConfirmDelete}
+        onConfirm={handleConfirmDelete}   // ✅ now receives (reason?: string)
         isLoading={isDeleting}
         mode="delete"
       />

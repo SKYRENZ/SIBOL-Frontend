@@ -157,10 +157,11 @@ export async function getPriorities(): Promise<Array<{ Priority_Id: number; Prio
 // NEW: Delete a ticket
 export async function deleteTicket(
   requestId: number,
-  actor_account_id: number
+  actor_account_id: number,
+  reason: string
 ): Promise<{ deleted: boolean }> {
   const response = await apiClient.delete<{ deleted: boolean }>(`${BASE_URL}/${requestId}`, {
-    params: { actor_account_id }, // ✅ use query param (no DELETE body typing issues)
+    params: { actor_account_id, reason },
   });
   return response.data;
 }
