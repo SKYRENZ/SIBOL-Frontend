@@ -35,25 +35,22 @@ export async function uploadAttachment(
   uploadedBy: number,
   file: File
 ): Promise<MaintenanceAttachment> {
-  // Step 1: Upload file to Cloudinary
   const formData = new FormData();
   formData.append('file', file);
 
   const uploadResponse = await apiClient.post<{ filepath: string; publicId: string }>(
     '/api/upload',
     formData,
-    {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    }
+    { headers: { 'Content-Type': 'multipart/form-data' } }
   );
 
-  // Step 2: Save attachment metadata
   const body = {
     uploaded_by: uploadedBy,
-    filepath: uploadResponse.data.filepath, // Cloudinary URL
+    filepath: uploadResponse.data.filepath,
     filename: file.name,
     filetype: file.type,
-    filesize: file.size
+    filesize: file.size,
+    public_id: uploadResponse.data.publicId, // ✅ add
   };
 
   const response = await apiClient.post<MaintenanceAttachment>(
@@ -154,5 +151,23 @@ export async function cancelTicket(requestId: number, actor_account_id: number) 
 // NEW: Get all priorities
 export async function getPriorities(): Promise<Array<{ Priority_Id: number; Priority: string }>> {
   const response = await apiClient.get<Array<{ Priority_Id: number; Priority: string }>>('/api/maintenance/priorities');
+  return response.data;
+}
+
+// NEW: Delete a ticket
+export async function deleteTicket(
+  requestId: number,
+  actor_account_id: number,
+  reason: string
+): Promise<{ deleted: boolean }> {
+  const response = await apiClient.delete<{ deleted: boolean }>(`${BASE_URL}/${requestId}`, {
+    params: { actor_account_id, reason },
+  });
+  return response.data;
+}
+
+// ✅ NEW: List all soft-deleted tickets (backend: GET /api/maintenance/deleted)
+export async function listDeletedTickets(): Promise<MaintenanceTicket[]> {
+  const response = await apiClient.get<MaintenanceTicket[]>(`${BASE_URL}/deleted`);
   return response.data;
 }

@@ -11,10 +11,12 @@ export function usePendingMaintenance() {
     try {
       setLoading(true);
       setError(null);
-      // Fetch tickets with status "On-going" OR "For Verification"
+
+      // ✅ Pending Maintenance includes Cancel Requested
       const data = await maintenanceService.listTickets({
-        status: "On-going,For Verification",
+        status: "On-going,For Verification,Cancel Requested",
       });
+
       setTickets(data);
     } catch (err: any) {
       console.error("Fetch error:", err);

@@ -6,9 +6,13 @@ import FilterPanel from "../Components/common/filterPanel";
 import { RequestMaintenance } from "../Components/maintenance/RequestMaintenance";
 import { PendingMaintenance } from "../Components/maintenance/PendingMaintenance";
 import { CompletedMaintenance } from "../Components/maintenance/CompletedMaintenance";
-import MaintenanceForm from "../Components/maintenance/MaintenanceForm"; // Import MaintenanceForm
-import * as maintenanceService from "../services/maintenanceService"; // Import maintenanceService
-import type { MaintenanceTicket } from "../types/maintenance"; // Import MaintenanceTicket type
+import MaintenanceForm from "../Components/maintenance/MaintenanceForm";
+import * as maintenanceService from "../services/maintenanceService";
+import type { MaintenanceTicket } from "../types/maintenance";
+
+// ✅ NEW
+import { Trash2 } from "lucide-react";
+import DeletedRequestsModal from "../Components/maintenance/DeletedRequestsModal";
 
 const MaintenancePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("Request Maintenance");
@@ -21,6 +25,12 @@ const MaintenancePage: React.FC = () => {
   const [formMode, setFormMode] = useState<'create' | 'assign' | 'pending'>('create');
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // ✅ NEW: deleted requests modal state
+  const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
+  const [deletedTickets, setDeletedTickets] = useState<MaintenanceTicket[]>([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
+  const [deletedError, setDeletedError] = useState<string | null>(null);
 
   useEffect(() => {
     const user = localStorage.getItem('user');
@@ -142,18 +152,28 @@ const MaintenancePage: React.FC = () => {
     []
   );
 
+  const handleOpenCompletedForm = (mode: "completed", ticket: MaintenanceTicket) => {
+    // We ignore `mode` but match the expected signature.
+    // Reuse the existing modal in a safe mode (adjust later if you want read-only behavior).
+    handleOpenForm("pending", ticket);
+  };
+
   const renderActiveTab = () => {
     if (createdByAccountId === null) return <p>Loading...</p>;
-    
+
     switch (activeTab) {
       case "Pending Maintenance":
         return <PendingMaintenance onOpenForm={handleOpenForm} />;
+
       case "Complete Maintenance":
-        return <CompletedMaintenance onOpenForm={handleOpenForm} />;
+        return <CompletedMaintenance onOpenForm={handleOpenCompletedForm} />;
+
       default:
-        return <RequestMaintenance 
-          onOpenForm={handleOpenForm as (mode: 'assign', ticket: MaintenanceTicket) => void}
-        />;
+        return (
+          <RequestMaintenance
+            onOpenForm={handleOpenForm as (mode: "assign", ticket: MaintenanceTicket) => void}
+          />
+        );
     }
   };
 
@@ -168,6 +188,25 @@ const MaintenancePage: React.FC = () => {
       default:
         return [];
     }
+  };
+
+  const openDeletedModal = async () => {
+    setIsDeletedModalOpen(true);
+    setLoadingDeleted(true);
+    setDeletedError(null);
+    try {
+      const rows = await maintenanceService.listDeletedTickets();
+      setDeletedTickets(Array.isArray(rows) ? rows : []);
+    } catch (err: any) {
+      setDeletedTickets([]);
+      setDeletedError(err?.response?.data?.message || err?.message || "Failed to load deleted requests");
+    } finally {
+      setLoadingDeleted(false);
+    }
+  };
+
+  const closeDeletedModal = () => {
+    setIsDeletedModalOpen(false);
   };
 
   return (
@@ -196,18 +235,33 @@ const MaintenancePage: React.FC = () => {
                 placeholder="Search maintenance..."
               />
             </div>
+
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              {activeTab === 'Request Maintenance' && (
+              {activeTab === "Request Maintenance" && (
                 <button
-                  onClick={() => handleOpenForm('create')}
+                  onClick={() => handleOpenForm("create")}
                   className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap w-full sm:w-auto text-center"
                 >
                   New Maintenance Request
                 </button>
               )}
-              <FilterPanel 
-                types={getFilterTypesByTab(activeTab)} 
-                onFilterChange={setSelectedFilters} 
+
+              {/* ✅ NEW: trash icon beside filter button (Request Maintenance tab only) */}
+              {activeTab === "Request Maintenance" && (
+                <button
+                  type="button"
+                  onClick={openDeletedModal}
+                  className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition w-full sm:w-auto"
+                  title="View deleted requests"
+                  aria-label="View deleted requests"
+                >
+                  <Trash2 size={18} className="text-gray-700" />
+                </button>
+              )}
+
+              <FilterPanel
+                types={getFilterTypesByTab(activeTab)}
+                onFilterChange={setSelectedFilters}
                 className="w-full sm:w-auto"
               />
             </div>
@@ -227,6 +281,15 @@ const MaintenancePage: React.FC = () => {
         mode={formMode}
         initialData={selectedTicket}
         submitError={submitError}
+      />
+
+      {/* ✅ NEW: Deleted requests modal */}
+      <DeletedRequestsModal
+        isOpen={isDeletedModalOpen}
+        onClose={closeDeletedModal}
+        data={deletedTickets}
+        loading={loadingDeleted}
+        error={deletedError}
       />
     </div>
   );
