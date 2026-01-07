@@ -444,7 +444,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           Hide "Previously Assigned Operator" if Status is "Requested" AND in assign mode */}
       {!(isAssignMode && ticketStatus === 'Requested') && (
         <FormField
-          label="Previously Assigned Operator"
+          // ✅ CHANGE: Pending mode label should be "Assigned Operator"
+          label={isPendingMode ? 'Assigned Operator' : 'Previously Assigned Operator'}
           name="assignedOperator"
           type="text"
           value={initialData?.AssignedOperatorName || 'Unassigned'}
