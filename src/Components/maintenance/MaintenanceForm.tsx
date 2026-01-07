@@ -531,44 +531,76 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       };
     });
 
-    // ✅ Requirement #1 + #2: Bookmark INSIDE message logs and uses Name+Role rules
-    let bookmark: TimelineItem | null = null;
+    // ✅ NEW: build a HISTORY of bookmarks (not just one)
+    const bookmarks: TimelineItem[] = [];
 
-    if (ticketStatus === 'Completed') {
-      bookmark = {
+    const addBookmark = (key: string, createdAt: any, text: string) => {
+      const ts = typeof createdAt === 'string' && createdAt.trim() ? createdAt : null;
+      if (!ts) return;
+      bookmarks.push({
         kind: 'bookmark',
-        key: 'bm-completed',
-        createdAt: initialData?.Completed_at || new Date().toISOString(),
-        text: `Completed Request by ${operatorDisplayName}`,
-      };
-    } else if (ticketStatus === 'Cancel Requested') {
-      bookmark = {
-        kind: 'bookmark',
-        key: 'bm-cancel-requested',
-        createdAt: initialData?.Cancel_requested_at || new Date().toISOString(),
-        text: `Cancel Requested by ${cancelRequestedByDisplay}`,
-      };
-    } else if (ticketStatus === 'Cancelled') {
-      // ✅ If NO reason => direct cancel by staff/admin => show Cancelled by
-      // ✅ If reason EXISTS => comes from operator cancel request flow => show Cancel Requested by
-      const text =
-        cancelReasonText.length === 0
-          ? `Cancelled by ${cancelledByDisplay}`
-          : `Cancel Requested by ${cancelRequestedByDisplay}`;
-
-      bookmark = {
-        kind: 'bookmark',
-        key: 'bm-cancelled',
-        createdAt: initialData?.Cancelled_at || new Date().toISOString(),
+        key,
+        createdAt: ts,
         text,
-      };
-    }
+      });
+    };
 
-    const combined = bookmark
-      ? [...remarkItems, ...attachmentItems, bookmark]
-      : [...remarkItems, ...attachmentItems];
+    // ✅ NEW: pick first available timestamp field (backend naming may differ)
+    const pickTimestamp = (...keys: string[]) => {
+      for (const k of keys) {
+        const v = (initialData as any)?.[k];
+        if (typeof v === 'string' && v.trim()) return v;
+      }
+      return null;
+    };
 
-    return combined.sort((x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime());
+    // Always show "Requested" if we have Request_date
+    addBookmark(
+      'bm-requested',
+      initialData?.Request_date,
+      `Requested by ${initialData?.CreatedByName ?? 'Unknown'}`
+    );
+
+    // Cancel Requested history
+    addBookmark(
+      'bm-cancel-requested',
+      initialData?.Cancel_requested_at,
+      `Cancel Requested by ${cancelRequestedByDisplay}${cancelReasonText ? ` — Reason: ${cancelReasonText}` : ''}`
+    );
+
+    // Cancelled history
+    addBookmark(
+      'bm-cancelled',
+      initialData?.Cancelled_at,
+      `Cancelled by ${cancelledByDisplay}`
+    );
+
+    // ✅ NEW: For Verification history
+    addBookmark(
+      'bm-for-verification',
+      pickTimestamp(
+        'For_verification_at',
+        'ForVerification_at',
+        'Marked_for_verification_at',
+        'MarkedForVerification_at',
+        'Verification_requested_at',
+        'VerificationRequested_at'
+      ),
+      `For Verification by ${operatorDisplayName}`
+    );
+
+    // Completed history
+    addBookmark(
+      'bm-completed',
+      initialData?.Completed_at,
+      `Completed Request by ${operatorDisplayName}`
+    );
+
+    const combined = [...remarkItems, ...attachmentItems, ...bookmarks];
+
+    return combined.sort(
+      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
+    );
   })();
 
   const remarksMessagesBody = loadingRemarks ? (
