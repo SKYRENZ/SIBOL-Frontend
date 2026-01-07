@@ -8,6 +8,7 @@ import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
+import Analytics from '../Components/SibolMachine/Analytics';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
 import "../tailwind.css";
 
@@ -152,42 +153,44 @@ const SibolMachinePage: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (activeTab === 'Machines') {
-      return (
-        <MachineTab
-          machines={machines}
-          loading={machinesLoading}
-          error={machinesError}
-          onEdit={handleEditMachine}
-          onAdd={handleOpenAddModal}
-          pagination={{
-            currentPage,
-            pageSize,
-            totalItems: machines.length,
-            onPageChange: setCurrentPage,
-            onPageSizeChange: handlePageSizeChange,
-          }}
-          filterTypes={['machine-status', 'area']} // ✅ Only machine status and area
-        />
-      );
+    switch (activeTab) {
+      case 'Machines':
+        return (
+          <MachineTab
+            machines={machines}
+            loading={machinesLoading}
+            error={machinesError}
+            onEdit={handleEditMachine}
+            onAdd={handleOpenAddModal}
+            pagination={{
+              currentPage,
+              pageSize,
+              totalItems: machines.length,
+              onPageChange: setCurrentPage,
+              onPageSizeChange: handlePageSizeChange,
+            }}
+            filterTypes={['machine-status', 'area']}
+          />
+        );
+      case 'Waste Container':
+        return (
+          <WasteContainerTab
+            filterTypes={['container-status', 'waste-type']}
+          />
+        );
+      case 'Chemical Additives':
+        return (
+          <AdditivesTab
+            filterTypes={['additive-stage', 'machine']}
+            searchTerm=""
+            onSearchChange={() => {}}
+          />
+        );
+      case 'Analytics':
+        return <Analytics />; // ✅ Analytics tab rendering
+      default:
+        return <div className="text-center py-10">Content for {activeTab}</div>;
     }
-    if (activeTab === 'Waste Container') {
-      return (
-        <WasteContainerTab
-          filterTypes={['container-status', 'waste-type']}
-        />
-      );
-    }
-    if (activeTab === 'Chemical Additives') {
-      return (
-        <AdditivesTab
-          filterTypes={['additive-stage', 'machine']}
-          searchTerm=""
-          onSearchChange={() => {}} // ✅ Added required props
-        />
-      );
-    }
-    return <div className="text-center py-10">Content for {activeTab}</div>;
   };
 
   return (
