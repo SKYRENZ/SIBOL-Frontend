@@ -69,3 +69,16 @@ export interface MaintenanceTicketPayload {
   created_by: number;
   due_date?: string | null;
 }
+
+export interface MaintenanceEvent {
+  Event_Id: number;
+  Request_Id: number;
+  Event_type: string;           // e.g. 'FOR_VERIFICATION'
+  Actor_Account_Id?: number | null;
+  Notes?: string | null;
+  Created_At: string;
+
+  ActorName?: string | null;
+  ActorRoleId?: number | null;
+  ActorRoleName?: string | null;
+}

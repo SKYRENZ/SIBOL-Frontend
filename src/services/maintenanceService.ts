@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark } from "../types/maintenance";
+import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark, MaintenanceEvent } from "../types/maintenance";
 
 const BASE_URL = "/api/maintenance";
 
@@ -170,4 +170,10 @@ export async function deleteTicket(
 export async function listDeletedTickets(): Promise<MaintenanceTicket[]> {
   const response = await apiClient.get<MaintenanceTicket[]>(`${BASE_URL}/deleted`);
   return response.data;
+}
+
+// NEW: Get all events for a ticket
+export async function getTicketEvents(requestId: number): Promise<MaintenanceEvent[]> {
+  const response = await apiClient.get<MaintenanceEvent[]>(`/api/maintenance/${requestId}/events`);
+  return response.data || [];
 }

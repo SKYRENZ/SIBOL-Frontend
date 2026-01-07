@@ -33,10 +33,6 @@ const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '
         className={`
           relative rounded-2xl shadow-2xl bg-white overflow-hidden
           w-full
-          max-w-[90%]        // mobile
-          sm:max-w-[480px]   // small tablet
-          md:max-w-[520px]   // tablet/desktop
-          lg:max-w-[600px]   // larger desktop
         `}
         style={{
           width: width || undefined,
