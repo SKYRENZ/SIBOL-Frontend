@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
-import * as userService from '../../services/userService';
 import * as maintenanceService from '../../services/maintenanceService';
-import type { MaintenanceRemark, MaintenanceAttachment } from '../../types/maintenance';
+import * as userService from '../../services/userService';
+import type { MaintenanceAttachment, MaintenanceRemark, MaintenanceEvent } from '../../types/maintenance';
 import CustomScrollbar from '../common/CustomScrollbar';
 
 // ✅ Import new separated components
@@ -12,6 +12,7 @@ import AttachmentsList from './attachments/AttachmentsList';
 import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
 import RemarksForm from './remarks/RemarksForm'; // ✅ keep
+import { getUserRole } from '../../utils/roleUtils';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -50,6 +51,8 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [remarks, setRemarks] = useState<MaintenanceRemark[]>([]);
   const [loadingRemarks, setLoadingRemarks] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [events, setEvents] = useState<MaintenanceEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -144,6 +147,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         setAttachments([]);
       }
 
+      // ✅ Fetch events instead of just remarks
+      if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
+        setLoadingEvents(true);
+        maintenanceService.getTicketEvents(requestId)
+          .then((data) => setEvents(data || []))
+          .catch((error) => {
+            console.error('Error fetching events:', error);
+            setEvents([]);
+          })
+          .finally(() => setLoadingEvents(false));
+      } else {
+        setEvents([]);
+      }
+
       // Fetch remarks for pending/completed/assign (view remarks too)
       if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
         setLoadingRemarks(true);
@@ -185,13 +202,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         throw new Error('Request ID or User ID not found');
       }
 
+      // ✅ Get user role using utility function
+      const userRole = getUserRole();
+
       // Add remark if there's text
       if (remarkText.trim()) {
         await maintenanceService.addRemark(
           requestId,
           remarkText,
           currentUserId,
-          '' // Role can be fetched from localStorage if needed
+          userRole  // ✅ Now passing the actual role!
         );
       }
 
@@ -204,12 +224,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         );
       }
 
-      // Refresh remarks and attachments
-      const updatedRemarks = await maintenanceService.getTicketRemarks(requestId);
-      setRemarks(updatedRemarks);
+      // Refresh data
+      const [updatedRemarks, updatedAttachments, updatedEvents] = await Promise.all([
+        maintenanceService.getTicketRemarks(requestId),
+        maintenanceService.getTicketAttachments(requestId),
+        maintenanceService.getTicketEvents(requestId),
+      ]);
 
-      const updatedAttachments = await maintenanceService.getTicketAttachments(requestId);
+      setRemarks(updatedRemarks);
       setAttachments(updatedAttachments || []);
+      setEvents(updatedEvents);
     } catch (error: any) {
       console.error('Failed to add remark:', error);
       throw error;
@@ -477,13 +501,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     return date.toLocaleDateString();
   };
 
-  // ✅ Combine remarks + attachments + bookmark into one timeline (sorted)
+  // ✅ NEW: Build timeline from events AND standalone remarks
   type TimelineItem =
     | {
-        kind: 'bookmark';
+        kind: 'event';
         key: string;
         createdAt: string;
-        text: string;
+        eventType: string;
+        actorName: string;
+        notes: string | null;
+        event: MaintenanceEvent;
       }
     | {
         kind: 'remark';
@@ -492,6 +519,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         isCurrentUser: boolean;
         authorName: string;
         text: string;
+        eventId?: number;
       }
     | {
         kind: 'attachment';
@@ -501,123 +529,145 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         authorName: string;
         attachment: MaintenanceAttachment;
         isImage: boolean;
+        eventId?: number;
       };
 
-  const timelineItems: TimelineItem[] = (() => {
-    const remarkItems: TimelineItem[] = (remarks || []).map((r) => ({
-      kind: 'remark',
-      key: `r-${r.Remark_Id}`,
-      createdAt: r.Created_at,
-      isCurrentUser: r.Created_by === currentUserId,
-      authorName: r.CreatedByName || 'Unknown',
-      text: r.Remark_text,
-    }));
+  const timelineItems: TimelineItem[] = useMemo(() => {
+    const items: TimelineItem[] = [];
 
-    const attachmentItems: TimelineItem[] = (attachments || []).map((a) => {
-      const createdAt =
-        (a as any).Uploaded_at ||
-        (a as any).uploaded_at ||
-        new Date().toISOString();
+    // Add events as bookmarks
+    events.forEach((event) => {
+      items.push({
+        kind: 'event',
+        key: `event-${event.Event_Id}`,
+        createdAt: event.Created_At,
+        eventType: event.Event_type,
+        actorName: event.ActorName || 'Unknown',
+        notes: event.Notes,
+        event,
+      });
 
-      const isImage = !!a.File_type?.startsWith('image/');
+      // Add remarks linked to this event (if backend provides them)
+      if (event.Remarks && event.Remarks.length > 0) {
+        event.Remarks.forEach((remark) => {
+          items.push({
+            kind: 'remark',
+            key: `remark-${remark.Remark_Id}`,
+            createdAt: remark.Created_at,
+            isCurrentUser: remark.Created_by === currentUserId,
+            authorName: remark.CreatedByName || 'Unknown',
+            text: remark.Remark_text,
+            eventId: event.Event_Id,
+          });
+        });
+      }
 
-      return {
-        kind: 'attachment',
-        key: `a-${a.Attachment_Id ?? a.File_path}`,
-        createdAt,
-        isCurrentUser: (a as any).Uploaded_by === currentUserId,
-        authorName: (a as any).UploaderName || (a as any).CreatedByName || 'Unknown',
-        attachment: a,
-        isImage,
-      };
+      // Add attachments linked to this event (if backend provides them)
+      if (event.Attachments && event.Attachments.length > 0) {
+        event.Attachments.forEach((attachment) => {
+          items.push({
+            kind: 'attachment',
+            key: `attachment-${attachment.Attachment_Id}`,
+            createdAt: (attachment as any).Uploaded_at || event.Created_At,
+            isCurrentUser: (attachment as any).Uploaded_by === currentUserId,
+            authorName: (attachment as any).UploaderName || 'Unknown',
+            attachment,
+            isImage: !!attachment.File_type?.startsWith('image/'),
+            eventId: event.Event_Id,
+          });
+        });
+      }
     });
 
-    // ✅ NEW: build a HISTORY of bookmarks (not just one)
-    const bookmarks: TimelineItem[] = [];
-
-    const addBookmark = (key: string, createdAt: any, text: string) => {
-      const ts = typeof createdAt === 'string' && createdAt.trim() ? createdAt : null;
-      if (!ts) return;
-      bookmarks.push({
-        kind: 'bookmark',
-        key,
-        createdAt: ts,
-        text,
-      });
-    };
-
-    // ✅ NEW: pick first available timestamp field (backend naming may differ)
-    const pickTimestamp = (...keys: string[]) => {
-      for (const k of keys) {
-        const v = (initialData as any)?.[k];
-        if (typeof v === 'string' && v.trim()) return v;
+    // ✅ ADD: Include standalone remarks (not linked to events yet)
+    remarks.forEach((remark) => {
+      // Only add if not already added via event
+      const alreadyAdded = items.some(
+        item => item.kind === 'remark' && item.key === `remark-${remark.Remark_Id}`
+      );
+      
+      if (!alreadyAdded) {
+        items.push({
+          kind: 'remark',
+          key: `remark-${remark.Remark_Id}`,
+          createdAt: remark.Created_at,
+          isCurrentUser: remark.Created_by === currentUserId,
+          authorName: remark.CreatedByName || 'Unknown',
+          text: remark.Remark_text,
+        });
       }
-      return null;
-    };
+    });
 
-    // Always show "Requested" if we have Request_date
-    addBookmark(
-      'bm-requested',
-      initialData?.Request_date,
-      `Requested by ${initialData?.CreatedByName ?? 'Unknown'}`
+    // ✅ ADD: Include standalone attachments (not linked to events yet)
+    attachments.forEach((attachment) => {
+      const alreadyAdded = items.some(
+        item => item.kind === 'attachment' && item.key === `attachment-${attachment.Attachment_Id}`
+      );
+      
+      if (!alreadyAdded) {
+        const uploadedAt = (attachment as any).Uploaded_at;
+        const uploadedBy = (attachment as any).Uploaded_by;
+        const uploaderName = (attachment as any).UploaderName;
+        
+        items.push({
+          kind: 'attachment',
+          key: `attachment-${attachment.Attachment_Id}`,
+          createdAt: uploadedAt || new Date().toISOString(),
+          isCurrentUser: uploadedBy === currentUserId,
+          authorName: uploaderName || 'Unknown',
+          attachment,
+          isImage: !!attachment.File_type?.startsWith('image/'),
+        });
+      }
+    });
+
+    // Sort by timestamp
+    return items.sort(
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
     );
+  }, [events, remarks, attachments, currentUserId]);
 
-    // Cancel Requested history
-    addBookmark(
-      'bm-cancel-requested',
-      initialData?.Cancel_requested_at,
-      `Cancel Requested by ${cancelRequestedByDisplay}${cancelReasonText ? ` — Reason: ${cancelReasonText}` : ''}`
-    );
+  // ✅ Helper function to format event labels
+  const getEventLabel = (eventType: string, actorName: string | null, notes: string | null): string => {
+    const actor = actorName || 'Unknown';
+    
+    switch (eventType) {
+      case 'REQUESTED':
+        return `Requested by ${actor}`;
+      case 'ACCEPTED':
+        return `Accepted by ${actor}${notes ? ` — ${notes}` : ''}`;
+      case 'REASSIGNED':
+        return `Reassigned by ${actor}${notes ? ` — ${notes}` : ''}`;
+      case 'FOR_VERIFICATION':
+        return `Marked for Verification by ${actor}`;
+      case 'CANCEL_REQUESTED':
+        return `Cancel Requested by ${actor}${notes ? ` — Reason: ${notes}` : ''}`;
+      case 'CANCELLED':
+        return `Cancelled by ${actor}${notes ? ` — ${notes}` : ''}`;
+      case 'COMPLETED':
+        return `Completed by ${actor}`;
+      case 'DELETED':
+        return `Deleted by ${actor}${notes ? ` — ${notes}` : ''}`;
+      default:
+        return `${eventType} by ${actor}`;
+    }
+  };
 
-    // Cancelled history
-    addBookmark(
-      'bm-cancelled',
-      initialData?.Cancelled_at,
-      `Cancelled by ${cancelledByDisplay}`
-    );
-
-    // ✅ NEW: For Verification history
-    addBookmark(
-      'bm-for-verification',
-      pickTimestamp(
-        'For_verification_at',
-        'ForVerification_at',
-        'Marked_for_verification_at',
-        'MarkedForVerification_at',
-        'Verification_requested_at',
-        'VerificationRequested_at'
-      ),
-      `For Verification by ${operatorDisplayName}`
-    );
-
-    // Completed history
-    addBookmark(
-      'bm-completed',
-      initialData?.Completed_at,
-      `Completed Request by ${operatorDisplayName}`
-    );
-
-    const combined = [...remarkItems, ...attachmentItems, ...bookmarks];
-
-    return combined.sort(
-      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
-    );
-  })();
-
-  const remarksMessagesBody = loadingRemarks ? (
+  // ✅ Update remarks/messages body to use timeline items
+  const remarksMessagesBody = loadingEvents ? (
     <div className="text-center py-8">
-      <p className="text-sm text-gray-500">Loading remarks...</p>
+      <p className="text-sm text-gray-500">Loading history...</p>
     </div>
   ) : timelineItems.length === 0 ? (
-    <p className="text-sm text-gray-500 italic text-center py-8">No remarks yet</p>
+    <p className="text-sm text-gray-500 italic text-center py-8">No activity yet</p>
   ) : (
     <div className="space-y-3">
       {timelineItems.map((item) => {
-        if (item.kind === 'bookmark') {
+        if (item.kind === 'event') {
           return (
             <div key={item.key} className="flex justify-center">
-              <div className="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-700">
-                {item.text}
+              <div className="px-3 py-1 rounded-full bg-gradient-to-r from-[#355842]/10 to-[#4a7c5d]/10 border border-[#355842]/20 text-xs font-medium text-[#2E523A]">
+                {getEventLabel(item.eventType, item.actorName, item.notes)}
               </div>
             </div>
           );
@@ -661,16 +711,14 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     setSelectedAttachment(item.attachment);
                     setShowAttachmentModal(true);
                   }}
-                  className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
-                  title="View attachment"
+                  className="block text-left bg-transparent p-0 m-0 border-0"
                 >
                   {item.isImage ? (
                     <img
                       src={item.attachment.File_path}
                       alt="Attachment"
-                      className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
+                      className="w-44 h-44 object-cover rounded-lg border border-black/10"
                       loading="lazy"
-                      draggable={false}
                     />
                   ) : (
                     <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
