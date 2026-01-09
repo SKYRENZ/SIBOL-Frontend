@@ -21,6 +21,7 @@ type TimelineItem =
       createdAt: string;
       isCurrentUser: boolean;
       authorName: string;
+      authorRole?: string | null; // ✅ NEW
       text: string;
       eventId?: number;
     }
@@ -30,6 +31,7 @@ type TimelineItem =
       createdAt: string;
       isCurrentUser: boolean;
       authorName: string;
+      authorRole?: string | null; // ✅ NEW
       attachment: MaintenanceAttachment;
       isImage: boolean;
       eventId?: number;
@@ -87,7 +89,20 @@ const getEventTitle = (eventType: string): string => {
   }
 };
 
-const formatEventTime = (timestamp: string) => {
+// 1) ✅ remove "_staff" from role names (e.g., Barangay_staff -> Barangay)
+const normalizeRoleName = (role: string | null | undefined) => {
+  if (!role) return "";
+  return role.replace(/_staff/gi, "").trim();
+};
+
+const formatNameWithRole = (name: string | null | undefined, role: string | null | undefined) => {
+  const safeName = (name || "Unknown").trim();
+  const safeRole = normalizeRoleName(role);
+  return safeRole ? `${safeName} (${safeRole})` : safeName;
+};
+
+// ✅ date+time (not relative)
+const formatMessageDateTime = (timestamp: string) => {
   const d = new Date(timestamp);
   if (Number.isNaN(d.getTime())) return "";
   return d.toLocaleString(undefined, {
@@ -99,17 +114,13 @@ const formatEventTime = (timestamp: string) => {
   });
 };
 
-// 1) ✅ remove "_staff" from role names (e.g., Barangay_staff -> Barangay)
-const normalizeRoleName = (role: string | null | undefined) => {
-  if (!role) return "";
-  return role.replace(/_staff/gi, "").trim();
-};
+// ✅ Fix: this is used by the event header
+const formatEventTime = (timestamp: string) => formatMessageDateTime(timestamp);
 
-const formatActor = (name: string | null | undefined, role: string | null | undefined) => {
-  const safeName = (name || "Unknown").trim();
-  const safeRole = normalizeRoleName(role);
-  return safeRole ? `${safeName} (${safeRole})` : safeName;
-};
+// ✅ Fix: you use formatActor(...) in the event header, so define it
+// (keeps the same formatting as messages: Name (Role), with _staff removed)
+const formatActor = (name: string | null | undefined, role: string | null | undefined) =>
+  formatNameWithRole(name, role);
 
 // 2) ✅ helper to get the "to" side for REASSIGNED from whatever your API sends
 // If your backend uses different field names, tell me the exact keys and I’ll align it.
@@ -201,12 +212,20 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
       );
       if (alreadyAdded) return;
 
+      const role =
+        (remark as any).User_role ??
+        (remark as any).user_role ??
+        (remark as any).CreatedByRoleName ??
+        (remark as any).CreatedByRole ??
+        null;
+
       items.push({
         kind: "remark",
         key: `remark-${remark.Remark_Id}`,
         createdAt: remark.Created_at,
         isCurrentUser: remark.Created_by === me,
         authorName: remark.CreatedByName || "Unknown",
+        authorRole: role,
         text: remark.Remark_text,
       });
     });
@@ -222,12 +241,20 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
       const uploadedBy = (attachment as any).Uploaded_by as number | undefined;
       const uploaderName = (attachment as any).UploaderName as string | undefined;
 
+      const uploaderRole =
+        (attachment as any).UploaderRoleName ??
+        (attachment as any).UploaderRole ??
+        (attachment as any).UploadedByRoleName ??
+        (attachment as any).UploadedByRole ??
+        null;
+
       items.push({
         kind: "attachment",
         key: `attachment-${attachment.Attachment_Id}`,
         createdAt: uploadedAt || new Date().toISOString(),
         isCurrentUser: uploadedBy === me,
         authorName: uploaderName || "Unknown",
+        authorRole: uploaderRole,
         attachment,
         isImage: !!attachment.File_type?.startsWith("image/"),
       });
@@ -305,6 +332,7 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
           );
         }
 
+        // ✅ Message / attachment bubble UI updated here
         return (
           <div
             key={item.key}
@@ -317,23 +345,18 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
                   : "bg-gray-100 text-gray-800 rounded-bl-sm"
               }`}
             >
-              <div className="flex items-baseline gap-2 mb-1">
+              {/* ✅ Name + Role only (no time beside it) */}
+              <div className="mb-1">
                 <span
                   className={`text-xs font-semibold ${
                     item.isCurrentUser ? "text-white" : "text-gray-900"
                   }`}
                 >
-                  {item.authorName}
-                </span>
-                <span
-                  className={`text-xs ${
-                    item.isCurrentUser ? "text-white/70" : "text-gray-500"
-                  }`}
-                >
-                  {formatRelativeTime(item.createdAt)}
+                  {formatNameWithRole(item.authorName, item.authorRole)}
                 </span>
               </div>
 
+              {/* Content */}
               {item.kind === "remark" ? (
                 <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
               ) : (
@@ -350,14 +373,27 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
                       loading="lazy"
                     />
                   ) : (
-                    <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
-                      <span className={`text-sm ${item.isCurrentUser ? "text-white" : "text-gray-700"}`}>
-                        Attachment
+                    <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center px-2">
+                      <span
+                        className={`text-xs text-center break-words ${
+                          item.isCurrentUser ? "text-white" : "text-gray-700"
+                        }`}
+                      >
+                        {item.attachment.File_name || "Attachment"}
                       </span>
                     </div>
                   )}
                 </button>
               )}
+
+              {/* ✅ Date/time below the message */}
+              <div
+                className={`mt-1 text-[11px] ${
+                  item.isCurrentUser ? "text-white/70" : "text-gray-500"
+                }`}
+              >
+                {formatMessageDateTime(item.createdAt)}
+              </div>
             </div>
           </div>
         );
