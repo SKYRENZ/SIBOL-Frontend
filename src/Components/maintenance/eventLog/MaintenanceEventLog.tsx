@@ -271,11 +271,10 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
               : null;
 
           return (
-            // ✅ (1) Box style (not pill), and touch the remark area edges:
-            // Parent container has p-3 in MaintenanceForm, so we cancel it with -mx-3.
             <div
               key={item.key}
-              className="-mx-3 bg-[#355842]/5 px-3 py-2"
+              // ✅ Green accent on the left side of the box
+              className="-mx-3 bg-[#355842]/5 px-3 py-2 border-l-4 border-[#355842]"
             >
               {/* 3) ✅ show event time */}
               <div className="flex items-start justify-between gap-3">

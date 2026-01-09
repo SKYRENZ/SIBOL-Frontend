@@ -690,7 +690,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                       <DatePicker
                         label="Due Date"
-                        name="dueDate"
+                        name="dueDate"  
                         value={formData.dueDate}
                         onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                         required
