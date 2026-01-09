@@ -12,6 +12,7 @@ import AttachmentsList from './attachments/AttachmentsList';
 import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
 import RemarksForm from './remarks/RemarksForm'; // ✅ keep
+import MaintenanceEventLog from "./eventLog/MaintenanceEventLog";
 import { getUserRole } from '../../utils/roleUtils';
 
 interface MaintenanceFormProps {
@@ -490,254 +491,19 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     </div>
   );
 
-  const formatRelativeTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
-
   // ✅ NEW: Build timeline from events AND standalone remarks
-  type TimelineItem =
-    | {
-        kind: 'event';
-        key: string;
-        createdAt: string;
-        eventType: string;
-        actorName: string;
-        notes: string | null;
-        event: MaintenanceEvent;
-      }
-    | {
-        kind: 'remark';
-        key: string;
-        createdAt: string;
-        isCurrentUser: boolean;
-        authorName: string;
-        text: string;
-        eventId?: number;
-      }
-    | {
-        kind: 'attachment';
-        key: string;
-        createdAt: string;
-        isCurrentUser: boolean;
-        authorName: string;
-        attachment: MaintenanceAttachment;
-        isImage: boolean;
-        eventId?: number;
-      };
-
-  const timelineItems: TimelineItem[] = useMemo(() => {
-    const items: TimelineItem[] = [];
-
-    // Add events as bookmarks
-    events.forEach((event) => {
-      items.push({
-        kind: 'event',
-        key: `event-${event.Event_Id}`,
-        createdAt: event.Created_At,
-        eventType: event.Event_type,
-        actorName: event.ActorName || 'Unknown',
-        notes: event.Notes,
-        event,
-      });
-
-      // Add remarks linked to this event (if backend provides them)
-      if (event.Remarks && event.Remarks.length > 0) {
-        event.Remarks.forEach((remark) => {
-          items.push({
-            kind: 'remark',
-            key: `remark-${remark.Remark_Id}`,
-            createdAt: remark.Created_at,
-            isCurrentUser: remark.Created_by === currentUserId,
-            authorName: remark.CreatedByName || 'Unknown',
-            text: remark.Remark_text,
-            eventId: event.Event_Id,
-          });
-        });
-      }
-
-      // Add attachments linked to this event (if backend provides them)
-      if (event.Attachments && event.Attachments.length > 0) {
-        event.Attachments.forEach((attachment) => {
-          items.push({
-            kind: 'attachment',
-            key: `attachment-${attachment.Attachment_Id}`,
-            createdAt: (attachment as any).Uploaded_at || event.Created_At,
-            isCurrentUser: (attachment as any).Uploaded_by === currentUserId,
-            authorName: (attachment as any).UploaderName || 'Unknown',
-            attachment,
-            isImage: !!attachment.File_type?.startsWith('image/'),
-            eventId: event.Event_Id,
-          });
-        });
-      }
-    });
-
-    // ✅ ADD: Include standalone remarks (not linked to events yet)
-    remarks.forEach((remark) => {
-      // Only add if not already added via event
-      const alreadyAdded = items.some(
-        item => item.kind === 'remark' && item.key === `remark-${remark.Remark_Id}`
-      );
-      
-      if (!alreadyAdded) {
-        items.push({
-          kind: 'remark',
-          key: `remark-${remark.Remark_Id}`,
-          createdAt: remark.Created_at,
-          isCurrentUser: remark.Created_by === currentUserId,
-          authorName: remark.CreatedByName || 'Unknown',
-          text: remark.Remark_text,
-        });
-      }
-    });
-
-    // ✅ ADD: Include standalone attachments (not linked to events yet)
-    attachments.forEach((attachment) => {
-      const alreadyAdded = items.some(
-        item => item.kind === 'attachment' && item.key === `attachment-${attachment.Attachment_Id}`
-      );
-      
-      if (!alreadyAdded) {
-        const uploadedAt = (attachment as any).Uploaded_at;
-        const uploadedBy = (attachment as any).Uploaded_by;
-        const uploaderName = (attachment as any).UploaderName;
-        
-        items.push({
-          kind: 'attachment',
-          key: `attachment-${attachment.Attachment_Id}`,
-          createdAt: uploadedAt || new Date().toISOString(),
-          isCurrentUser: uploadedBy === currentUserId,
-          authorName: uploaderName || 'Unknown',
-          attachment,
-          isImage: !!attachment.File_type?.startsWith('image/'),
-        });
-      }
-    });
-
-    // Sort by timestamp
-    return items.sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
-  }, [events, remarks, attachments, currentUserId]);
-
-  // ✅ Helper function to format event labels
-  const getEventLabel = (eventType: string, actorName: string | null, notes: string | null): string => {
-    const actor = actorName || 'Unknown';
-    
-    switch (eventType) {
-      case 'REQUESTED':
-        return `Requested by ${actor}`;
-      case 'ACCEPTED':
-        return `Accepted by ${actor}${notes ? ` — ${notes}` : ''}`;
-      case 'REASSIGNED':
-        return `Reassigned by ${actor}${notes ? ` — ${notes}` : ''}`;
-      case 'FOR_VERIFICATION':
-        return `Marked for Verification by ${actor}`;
-      case 'CANCEL_REQUESTED':
-        return `Cancel Requested by ${actor}${notes ? ` — Reason: ${notes}` : ''}`;
-      case 'CANCELLED':
-        return `Cancelled by ${actor}${notes ? ` — ${notes}` : ''}`;
-      case 'COMPLETED':
-        return `Completed by ${actor}`;
-      case 'DELETED':
-        return `Deleted by ${actor}${notes ? ` — ${notes}` : ''}`;
-      default:
-        return `${eventType} by ${actor}`;
-    }
-  };
-
-  // ✅ Update remarks/messages body to use timeline items
-  const remarksMessagesBody = loadingEvents ? (
-    <div className="text-center py-8">
-      <p className="text-sm text-gray-500">Loading history...</p>
-    </div>
-  ) : timelineItems.length === 0 ? (
-    <p className="text-sm text-gray-500 italic text-center py-8">No activity yet</p>
-  ) : (
-    <div className="space-y-3">
-      {timelineItems.map((item) => {
-        if (item.kind === 'event') {
-          return (
-            <div key={item.key} className="flex justify-center">
-              <div className="px-3 py-1 rounded-full bg-gradient-to-r from-[#355842]/10 to-[#4a7c5d]/10 border border-[#355842]/20 text-xs font-medium text-[#2E523A]">
-                {getEventLabel(item.eventType, item.actorName, item.notes)}
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div
-            key={item.key}
-            className={`flex ${item.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                item.isCurrentUser
-                  ? 'bg-[#355842] text-white rounded-br-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-              }`}
-            >
-              <div className="flex items-baseline gap-2 mb-1">
-                <span
-                  className={`text-xs font-semibold ${
-                    item.isCurrentUser ? 'text-white' : 'text-gray-900'
-                  }`}
-                >
-                  {item.authorName}
-                </span>
-                <span
-                  className={`text-xs ${
-                    item.isCurrentUser ? 'text-white/70' : 'text-gray-500'
-                  }`}
-                >
-                  {formatRelativeTime(item.createdAt)}
-                </span>
-              </div>
-
-              {item.kind === 'remark' ? (
-                <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedAttachment(item.attachment);
-                    setShowAttachmentModal(true);
-                  }}
-                  className="block text-left bg-transparent p-0 m-0 border-0"
-                >
-                  {item.isImage ? (
-                    <img
-                      src={item.attachment.File_path}
-                      alt="Attachment"
-                      className="w-44 h-44 object-cover rounded-lg border border-black/10"
-                      loading="lazy"
-                    />
-                  ) : (
-                    <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
-                      <span className={`text-sm ${item.isCurrentUser ? 'text-white' : 'text-gray-700'}`}>
-                        Attachment
-                      </span>
-                    </div>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+  const remarksMessagesBody = (
+    <MaintenanceEventLog
+      events={events}
+      remarks={remarks}
+      attachments={attachments}
+      currentUserId={currentUserId}
+      loading={loadingEvents}
+      onAttachmentClick={(attachment) => {
+        setSelectedAttachment(attachment);
+        setShowAttachmentModal(true);
+      }}
+    />
   );
 
   // ✅ only Pending mode can add remarks in this modal
