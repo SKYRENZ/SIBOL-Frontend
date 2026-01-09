@@ -60,29 +60,79 @@ const formatRelativeTime = (timestamp: string) => {
   return date.toLocaleDateString();
 };
 
-const getEventLabel = (eventType: string, actorName: string | null, notes: string | null): string => {
-  const actor = actorName || "Unknown";
-
+const getEventTitle = (eventType: string): string => {
   switch (eventType) {
     case "REQUESTED":
-      return `Requested by ${actor}`;
+      return "Requested";
     case "ACCEPTED":
-      return `Accepted by ${actor}${notes ? ` — ${notes}` : ""}`;
+      return "Accepted";
     case "REASSIGNED":
-      return `Reassigned by ${actor}${notes ? ` — ${notes}` : ""}`;
+      return "Reassigned";
     case "FOR_VERIFICATION":
-      return `Marked for Verification by ${actor}`;
+      return "For Verification";
     case "CANCEL_REQUESTED":
-      return `Cancel Requested by ${actor}${notes ? ` — Reason: ${notes}` : ""}`;
+      return "Cancel Requested";
     case "CANCELLED":
-      return `Cancelled by ${actor}${notes ? ` — ${notes}` : ""}`;
+      return "Cancelled";
     case "COMPLETED":
-      return `Completed by ${actor}`;
+      return "Completed";
     case "DELETED":
-      return `Deleted by ${actor}${notes ? ` — ${notes}` : ""}`;
+      return "Deleted";
     default:
-      return `${eventType} by ${actor}`;
+      // Fallback: show raw type in a nicer way
+      return eventType
+        .toLowerCase()
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c) => c.toUpperCase());
   }
+};
+
+const formatEventTime = (timestamp: string) => {
+  const d = new Date(timestamp);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+// 1) ✅ remove "_staff" from role names (e.g., Barangay_staff -> Barangay)
+const normalizeRoleName = (role: string | null | undefined) => {
+  if (!role) return "";
+  return role.replace(/_staff/gi, "").trim();
+};
+
+const formatActor = (name: string | null | undefined, role: string | null | undefined) => {
+  const safeName = (name || "Unknown").trim();
+  const safeRole = normalizeRoleName(role);
+  return safeRole ? `${safeName} (${safeRole})` : safeName;
+};
+
+// 2) ✅ helper to get the "to" side for REASSIGNED from whatever your API sends
+// If your backend uses different field names, tell me the exact keys and I’ll align it.
+const getReassignedTo = (event: MaintenanceEvent): { name?: string; role?: string } => {
+  const e = event as any;
+
+  const name =
+    e.ToActorName ??
+    e.ToName ??
+    e.AssignedToName ??
+    e.NewAssigneeName ??
+    e.to_name ??
+    e.assigned_to_name;
+
+  const role =
+    e.ToActorRoleName ??
+    e.ToRoleName ??
+    e.AssignedToRoleName ??
+    e.NewAssigneeRoleName ??
+    e.to_role_name ??
+    e.assigned_to_role_name;
+
+  return { name, role };
 };
 
 const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
@@ -204,11 +254,54 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
     <div className="space-y-3">
       {timelineItems.map((item) => {
         if (item.kind === "event") {
+          const eventTitle = getEventTitle(item.eventType);
+
+          const roleName = (item.event as any)?.ActorRoleName as string | undefined;
+          const actorDisplay = formatActor(item.actorName, roleName);
+
+          const isCancelRequested = item.eventType === "CANCEL_REQUESTED";
+          const reason = (item.notes || "").trim();
+
+          // 2) ✅ REASSIGNED formatting: "Reassigned by X (Role) to Y (Role)"
+          const isReassigned = item.eventType === "REASSIGNED";
+          const reassignedTo = isReassigned ? getReassignedTo(item.event) : null;
+          const toDisplay =
+            isReassigned && reassignedTo?.name
+              ? formatActor(reassignedTo.name, reassignedTo.role)
+              : null;
+
           return (
-            <div key={item.key} className="flex justify-center">
-              <div className="px-3 py-1 rounded-full bg-gradient-to-r from-[#355842]/10 to-[#4a7c5d]/10 border border-[#355842]/20 text-xs font-medium text-[#2E523A]">
-                {getEventLabel(item.eventType, item.actorName, item.notes)}
+            // ✅ (1) Box style (not pill), and touch the remark area edges:
+            // Parent container has p-3 in MaintenanceForm, so we cancel it with -mx-3.
+            <div
+              key={item.key}
+              className="-mx-3 bg-[#355842]/5 px-3 py-2"
+            >
+              {/* 3) ✅ show event time */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="text-xs font-semibold text-[#2E523A]">
+                  {isReassigned && toDisplay ? (
+                    <>
+                      {eventTitle} by {actorDisplay} to {toDisplay}
+                    </>
+                  ) : (
+                    <>
+                      {eventTitle} by {actorDisplay}
+                    </>
+                  )}
+                </div>
+
+                <div className="text-[11px] text-[#2E523A]/70 whitespace-nowrap">
+                  {formatEventTime(item.createdAt)}
+                </div>
               </div>
+
+              {/* Cancel Requested reason on next line */}
+              {isCancelRequested && reason && (
+                <div className="mt-1 text-xs text-[#2E523A]/80 whitespace-pre-wrap break-words">
+                  Reason: {reason}
+                </div>
+              )}
             </div>
           );
         }
