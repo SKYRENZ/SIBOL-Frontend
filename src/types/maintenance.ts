@@ -41,6 +41,7 @@ export interface MaintenanceTicket {
   Completed_at?: string;
   Remarks?: string; // Legacy field
   AssignedOperatorName?: string;
+  LastAssignedOperatorName?: string; // ✅ ADD THIS
   CreatedByName?: string;
   CreatorRole?: number;
   AttachmentCount?: number;
@@ -60,6 +61,14 @@ export interface MaintenanceTicket {
   // (optional if you want to use timestamps for bookmark placement)
   Cancel_requested_at?: string | null;
   Cancelled_at?: string | null;
+
+  // ✅ NEW: Delete tracking fields
+  IsDeleted?: number;
+  Deleted_by?: number | null;
+  Deleted_at?: string | null;
+  Deleted_reason?: string | null; // ✅ ADD THIS (used in DeletedTicketDetailsModal)
+  DeletedByName?: string | null;   // ✅ ADD THIS
+  DeletedByRole?: string | null;   // ✅ ADD THIS
 }
 
 export interface MaintenanceTicketPayload {

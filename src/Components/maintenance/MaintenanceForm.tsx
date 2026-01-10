@@ -19,18 +19,22 @@ interface MaintenanceFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: any) => void;
-  mode?: 'create' | 'assign' | 'pending' | 'completed';
+  mode?: "create" | "assign" | "pending" | "completed";
   initialData?: any;
   submitError?: string | null;
+
+  // ✅ NEW
+  readOnly?: boolean;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  mode = 'create',
+  mode = "create",
   initialData,
-  submitError
+  submitError,
+  readOnly = false, // ✅ NEW
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -241,24 +245,15 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ✅ guard submit when readOnly
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    if (mode === 'create') {
-      if (!formData.title.trim() || !formData.issue.trim() || !formData.priority || !formData.dueDate) {
-        setFormError('Please fill in all required fields');
-        return;
-      }
-    } else if (mode === 'assign') {
-      if (!formData.assignedTo) {
-        setFormError('Please assign an operator');
-        return;
-      }
-    }
-
+    if (readOnly) return;
     onSubmit(formData);
   };
+
+  // ✅ use this when passing to inputs/buttons
+  const isDisabled = readOnly;
 
   const handleClose = () => {
     setFormError(null);
@@ -313,9 +308,26 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     : 'h-[60vh] max-h-[60vh]';
 
   // ✅ NEW: helpful derived values
-  const ticketStatus = (initialData?.Status ?? '').trim();
+  const ticketStatus = (initialData?.Status ?? '').toString().trim();
   const cancelReasonText =
     typeof initialData?.Cancel_reason === 'string' ? initialData.Cancel_reason.trim() : '';
+
+  // ✅ NEW: deletion reason (support both field names)
+  const deletionReasonText =
+    typeof initialData?.Deleted_reason === 'string'
+      ? initialData.Deleted_reason.trim()
+      : typeof initialData?.Delete_reason === 'string'
+        ? initialData.Delete_reason.trim()
+        : '';
+
+  // ✅ NEW: detect deleted ticket view
+  const isDeletedTicket =
+    !!initialData &&
+    (
+      initialData?.IsDeleted === 1 ||
+      initialData?.IsDeleted === true ||
+      ticketStatus.toLowerCase() === 'deleted'
+    );
 
   // ✅ NEW: cancel actor display (Name + Role)
   const cancelRequestedByName = (initialData?.CancelRequestedByName ?? '').trim();
@@ -444,7 +456,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         </div>
       </div>
 
-      {/* ✅ NEW: Operator reason is shown here (left side), not in CancelConfirmModal */}
+      {/* ✅ NEW: Deletion Reason BELOW Status (left side) */}
+      {isDeletedTicket && deletionReasonText && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-xs font-semibold text-red-800 mb-1">Deletion Reason</p>
+          <p className="text-sm text-red-900 whitespace-pre-wrap break-words">
+            {deletionReasonText}
+          </p>
+        </div>
+      )}
+
+      {/* ✅ existing: Operator Reason */}
       {showOperatorReasonBox && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="text-xs font-semibold text-red-800 mb-1">Operator Reason</p>
@@ -509,17 +531,25 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   // ✅ only Pending mode can add remarks in this modal
   const canAddRemarksHere = isPendingMode;
 
+  // ✅ Better title logic: keep normal titles for other modes,
+  // but use "View Deleted Maintenance" when it's a deleted ticket view.
+  const modalTitle =
+    mode === "create"
+      ? "Request Maintenance"
+      : mode === "assign"
+        ? "Accept & Assign Maintenance"
+        : mode === "pending"
+          ? "View Pending Maintenance"
+          : mode === "completed"
+            ? (isDeletedTicket ? "View Deleted Maintenance" : "View Completed Maintenance")
+            : "Maintenance";
+
   return (
     <FormModal
       isOpen={isOpen}
       onClose={handleClose}
-      title={
-        isCreateMode ? "Request Maintenance" :
-        isAssignMode ? "Accept & Assign Maintenance" :
-        isPendingMode ? "View Pending Maintenance" :
-        isCompletedMode ? "View Completed Maintenance" :
-        "Maintenance Details"
-      }
+      title={modalTitle}
+      headerTone={isDeletedTicket ? 'danger' : 'default'}
       width={isDetailsMode ? '960px' : '720px'}
     >
       <div className={`flex flex-col ${modalHeightClass}`}>
@@ -710,26 +740,29 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             )}
           </div>
 
-          <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              {isViewMode ? "Close" : "Cancel"}
-            </button>
-
-            {/* ✅ show submit for create + assign */}
-            {!isViewMode && (
+          {/* ✅ hide footer submit when readOnly */}
+          {!readOnly && (
+            <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
               <button
-                type="submit"
-                className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
-                style={{ backgroundColor: '#355842' }}
+                type="button"
+                onClick={handleClose}
+                className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                {isCreateMode ? "Submit Request" : isAssignMode ? "Accept & Assign" : "Submit"}
+                {isViewMode ? "Close" : "Cancel"}
               </button>
-            )}
-          </div>
+
+              {/* ✅ show submit for create + assign */}
+              {!isViewMode && (
+                <button
+                  type="submit"
+                  className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
+                  style={{ backgroundColor: '#355842' }}
+                >
+                  {isCreateMode ? "Submit Request" : isAssignMode ? "Accept & Assign" : "Submit"}
+                </button>
+              )}
+            </div>
+          )}
         </form>
       </div>
 
