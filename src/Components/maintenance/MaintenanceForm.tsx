@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
@@ -61,6 +61,9 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
   const [remarksMaxOpen, setRemarksMaxOpen] = useState(false); // ✅ add
+
+  // ✅ NEW: anchor to scroll to bottom of remarks
+  const remarksEndRef = useRef<HTMLDivElement | null>(null);
 
   const getPriorityTextClass = (priority?: string | null) => {
   const p = (priority || "").toString().trim().toLowerCase();
@@ -554,6 +557,18 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             ? (isDeletedTicket ? "View Deleted Maintenance" : "View Completed Maintenance")
             : "Maintenance";
 
+  // ✅ NEW: auto-scroll to bottom when modal opens + when timeline changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!isDetailsMode) return;
+    if (remarksMaxOpen) return; // don't fight the maximized view
+
+    // next paint (ensures DOM has rendered the new items)
+    requestAnimationFrame(() => {
+      remarksEndRef.current?.scrollIntoView({ block: 'end' });
+    });
+  }, [isOpen, isDetailsMode, remarksMaxOpen, events.length, remarks.length, attachments.length]);
+
   return (
     <FormModal
       isOpen={isOpen}
@@ -640,7 +655,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                               className="h-full min-h-0 overflow-y-auto overscroll-contain"
                               maxHeight="max-h-full"
                             >
-                              <div className="p-3">{remarksMessagesBody}</div>
+                              <div className="p-3">
+                                {remarksMessagesBody}
+                                <div ref={remarksEndRef} />
+                              </div>
                             </CustomScrollbar>
                           </div>
 
@@ -688,7 +706,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                         <div className="flex-1 min-h-0 flex flex-col">
                           <div className="flex-1 min-h-0 overflow-hidden">
                             <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
-                              <div className="p-3">{remarksMessagesBody}</div>
+                              <div className="p-3">
+                                {remarksMessagesBody}
+                                <div ref={remarksEndRef} />
+                              </div>
                             </CustomScrollbar>
                           </div>
 

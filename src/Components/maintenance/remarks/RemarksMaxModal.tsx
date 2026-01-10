@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { X, File as FileIcon } from "lucide-react";
 import type { MaintenanceAttachment, MaintenanceEvent, MaintenanceRemark } from "../../../types/maintenance";
 import MaintenanceEventLog from "../eventLog/MaintenanceEventLog";
@@ -38,6 +38,20 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
 }) => {
   const count = useMemo(() => attachments?.length ?? 0, [attachments]);
 
+  // ✅ NEW: scroll container ref (for auto-scroll to bottom)
+  const timelineRef = useRef<HTMLDivElement | null>(null);
+
+  // ✅ NEW: when opened (or when new items arrive), scroll to bottom
+  useEffect(() => {
+    if (!isOpen) return;
+    const el = timelineRef.current;
+    if (!el) return;
+
+    requestAnimationFrame(() => {
+      el.scrollTop = el.scrollHeight;
+    });
+  }, [isOpen, events.length, remarks.length, attachments.length]);
+
   if (!isOpen) return null;
 
   return (
@@ -46,28 +60,35 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
         className="bg-white w-[92vw] max-w-3xl h-[86vh] rounded-xl shadow-2xl overflow-hidden flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header (mobile-like) */}
+        {/* Header (bigger + custom X styling) */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-          <h3 className="text-base font-bold text-gray-800">{title}</h3>
+          <h3 className="text-lg font-bold text-gray-800">{title}</h3>
+
           <button
             type="button"
             onClick={onClose}
-            className="w-9 h-9 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-600"
             aria-label="Close"
+            className="
+              group w-9 h-9 rounded-full bg-transparent
+              flex items-center justify-center
+              hover:bg-red-700 transition-colors
+              outline-none focus:outline-none focus:ring-0 focus:ring-offset-0
+              focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0
+            "
           >
-            <X size={18} />
+            <X size={18} className="text-black group-hover:text-white" />
           </button>
         </div>
 
-        {/* Attachments strip (mobile-like) */}
+        {/* Attachments strip (slightly larger text) */}
         <div className="px-4 pt-3 pb-2 border-b border-gray-100">
           <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-semibold text-gray-700">Attachments</p>
-            <p className="text-xs text-gray-400">{count > 0 ? count : ""}</p>
+            <p className="text-base font-semibold text-gray-700">Attachments</p>
+            <p className="text-sm text-gray-400">{count > 0 ? count : ""}</p>
           </div>
 
           {count === 0 ? (
-            <p className="text-xs text-gray-400">No attachments</p>
+            <p className="text-sm text-gray-400">No attachments</p>
           ) : (
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
               {attachments.map((att) => {
@@ -77,7 +98,7 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
                     key={`att_strip_${att.Attachment_Id}`}
                     type="button"
                     onClick={() => onAttachmentClick?.(att)}
-                    className="w-14 h-14 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex-shrink-0 hover:border-[#355842] transition-colors"
+                    className="w-16 h-16 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex-shrink-0 hover:border-[#355842] transition-colors"
                     title={att.File_name}
                   >
                     {isImage ? (
@@ -89,7 +110,7 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
                       />
                     ) : (
                       <span className="w-full h-full flex items-center justify-center">
-                        <FileIcon className="text-gray-400" size={18} />
+                        <FileIcon className="text-gray-400" size={20} />
                       </span>
                     )}
                   </button>
@@ -100,7 +121,7 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
         </div>
 
         {/* Timeline */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4">
+        <div ref={timelineRef} className="flex-1 min-h-0 overflow-y-auto p-4">
           <MaintenanceEventLog
             events={events}
             remarks={remarks}
@@ -108,6 +129,7 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
             currentUserId={currentUserId}
             loading={loading}
             onAttachmentClick={onAttachmentClick}
+            uiSize="large" // ✅ NEW
           />
         </div>
 

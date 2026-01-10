@@ -41,10 +41,13 @@ export interface MaintenanceEventLogProps {
   events: MaintenanceEvent[];
   remarks: MaintenanceRemark[];
   attachments: MaintenanceAttachment[];
-  currentUserId: number | null;
+  currentUserId?: number | null;
   loading?: boolean;
   emptyText?: string;
   onAttachmentClick?: (attachment: MaintenanceAttachment) => void;
+
+  // ✅ NEW
+  uiSize?: "default" | "large";
 }
 
 const formatRelativeTime = (timestamp: string) => {
@@ -200,7 +203,10 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
   loading = false,
   emptyText = "No activity yet",
   onAttachmentClick,
+  uiSize = "default", // ✅ NEW
 }) => {
+  const isLarge = uiSize === "large";
+
   const timelineItems: TimelineItem[] = useMemo(() => {
     const items: TimelineItem[] = [];
     const me = currentUserId ?? -1;
@@ -350,22 +356,28 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
               className={`-mx-3 px-3 py-2 border-l-4 ${theme.border} ${theme.bg}`}
             >
               <div className="flex items-start justify-between gap-3">
-                {/* ✅ whole event text colored (title + by + names/roles) */}
-                <div className={`text-xs font-semibold ${theme.text}`}>
+                {/* ✅ whole event text colored, and size configurable */}
+                <div
+                  className={`${isLarge ? "text-sm" : "text-xs"} font-semibold ${theme.text}`}
+                >
                   {toDisplay
                     ? `${eventTitle} by ${actorDisplay} to ${toDisplay}`
                     : `${eventTitle} by ${actorDisplay}`}
                 </div>
 
-                {/* ✅ date/time NOT colored */}
-                <div className="text-[11px] text-[#2E523A]/70 whitespace-nowrap">
+                {/* ✅ date/time stays muted, size configurable */}
+                <div
+                  className={`${isLarge ? "text-xs" : "text-[11px]"} text-[#2E523A]/70 whitespace-nowrap`}
+                >
                   {formatEventTime(item.createdAt)}
                 </div>
               </div>
 
               {/* ✅ reason also colored (still not the time) */}
               {isCancelRequested && reason && (
-                <div className={`mt-1 text-xs ${theme.text} whitespace-pre-wrap break-words`}>
+                <div
+                  className={`mt-1 ${isLarge ? "text-sm" : "text-xs"} ${theme.text} whitespace-pre-wrap break-words`}
+                >
                   Reason: {reason}
                 </div>
               )}
@@ -373,7 +385,7 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
           );
         }
 
-        // ✅ Message / attachment bubble UI updated here
+        // ✅ Messages / attachments bubbles (size configurable)
         return (
           <div
             key={item.key}
@@ -386,10 +398,9 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
                   : "bg-gray-100 text-gray-800 rounded-bl-sm"
               }`}
             >
-              {/* ✅ Name + Role only (no time beside it) */}
               <div className="mb-1">
                 <span
-                  className={`text-xs font-semibold ${
+                  className={`${isLarge ? "text-sm" : "text-xs"} font-semibold ${
                     item.isCurrentUser ? "text-white" : "text-gray-900"
                   }`}
                 >
@@ -397,9 +408,10 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
                 </span>
               </div>
 
-              {/* Content */}
               {item.kind === "remark" ? (
-                <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
+                <p className={`${isLarge ? "text-base" : "text-sm"} whitespace-pre-wrap break-words`}>
+                  {item.text}
+                </p>
               ) : (
                 <button
                   type="button"
@@ -416,7 +428,7 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
                   ) : (
                     <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center px-2">
                       <span
-                        className={`text-xs text-center break-words ${
+                        className={`${isLarge ? "text-sm" : "text-xs"} text-center break-words ${
                           item.isCurrentUser ? "text-white" : "text-gray-700"
                         }`}
                       >
@@ -427,11 +439,9 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
                 </button>
               )}
 
-              {/* ✅ Date/time below the message */}
-              <div
-                className={`mt-1 text-[11px] ${
-                  item.isCurrentUser ? "text-white/70" : "text-gray-500"
-                }`}
+              <div className={`mt-1 ${isLarge ? "text-xs" : "text-[11px]"} ${
+                item.isCurrentUser ? "text-white/70" : "text-gray-500"
+              }`}
               >
                 {formatMessageDateTime(item.createdAt)}
               </div>
