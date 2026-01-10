@@ -77,14 +77,17 @@ export async function getTicketAttachments(requestId: number): Promise<Maintenan
 export async function acceptAndAssign(
   requestId: number,
   staffAccountId: number,
-  assignToAccountId: number | null
+  assignToAccountId: number | null,
+  priority?: string | null,
+  due_date?: string | null
 ): Promise<any> {
   const body = {
     staff_account_id: staffAccountId,
     assign_to: assignToAccountId,
+    priority: priority ?? null,
+    due_date: due_date ?? null,
   };
-  
-  console.log("Accept & Assign - Request ID:", requestId, "Body:", body);
+
   const response = await apiClient.put(`${BASE_URL}/${requestId}/accept`, body);
   return response.data;
 }
