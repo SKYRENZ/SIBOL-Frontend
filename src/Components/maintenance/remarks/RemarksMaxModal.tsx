@@ -113,14 +113,19 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
                     key={`att_strip_${att.Attachment_Id}`}
                     type="button"
                     onClick={() => onAttachmentClick?.(att)}
-                    className="w-16 h-16 rounded-md border border-gray-200 bg-gray-50 overflow-hidden flex-shrink-0 hover:border-[#355842] transition-colors"
+                    // ✅ override global button padding/background so thumbnails fill the box
+                    className="
+                    w-16 h-16 flex-shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-50
+                    hover:border-[#355842] transition-colors
+                    !p-0 !m-0 !border-solid !bg-gray-50"
                     title={att.File_name}
                   >
                     {isImage ? (
                       <img
                         src={att.File_path}
                         alt={att.File_name}
-                        className="w-full h-full object-cover"
+                        // ✅ fill the entire square
+                        className="block w-full h-full object-cover object-center"
                         loading="lazy"
                       />
                     ) : (
