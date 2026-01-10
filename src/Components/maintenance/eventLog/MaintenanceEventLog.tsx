@@ -89,6 +89,52 @@ const getEventTitle = (eventType: string): string => {
   }
 };
 
+const getEventTitleColorClass = (eventType: string) => {
+  switch (eventType) {
+    case "REQUESTED":
+      return "text-blue-600";
+    case "ACCEPTED":
+      return "text-teal-600";
+    case "REASSIGNED":
+      return "text-emerald-600";
+    case "FOR_VERIFICATION":
+      return "text-purple-600";
+    case "CANCEL_REQUESTED":
+      return "text-orange-600";
+    case "CANCELLED":
+      return "text-red-600";
+    case "COMPLETED":
+      return "text-green-600";
+    case "DELETED":
+      return "text-gray-600";
+    default:
+      return "text-[#2E523A]";
+  }
+};
+
+const getEventTheme = (eventType: string) => {
+  switch (eventType) {
+    case "REQUESTED":
+      return { text: "text-blue-700", border: "border-blue-600", bg: "bg-blue-50/60" };
+    case "ACCEPTED":
+      return { text: "text-teal-700", border: "border-teal-600", bg: "bg-teal-50/60" };
+    case "REASSIGNED":
+      return { text: "text-emerald-700", border: "border-emerald-600", bg: "bg-emerald-50/60" };
+    case "FOR_VERIFICATION":
+      return { text: "text-purple-700", border: "border-purple-600", bg: "bg-purple-50/60" };
+    case "CANCEL_REQUESTED":
+      return { text: "text-orange-700", border: "border-orange-600", bg: "bg-orange-50/60" };
+    case "CANCELLED":
+      return { text: "text-red-700", border: "border-red-600", bg: "bg-red-50/60" };
+    case "COMPLETED":
+      return { text: "text-green-700", border: "border-green-600", bg: "bg-green-50/60" };
+    case "DELETED":
+      return { text: "text-gray-700", border: "border-gray-500", bg: "bg-gray-50/60" };
+    default:
+      return { text: "text-[#2E523A]", border: "border-[#355842]", bg: "bg-[#355842]/5" };
+  }
+};
+
 // 1) ✅ remove "_staff" from role names (e.g., Barangay_staff -> Barangay)
 const normalizeRoleName = (role: string | null | undefined) => {
   if (!role) return "";
@@ -281,6 +327,8 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
     <div className="space-y-3">
       {timelineItems.map((item) => {
         if (item.kind === "event") {
+          const theme = getEventTheme(item.eventType);
+
           const eventTitle = getEventTitle(item.eventType);
 
           const roleName = (item.event as any)?.ActorRoleName as string | undefined;
@@ -289,7 +337,6 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
           const isCancelRequested = item.eventType === "CANCEL_REQUESTED";
           const reason = (item.notes || "").trim();
 
-          // 2) ✅ REASSIGNED formatting: "Reassigned by X (Role) to Y (Role)"
           const isReassigned = item.eventType === "REASSIGNED";
           const reassignedTo = isReassigned ? getReassignedTo(item.event) : null;
           const toDisplay =
@@ -300,31 +347,25 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
           return (
             <div
               key={item.key}
-              // ✅ Green accent on the left side of the box
-              className="-mx-3 bg-[#355842]/5 px-3 py-2 border-l-4 border-[#355842]"
+              className={`-mx-3 px-3 py-2 border-l-4 ${theme.border} ${theme.bg}`}
             >
-              {/* 3) ✅ show event time */}
               <div className="flex items-start justify-between gap-3">
-                <div className="text-xs font-semibold text-[#2E523A]">
-                  {isReassigned && toDisplay ? (
-                    <>
-                      {eventTitle} by {actorDisplay} to {toDisplay}
-                    </>
-                  ) : (
-                    <>
-                      {eventTitle} by {actorDisplay}
-                    </>
-                  )}
+                {/* ✅ whole event text colored (title + by + names/roles) */}
+                <div className={`text-xs font-semibold ${theme.text}`}>
+                  {toDisplay
+                    ? `${eventTitle} by ${actorDisplay} to ${toDisplay}`
+                    : `${eventTitle} by ${actorDisplay}`}
                 </div>
 
+                {/* ✅ date/time NOT colored */}
                 <div className="text-[11px] text-[#2E523A]/70 whitespace-nowrap">
                   {formatEventTime(item.createdAt)}
                 </div>
               </div>
 
-              {/* Cancel Requested reason on next line */}
+              {/* ✅ reason also colored (still not the time) */}
               {isCancelRequested && reason && (
-                <div className="mt-1 text-xs text-[#2E523A]/80 whitespace-pre-wrap break-words">
+                <div className={`mt-1 text-xs ${theme.text} whitespace-pre-wrap break-words`}>
                   Reason: {reason}
                 </div>
               )}

@@ -14,6 +14,8 @@ import AttachmentsUpload from './attachments/AttachmentsUpload';
 import RemarksForm from './remarks/RemarksForm'; // ✅ keep
 import MaintenanceEventLog from "./eventLog/MaintenanceEventLog";
 import { getUserRole } from '../../utils/roleUtils';
+import { Maximize2 } from "lucide-react"; // ✅ add
+import RemarksMaxModal from "./remarks/RemarksMaxModal"; // ✅ add
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -58,6 +60,15 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [events, setEvents] = useState<MaintenanceEvent[]>([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [remarksMaxOpen, setRemarksMaxOpen] = useState(false); // ✅ add
+
+  const getPriorityTextClass = (priority?: string | null) => {
+  const p = (priority || "").toString().trim().toLowerCase();
+  if (p === "mild") return "text-blue-600";
+  if (p === "urgent") return "text-orange-600";
+  if (p === "critical") return "text-red-600";
+  return "text-gray-700";
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -435,11 +446,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       {!isAssignMode ? (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-          <div
-            className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
-            style={{ color: '#E67E22' }}
-          >
-            {initialData?.Priority || '—'}
+          <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold">
+            <span className={getPriorityTextClass(initialData?.Priority)}>
+              {initialData?.Priority || '—'}
+            </span>
           </div>
         </div>
       ) : null}
@@ -601,9 +611,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <div>{attachmentsContent}</div>
 
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
-                        Remarks History
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
+                          Remarks History
+                        </h3>
+
+                        <button
+                          type="button"
+                          onClick={() => setRemarksMaxOpen(true)}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 hover:bg-gray-50"
+                        >
+                          <Maximize2 size={14} />
+                          Maximize
+                        </button>
+                      </div>
 
                       {/* ✅ NEW: bookmark line */}
                       {remarksBookmarkText && (
@@ -648,16 +669,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <div className="min-h-0 h-full flex flex-col border-l pl-4 gap-4">
                       {attachmentsContent}
 
-                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
-                        Remarks History
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
+                          Remarks
+                        </h3>
 
-                      {/* ✅ NEW: bookmark line */}
-                      {remarksBookmarkText && (
-                        <div className="rounded-md border-l-4 border-[#355842] bg-[#355842]/5 px-3 py-2 text-sm text-[#2E523A]">
-                          {remarksBookmarkText}
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => setRemarksMaxOpen(true)}
+                          className="bg-transparent inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 hover:bg-gray-50"
+                        >
+                          <Maximize2 size={14} />
+                          Maximize
+                        </button>
+                      </div>
 
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
                         <div className="flex-1 min-h-0 flex flex-col">
@@ -765,6 +790,24 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           )}
         </form>
       </div>
+
+      {/* ✅ Maximize modal (mobile-like layout) */}
+      <RemarksMaxModal
+        isOpen={remarksMaxOpen}
+        onClose={() => setRemarksMaxOpen(false)}
+        title="Remarks"
+        events={events}
+        remarks={remarks}
+        attachments={attachments}
+        loading={loadingEvents || loadingRemarks}
+        currentUserId={currentUserId}
+        canAddRemarks={canAddRemarksHere}
+        onSubmitRemark={handleRemarkSubmit}
+        onAttachmentClick={(attachment) => {
+          setSelectedAttachment(attachment);
+          setShowAttachmentModal(true);
+        }}
+      />
 
       <AttachmentsViewer
         attachment={selectedAttachment}
