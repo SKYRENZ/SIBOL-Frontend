@@ -69,14 +69,29 @@ const RemarksMaxModal: React.FC<RemarksMaxModalProps> = ({
             onClick={onClose}
             aria-label="Close"
             className="
-              group w-9 h-9 rounded-full bg-transparent
+              group cursor-pointer
+              w-9 h-9 rounded-full
               flex items-center justify-center
-              hover:bg-red-700 transition-colors
-              outline-none focus:outline-none focus:ring-0 focus:ring-offset-0
-              focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0
+              !bg-transparent hover:!bg-red-700
+              !p-0 !m-0 !border-0
+              transition-colors
             "
           >
-            <X size={18} className="text-black group-hover:text-white" />
+            {/* default (black) */}
+            <X
+              size={18}
+              strokeWidth={2.5}
+              color="#111827"
+              className="block group-hover:hidden pointer-events-none"
+            />
+
+            {/* hover (white) */}
+            <X
+              size={18}
+              strokeWidth={2.5}
+              color="#ffffff"
+              className="hidden group-hover:block pointer-events-none"
+            />
           </button>
         </div>
 
