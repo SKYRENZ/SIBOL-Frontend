@@ -22,7 +22,7 @@ const MaintenancePage: React.FC = () => {
   
   // State for the modal, lifted up to this parent component
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [formMode, setFormMode] = useState<'create' | 'assign' | 'pending'>('create');
+  const [formMode, setFormMode] = useState<'create' | 'assign' | 'pending' | 'completed'>('create'); // ✅ add completed
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
@@ -49,7 +49,10 @@ const MaintenancePage: React.FC = () => {
     }
   }, []);
 
-  const handleOpenForm = (mode: 'create' | 'assign' | 'pending', ticket: MaintenanceTicket | null = null) => {
+  const handleOpenForm = (
+    mode: 'create' | 'assign' | 'pending' | 'completed', // ✅ add completed
+    ticket: MaintenanceTicket | null = null
+  ) => {
     setFormMode(mode);
     setSelectedTicket(ticket);
     setIsFormOpen(true);
@@ -145,10 +148,9 @@ const MaintenancePage: React.FC = () => {
     []
   );
 
-  const handleOpenCompletedForm = (mode: "completed", ticket: MaintenanceTicket) => {
-    // We ignore `mode` but match the expected signature.
-    // Reuse the existing modal in a safe mode (adjust later if you want read-only behavior).
-    handleOpenForm("pending", ticket);
+  const handleOpenCompletedForm = (mode: 'completed', ticket: MaintenanceTicket) => {
+    // ✅ open as completed, not pending
+    handleOpenForm('completed', ticket);
   };
 
   const renderActiveTab = () => {
