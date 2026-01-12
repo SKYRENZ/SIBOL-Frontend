@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark } from "../types/maintenance";
+import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark, MaintenanceEvent } from "../types/maintenance";
 
 const BASE_URL = "/api/maintenance";
 
@@ -77,14 +77,17 @@ export async function getTicketAttachments(requestId: number): Promise<Maintenan
 export async function acceptAndAssign(
   requestId: number,
   staffAccountId: number,
-  assignToAccountId: number | null
+  assignToAccountId: number | null,
+  priority?: string | null,
+  due_date?: string | null
 ): Promise<any> {
   const body = {
     staff_account_id: staffAccountId,
     assign_to: assignToAccountId,
+    priority: priority ?? null,
+    due_date: due_date ?? null,
   };
-  
-  console.log("Accept & Assign - Request ID:", requestId, "Body:", body);
+
   const response = await apiClient.put(`${BASE_URL}/${requestId}/accept`, body);
   return response.data;
 }
@@ -99,13 +102,16 @@ export async function addRemark(
   requestId: number,
   remarkText: string,
   createdBy: number,
-  userRole: string
+  userRole: string | null  // ✅ Already allows null
 ): Promise<MaintenanceRemark> {
-  const response = await apiClient.post<MaintenanceRemark>(`/api/maintenance/${requestId}/remarks`, {
-    remark_text: remarkText,
-    created_by: createdBy,
-    user_role: userRole,
-  });
+  const response = await apiClient.post<MaintenanceRemark>(
+    `${BASE_URL}/${requestId}/remarks`,
+    {
+      remark_text: remarkText,
+      created_by: createdBy,
+      user_role: userRole,  // Backend should handle null
+    }
+  );
   return response.data;
 }
 
@@ -169,5 +175,17 @@ export async function deleteTicket(
 // ✅ NEW: List all soft-deleted tickets (backend: GET /api/maintenance/deleted)
 export async function listDeletedTickets(): Promise<MaintenanceTicket[]> {
   const response = await apiClient.get<MaintenanceTicket[]>(`${BASE_URL}/deleted`);
+  return response.data;
+}
+
+// ✅ NEW: Get ticket events (history)
+export async function getTicketEvents(requestId: number): Promise<MaintenanceEvent[]> {
+  const response = await apiClient.get<MaintenanceEvent[]>(`${BASE_URL}/${requestId}/events`);
+  return response.data;
+}
+
+// ✅ NEW: Get event details (with remarks and attachments)
+export async function getEventDetails(requestId: number, eventId: number): Promise<MaintenanceEvent> {
+  const response = await apiClient.get<MaintenanceEvent>(`${BASE_URL}/${requestId}/events/${eventId}`);
   return response.data;
 }

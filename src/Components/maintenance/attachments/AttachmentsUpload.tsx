@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Upload, X, Download, File } from 'lucide-react';
 import type { MaintenanceAttachment } from '../../../types/maintenance';
 
@@ -100,12 +100,30 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
 }) => {
   const inputId = `attachment-upload-${Math.random().toString(36).substr(2, 9)}`;
 
+  // ✅ create local preview URLs for images
+  const previews = useMemo(() => {
+    return files.map((f) => ({
+      file: f,
+      isImage: (f.type || '').startsWith('image/'),
+      url: (f.type || '').startsWith('image/') ? URL.createObjectURL(f) : null,
+    }));
+  }, [files]);
+
+  // ✅ cleanup object URLs
+  useEffect(() => {
+    return () => {
+      previews.forEach((p) => {
+        if (p.url) URL.revokeObjectURL(p.url);
+      });
+    };
+  }, [previews]);
+
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">
         {label} {required && '*'}
       </label>
-      
+
       <div className="flex items-center gap-2">
         <input
           type="file"
@@ -116,7 +134,7 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
           disabled={disabled}
           className="hidden"
         />
-        
+
         <label
           htmlFor={inputId}
           className={`flex-1 px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-center cursor-pointer hover:border-[#355842] hover:bg-gray-50 transition-colors ${
@@ -132,23 +150,40 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
         </label>
       </div>
 
+      {/* ✅ NEW: thumbnails row (left → right) */}
       {files.length > 0 && (
-        <div className="space-y-2">
-          {files.map((file, index) => (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {previews.map((p, index) => (
             <div
-              key={index}
-              className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
+              key={`${p.file.name}-${p.file.size}-${index}`}
+              className="relative group flex-shrink-0 w-20 h-20 rounded-md border border-gray-200 overflow-hidden bg-gray-50"
+              title={p.file.name}
             >
-              <span className="text-sm text-gray-700 truncate flex-1">
-                {file.name} ({(file.size / 1024).toFixed(2)} KB)
-              </span>
+              {p.isImage && p.url ? (
+                <img
+                  src={p.url}
+                  alt={p.file.name}
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <File className="w-5 h-5 text-gray-400" />
+                </div>
+              )}
+
+              {/* hover overlay */}
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+
+              {/* remove */}
               <button
                 type="button"
                 onClick={() => onRemove(index)}
-                className="ml-2 text-red-500 hover:text-red-700"
                 disabled={disabled}
+                className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
+                aria-label="Remove attachment"
               >
-                <X size={16} />
+                <X size={10} />
               </button>
             </div>
           ))}

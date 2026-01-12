@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
-import * as userService from '../../services/userService';
 import * as maintenanceService from '../../services/maintenanceService';
-import type { MaintenanceRemark, MaintenanceAttachment } from '../../types/maintenance';
+import * as userService from '../../services/userService';
+import type { MaintenanceAttachment, MaintenanceRemark, MaintenanceEvent } from '../../types/maintenance';
 import CustomScrollbar from '../common/CustomScrollbar';
 
 // ✅ Import new separated components
@@ -12,23 +12,31 @@ import AttachmentsList from './attachments/AttachmentsList';
 import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
 import RemarksForm from './remarks/RemarksForm'; // ✅ keep
+import MaintenanceEventLog from "./eventLog/MaintenanceEventLog";
+import { getUserRole } from '../../utils/roleUtils';
+import { Maximize2 } from "lucide-react"; // ✅ add
+import RemarksMaxModal from "./remarks/RemarksMaxModal"; // ✅ add
 
 interface MaintenanceFormProps {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (formData: any) => void;
-  mode?: 'create' | 'assign' | 'pending' | 'completed';
+  mode?: "create" | "assign" | "pending" | "completed";
   initialData?: any;
   submitError?: string | null;
+
+  // ✅ NEW
+  readOnly?: boolean;
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   isOpen,
   onClose,
   onSubmit,
-  mode = 'create',
+  mode = "create",
   initialData,
-  submitError
+  submitError,
+  readOnly = false, // ✅ NEW
 }) => {
   const [formData, setFormData] = useState({
     title: '',
@@ -50,6 +58,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   const [remarks, setRemarks] = useState<MaintenanceRemark[]>([]);
   const [loadingRemarks, setLoadingRemarks] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [events, setEvents] = useState<MaintenanceEvent[]>([]);
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [remarksMaxOpen, setRemarksMaxOpen] = useState(false); // ✅ add
+
+  // ✅ NEW: anchor to scroll to bottom of remarks
+  const remarksEndRef = useRef<HTMLDivElement | null>(null);
+
+  const getPriorityTextClass = (priority?: string | null) => {
+  const p = (priority || "").toString().trim().toLowerCase();
+  if (p === "mild") return "text-blue-600";
+  if (p === "urgent") return "text-orange-600";
+  if (p === "critical") return "text-red-600";
+  return "text-gray-700";
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -144,6 +166,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         setAttachments([]);
       }
 
+      // ✅ Fetch events instead of just remarks
+      if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
+        setLoadingEvents(true);
+        maintenanceService.getTicketEvents(requestId)
+          .then((data) => setEvents(data || []))
+          .catch((error) => {
+            console.error('Error fetching events:', error);
+            setEvents([]);
+          })
+          .finally(() => setLoadingEvents(false));
+      } else {
+        setEvents([]);
+      }
+
       // Fetch remarks for pending/completed/assign (view remarks too)
       if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
         setLoadingRemarks(true);
@@ -185,13 +221,16 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         throw new Error('Request ID or User ID not found');
       }
 
+      // ✅ Get user role using utility function
+      const userRole = getUserRole();
+
       // Add remark if there's text
       if (remarkText.trim()) {
         await maintenanceService.addRemark(
           requestId,
           remarkText,
           currentUserId,
-          '' // Role can be fetched from localStorage if needed
+          userRole  // ✅ Now passing the actual role!
         );
       }
 
@@ -204,36 +243,31 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         );
       }
 
-      // Refresh remarks and attachments
-      const updatedRemarks = await maintenanceService.getTicketRemarks(requestId);
-      setRemarks(updatedRemarks);
+      // Refresh data
+      const [updatedRemarks, updatedAttachments, updatedEvents] = await Promise.all([
+        maintenanceService.getTicketRemarks(requestId),
+        maintenanceService.getTicketAttachments(requestId),
+        maintenanceService.getTicketEvents(requestId),
+      ]);
 
-      const updatedAttachments = await maintenanceService.getTicketAttachments(requestId);
+      setRemarks(updatedRemarks);
       setAttachments(updatedAttachments || []);
+      setEvents(updatedEvents);
     } catch (error: any) {
       console.error('Failed to add remark:', error);
       throw error;
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // ✅ guard submit when readOnly
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError(null);
-
-    if (mode === 'create') {
-      if (!formData.title.trim() || !formData.issue.trim() || !formData.priority || !formData.dueDate) {
-        setFormError('Please fill in all required fields');
-        return;
-      }
-    } else if (mode === 'assign') {
-      if (!formData.assignedTo) {
-        setFormError('Please assign an operator');
-        return;
-      }
-    }
-
+    if (readOnly) return;
     onSubmit(formData);
   };
+
+  // ✅ use this when passing to inputs/buttons
+  const isDisabled = readOnly;
 
   const handleClose = () => {
     setFormError(null);
@@ -288,9 +322,26 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     : 'h-[60vh] max-h-[60vh]';
 
   // ✅ NEW: helpful derived values
-  const ticketStatus = (initialData?.Status ?? '').trim();
+  const ticketStatus = (initialData?.Status ?? '').toString().trim();
   const cancelReasonText =
     typeof initialData?.Cancel_reason === 'string' ? initialData.Cancel_reason.trim() : '';
+
+  // ✅ NEW: deletion reason (support both field names)
+  const deletionReasonText =
+    typeof initialData?.Deleted_reason === 'string'
+      ? initialData.Deleted_reason.trim()
+      : typeof initialData?.Delete_reason === 'string'
+        ? initialData.Delete_reason.trim()
+        : '';
+
+  // ✅ NEW: detect deleted ticket view
+  const isDeletedTicket =
+    !!initialData &&
+    (
+      initialData?.IsDeleted === 1 ||
+      initialData?.IsDeleted === true ||
+      ticketStatus.toLowerCase() === 'deleted'
+    );
 
   // ✅ NEW: cancel actor display (Name + Role)
   const cancelRequestedByName = (initialData?.CancelRequestedByName ?? '').trim();
@@ -398,11 +449,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       {!isAssignMode ? (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Priority</label>
-          <div
-            className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold"
-            style={{ color: '#E67E22' }}
-          >
-            {initialData?.Priority || '—'}
+          <div className="px-3 py-2 bg-gray-50 border border-gray-300 rounded-md text-sm font-semibold">
+            <span className={getPriorityTextClass(initialData?.Priority)}>
+              {initialData?.Priority || '—'}
+            </span>
           </div>
         </div>
       ) : null}
@@ -419,7 +469,17 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         </div>
       </div>
 
-      {/* ✅ NEW: Operator reason is shown here (left side), not in CancelConfirmModal */}
+      {/* ✅ NEW: Deletion Reason BELOW Status (left side) */}
+      {isDeletedTicket && deletionReasonText && (
+        <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+          <p className="text-xs font-semibold text-red-800 mb-1">Deletion Reason</p>
+          <p className="text-sm text-red-900 whitespace-pre-wrap break-words">
+            {deletionReasonText}
+          </p>
+        </div>
+      )}
+
+      {/* ✅ existing: Operator Reason */}
       {showOperatorReasonBox && (
         <div className="rounded-lg border border-red-200 bg-red-50 p-3">
           <p className="text-xs font-semibold text-red-800 mb-1">Operator Reason</p>
@@ -444,10 +504,15 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
           Hide "Previously Assigned Operator" if Status is "Requested" AND in assign mode */}
       {!(isAssignMode && ticketStatus === 'Requested') && (
         <FormField
-          label="Previously Assigned Operator"
+          label={isPendingMode ? 'Assigned Operator' : 'Previously Assigned Operator'}
           name="assignedOperator"
           type="text"
-          value={initialData?.AssignedOperatorName || 'Unassigned'}
+          value={
+            // ✅ If cancelled and no current assignment, show last assigned from cancel log
+            initialData?.AssignedOperatorName || 
+            initialData?.LastAssignedOperatorName || 
+            'Unassigned'
+          }
           onChange={noOpChange}
           disabled={true}
         />
@@ -461,246 +526,55 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
     </div>
   );
 
-  const formatRelativeTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return 'Just now';
-    if (minutes < 60) return `${minutes}m ago`;
-    if (hours < 24) return `${hours}h ago`;
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  // ✅ Combine remarks + attachments + bookmark into one timeline (sorted)
-  type TimelineItem =
-    | {
-        kind: 'bookmark';
-        key: string;
-        createdAt: string;
-        text: string;
-      }
-    | {
-        kind: 'remark';
-        key: string;
-        createdAt: string;
-        isCurrentUser: boolean;
-        authorName: string;
-        text: string;
-      }
-    | {
-        kind: 'attachment';
-        key: string;
-        createdAt: string;
-        isCurrentUser: boolean;
-        authorName: string;
-        attachment: MaintenanceAttachment;
-        isImage: boolean;
-      };
-
-  const timelineItems: TimelineItem[] = (() => {
-    const remarkItems: TimelineItem[] = (remarks || []).map((r) => ({
-      kind: 'remark',
-      key: `r-${r.Remark_Id}`,
-      createdAt: r.Created_at,
-      isCurrentUser: r.Created_by === currentUserId,
-      authorName: r.CreatedByName || 'Unknown',
-      text: r.Remark_text,
-    }));
-
-    const attachmentItems: TimelineItem[] = (attachments || []).map((a) => {
-      const createdAt =
-        (a as any).Uploaded_at ||
-        (a as any).uploaded_at ||
-        new Date().toISOString();
-
-      const isImage = !!a.File_type?.startsWith('image/');
-
-      return {
-        kind: 'attachment',
-        key: `a-${a.Attachment_Id ?? a.File_path}`,
-        createdAt,
-        isCurrentUser: (a as any).Uploaded_by === currentUserId,
-        authorName: (a as any).UploaderName || (a as any).CreatedByName || 'Unknown',
-        attachment: a,
-        isImage,
-      };
-    });
-
-    // ✅ NEW: build a HISTORY of bookmarks (not just one)
-    const bookmarks: TimelineItem[] = [];
-
-    const addBookmark = (key: string, createdAt: any, text: string) => {
-      const ts = typeof createdAt === 'string' && createdAt.trim() ? createdAt : null;
-      if (!ts) return;
-      bookmarks.push({
-        kind: 'bookmark',
-        key,
-        createdAt: ts,
-        text,
-      });
-    };
-
-    // ✅ NEW: pick first available timestamp field (backend naming may differ)
-    const pickTimestamp = (...keys: string[]) => {
-      for (const k of keys) {
-        const v = (initialData as any)?.[k];
-        if (typeof v === 'string' && v.trim()) return v;
-      }
-      return null;
-    };
-
-    // Always show "Requested" if we have Request_date
-    addBookmark(
-      'bm-requested',
-      initialData?.Request_date,
-      `Requested by ${initialData?.CreatedByName ?? 'Unknown'}`
-    );
-
-    // Cancel Requested history
-    addBookmark(
-      'bm-cancel-requested',
-      initialData?.Cancel_requested_at,
-      `Cancel Requested by ${cancelRequestedByDisplay}${cancelReasonText ? ` — Reason: ${cancelReasonText}` : ''}`
-    );
-
-    // Cancelled history
-    addBookmark(
-      'bm-cancelled',
-      initialData?.Cancelled_at,
-      `Cancelled by ${cancelledByDisplay}`
-    );
-
-    // ✅ NEW: For Verification history
-    addBookmark(
-      'bm-for-verification',
-      pickTimestamp(
-        'For_verification_at',
-        'ForVerification_at',
-        'Marked_for_verification_at',
-        'MarkedForVerification_at',
-        'Verification_requested_at',
-        'VerificationRequested_at'
-      ),
-      `For Verification by ${operatorDisplayName}`
-    );
-
-    // Completed history
-    addBookmark(
-      'bm-completed',
-      initialData?.Completed_at,
-      `Completed Request by ${operatorDisplayName}`
-    );
-
-    const combined = [...remarkItems, ...attachmentItems, ...bookmarks];
-
-    return combined.sort(
-      (x, y) => new Date(x.createdAt).getTime() - new Date(y.createdAt).getTime()
-    );
-  })();
-
-  const remarksMessagesBody = loadingRemarks ? (
-    <div className="text-center py-8">
-      <p className="text-sm text-gray-500">Loading remarks...</p>
-    </div>
-  ) : timelineItems.length === 0 ? (
-    <p className="text-sm text-gray-500 italic text-center py-8">No remarks yet</p>
-  ) : (
-    <div className="space-y-3">
-      {timelineItems.map((item) => {
-        if (item.kind === 'bookmark') {
-          return (
-            <div key={item.key} className="flex justify-center">
-              <div className="px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs text-gray-700">
-                {item.text}
-              </div>
-            </div>
-          );
-        }
-
-        return (
-          <div
-            key={item.key}
-            className={`flex ${item.isCurrentUser ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2 ${
-                item.isCurrentUser
-                  ? 'bg-[#355842] text-white rounded-br-sm'
-                  : 'bg-gray-100 text-gray-800 rounded-bl-sm'
-              }`}
-            >
-              <div className="flex items-baseline gap-2 mb-1">
-                <span
-                  className={`text-xs font-semibold ${
-                    item.isCurrentUser ? 'text-white' : 'text-gray-900'
-                  }`}
-                >
-                  {item.authorName}
-                </span>
-                <span
-                  className={`text-xs ${
-                    item.isCurrentUser ? 'text-white/70' : 'text-gray-500'
-                  }`}
-                >
-                  {formatRelativeTime(item.createdAt)}
-                </span>
-              </div>
-
-              {item.kind === 'remark' ? (
-                <p className="text-sm whitespace-pre-wrap break-words">{item.text}</p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedAttachment(item.attachment);
-                    setShowAttachmentModal(true);
-                  }}
-                  className="block text-left bg-transparent p-0 m-0 border-0 outline-none focus:outline-none focus:ring-0 active:outline-none active:ring-0 hover:outline-none hover:ring-0"
-                  title="View attachment"
-                >
-                  {item.isImage ? (
-                    <img
-                      src={item.attachment.File_path}
-                      alt="Attachment"
-                      className="w-44 h-44 object-cover rounded-lg border border-black/10 block select-none pointer-events-none"
-                      loading="lazy"
-                      draggable={false}
-                    />
-                  ) : (
-                    <div className="w-44 h-24 rounded-lg border border-black/10 bg-transparent flex items-center justify-center">
-                      <span className={`text-sm ${item.isCurrentUser ? 'text-white' : 'text-gray-700'}`}>
-                        Attachment
-                      </span>
-                    </div>
-                  )}
-                </button>
-              )}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+  // ✅ NEW: Build timeline from events AND standalone remarks
+  const remarksMessagesBody = (
+    <MaintenanceEventLog
+      events={events}
+      remarks={remarks}
+      attachments={attachments}
+      currentUserId={currentUserId}
+      loading={loadingEvents}
+      onAttachmentClick={(attachment) => {
+        setSelectedAttachment(attachment);
+        setShowAttachmentModal(true);
+      }}
+    />
   );
 
   // ✅ only Pending mode can add remarks in this modal
   const canAddRemarksHere = isPendingMode;
 
+  // ✅ Better title logic: keep normal titles for other modes,
+  // but use "View Deleted Maintenance" when it's a deleted ticket view.
+  const modalTitle =
+    mode === "create"
+      ? "Request Maintenance"
+      : mode === "assign"
+        ? "Accept & Assign Maintenance"
+        : mode === "pending"
+          ? "View Pending Maintenance"
+          : mode === "completed"
+            ? (isDeletedTicket ? "View Deleted Maintenance" : "View Completed Maintenance")
+            : "Maintenance";
+
+  // ✅ NEW: auto-scroll to bottom when modal opens + when timeline changes
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!isDetailsMode) return;
+    if (remarksMaxOpen) return; // don't fight the maximized view
+
+    // next paint (ensures DOM has rendered the new items)
+    requestAnimationFrame(() => {
+      remarksEndRef.current?.scrollIntoView({ block: 'end' });
+    });
+  }, [isOpen, isDetailsMode, remarksMaxOpen, events.length, remarks.length, attachments.length]);
+
   return (
     <FormModal
       isOpen={isOpen}
       onClose={handleClose}
-      title={
-        isCreateMode ? "Request Maintenance" :
-        isAssignMode ? "Accept & Assign Maintenance" :
-        isPendingMode ? "View Pending Maintenance" :
-        isCompletedMode ? "View Completed Maintenance" :
-        "Maintenance Details"
-      }
+      title={modalTitle}
+      headerTone={isDeletedTicket ? 'danger' : 'default'}
       width={isDetailsMode ? '960px' : '720px'}
     >
       <div className={`flex flex-col ${modalHeightClass}`}>
@@ -752,9 +626,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <div>{attachmentsContent}</div>
 
                     <div className="space-y-3">
-                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
-                        Remarks History
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
+                          Remarks History
+                        </h3>
+
+                        <button
+                          type="button"
+                          onClick={() => setRemarksMaxOpen(true)}
+                          className="inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 hover:bg-gray-50"
+                        >
+                          <Maximize2 size={14} />
+                          Maximize
+                        </button>
+                      </div>
 
                       {/* ✅ NEW: bookmark line */}
                       {remarksBookmarkText && (
@@ -770,7 +655,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                               className="h-full min-h-0 overflow-y-auto overscroll-contain"
                               maxHeight="max-h-full"
                             >
-                              <div className="p-3">{remarksMessagesBody}</div>
+                              <div className="p-3">
+                                {remarksMessagesBody}
+                                <div ref={remarksEndRef} />
+                              </div>
                             </CustomScrollbar>
                           </div>
 
@@ -799,22 +687,29 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
                     <div className="min-h-0 h-full flex flex-col border-l pl-4 gap-4">
                       {attachmentsContent}
 
-                      <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
-                        Remarks History
-                      </h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-semibold text-sm flex-shrink-0" style={{ color: '#2E523A' }}>
+                          Remarks
+                        </h3>
 
-                      {/* ✅ NEW: bookmark line */}
-                      {remarksBookmarkText && (
-                        <div className="rounded-md border-l-4 border-[#355842] bg-[#355842]/5 px-3 py-2 text-sm text-[#2E523A]">
-                          {remarksBookmarkText}
-                        </div>
-                      )}
+                        <button
+                          type="button"
+                          onClick={() => setRemarksMaxOpen(true)}
+                          className="bg-transparent inline-flex items-center gap-2 px-3 py-1.5 text-xs font-semibold rounded-md border border-gray-200 hover:bg-gray-50"
+                        >
+                          <Maximize2 size={14} />
+                          Maximize
+                        </button>
+                      </div>
 
                       <div className="border border-gray-200 rounded-lg overflow-hidden bg-white flex flex-col">
                         <div className="flex-1 min-h-0 flex flex-col">
                           <div className="flex-1 min-h-0 overflow-hidden">
                             <CustomScrollbar className="h-full min-h-0 overflow-y-auto" maxHeight="max-h-full">
-                              <div className="p-3">{remarksMessagesBody}</div>
+                              <div className="p-3">
+                                {remarksMessagesBody}
+                                <div ref={remarksEndRef} />
+                              </div>
                             </CustomScrollbar>
                           </div>
 
@@ -871,7 +766,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
                       <DatePicker
                         label="Due Date"
-                        name="dueDate"
+                        name="dueDate"  
                         value={formData.dueDate}
                         onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
                         required
@@ -891,28 +786,49 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
             )}
           </div>
 
-          <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
-            <button
-              type="button"
-              onClick={handleClose}
-              className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              {isViewMode ? "Close" : "Cancel"}
-            </button>
-
-            {/* ✅ show submit for create + assign */}
-            {!isViewMode && (
+          {/* ✅ hide footer submit when readOnly */}
+          {!readOnly && (
+            <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
               <button
-                type="submit"
-                className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
-                style={{ backgroundColor: '#355842' }}
+                type="button"
+                onClick={handleClose}
+                className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
               >
-                {isCreateMode ? "Submit Request" : isAssignMode ? "Accept & Assign" : "Submit"}
+                {isViewMode ? "Close" : "Cancel"}
               </button>
-            )}
-          </div>
+
+              {/* ✅ show submit for create + assign */}
+              {!isViewMode && (
+                <button
+                  type="submit"
+                  className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
+                  style={{ backgroundColor: '#355842' }}
+                >
+                  {isCreateMode ? "Submit Request" : isAssignMode ? "Accept & Assign" : "Submit"}
+                </button>
+              )}
+            </div>
+          )}
         </form>
       </div>
+
+      {/* ✅ Maximize modal (mobile-like layout) */}
+      <RemarksMaxModal
+        isOpen={remarksMaxOpen}
+        onClose={() => setRemarksMaxOpen(false)}
+        title="Remarks"
+        events={events}
+        remarks={remarks}
+        attachments={attachments}
+        loading={loadingEvents || loadingRemarks}
+        currentUserId={currentUserId}
+        canAddRemarks={canAddRemarksHere}
+        onSubmitRemark={handleRemarkSubmit}
+        onAttachmentClick={(attachment) => {
+          setSelectedAttachment(attachment);
+          setShowAttachmentModal(true);
+        }}
+      />
 
       <AttachmentsViewer
         attachment={selectedAttachment}

@@ -10,12 +10,29 @@ interface FormModalProps {
   children?: React.ReactNode;
   showCloseButton?: boolean;
   hasCancelButton?: boolean;
+
+  // ✅ NEW (minimal): allow switching header color
+  headerTone?: 'default' | 'danger';
 }
  
-const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '720px', children, showCloseButton = true, hasCancelButton = false }) => {
+const FormModal: React.FC<FormModalProps> = ({
+  isOpen,
+  onClose,
+  title,
+  width = '720px',
+  children,
+  showCloseButton = true,
+  hasCancelButton = false,
+  headerTone = 'default',
+}) => {
   if (!isOpen) return null;
 
   const shouldShowCloseButton = showCloseButton && !hasCancelButton;
+
+  const headerBgClass =
+    headerTone === 'danger'
+      ? 'bg-gradient-to-r from-red-900 to-red-700'
+      : 'bg-gradient-to-r from-[#355842] to-[#4a7c5d]';
 
   return ReactDOM.createPortal(
     <div className="fixed inset-0 z-[200000] flex items-center justify-center px-4 sm:px-6 md:px-8">
@@ -33,10 +50,6 @@ const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '
         className={`
           relative rounded-2xl shadow-2xl bg-white overflow-hidden
           w-full
-          max-w-[90%]        // mobile
-          sm:max-w-[480px]   // small tablet
-          md:max-w-[520px]   // tablet/desktop
-          lg:max-w-[600px]   // larger desktop
         `}
         style={{
           width: width || undefined,
@@ -44,7 +57,7 @@ const FormModal: React.FC<FormModalProps> = ({ isOpen, onClose, title, width = '
         }}
       >
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white relative rounded-t-2xl">
+        <div className={`px-6 py-4 ${headerBgClass} text-white relative`}>
           <div className="flex items-center h-full">
             <h3 className="font-semibold text-lg">{title}</h3>
           </div>

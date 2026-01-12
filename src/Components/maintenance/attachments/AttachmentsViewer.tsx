@@ -18,10 +18,7 @@ const AttachmentsViewer: React.FC<AttachmentViewerProps> = ({
   if (!isOpen || !attachment) return null;
 
   return (
-    <div 
-      className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[300000]" 
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[600000] bg-black/60 flex items-center justify-center">
       <div 
         className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden" 
         onClick={(e) => e.stopPropagation()}
