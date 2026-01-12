@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { changePassword } from "../../services/authService"; // ✅ add this import
 
 // =============================
 // TYPES & MOCK DATA
@@ -86,7 +87,7 @@ const SecuritySetting: React.FC = () => {
     setSuccess(false);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!form.currentPassword || !form.newPassword || !form.confirmPassword) {
@@ -99,9 +100,18 @@ const SecuritySetting: React.FC = () => {
       return;
     }
 
-    console.log("Password updated:", form);
-    setSuccess(true);
-    setForm(mockSecurityData);
+    try {
+      await changePassword(form.currentPassword, form.newPassword);
+      setSuccess(true);
+      setForm(mockSecurityData);
+    } catch (err: any) {
+      setSuccess(false);
+      setError(
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to change password."
+      );
+    }
   };
 
   const handleCancel = () => {
