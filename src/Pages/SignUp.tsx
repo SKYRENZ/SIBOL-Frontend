@@ -409,64 +409,24 @@ const SignUp: React.FC = () => {
                   disabled={isLoading}
                   accept="image/*"
                   multiple={false}
+                  itemLayout="thumb+name"
                   files={attachmentFile ? [attachmentFile] : []}
                   onChange={(e) => {
-                    const file = e.target.files?.[0] ?? null;
-
-                    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
-
+                    const file = e.target.files?.[0];
+                    if (!file) return; // keep previous if user cancels
                     setAttachmentFile(file);
                     setTouched((prev) => ({ ...prev, attachment: true }));
-
-                    if (file) {
-                      setAttachmentPreviewUrl(URL.createObjectURL(file));
-                      setErrors((prev) => {
-                        const next = { ...prev };
-                        delete next.attachment;
-                        return next;
-                      });
-                    } else {
-                      setAttachmentPreviewUrl(null);
-                      setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
-                    }
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.attachment;
+                      return next;
+                    });
                   }}
                   onRemove={() => {
-                    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
-                    setAttachmentPreviewUrl(null);
                     setAttachmentFile(null);
+                    setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
                   }}
                 />
-
-                {/* keep your existing preview modal if you want */}
-                {showAttachmentPreview && attachmentPreviewUrl && (
-                  <div
-                    className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
-                    onClick={() => setShowAttachmentPreview(false)}
-                  >
-                    <div
-                      className="bg-white rounded-2xl overflow-hidden max-w-2xl w-full"
-                      onClick={(ev) => ev.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-                        <div className="font-bold text-gray-900">Preview</div>
-                        <button
-                          type="button"
-                          className="bg-transparent border-0 font-semibold text-sibol-green hover:underline"
-                          onClick={() => setShowAttachmentPreview(false)}
-                        >
-                          Close
-                        </button>
-                      </div>
-                      <div className="bg-black">
-                        <img
-                          src={attachmentPreviewUrl}
-                          alt="Attachment preview"
-                          className="w-full max-h-[70vh] object-contain"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 
