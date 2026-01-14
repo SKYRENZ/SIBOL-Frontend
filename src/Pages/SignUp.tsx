@@ -5,6 +5,9 @@ import { register, resendVerification, clearError, clearSuccess } from '../store
 import { isAuthenticated } from '../services/authService';
 import api from '../services/apiClient';
 
+type BarangayItem = { id: number; name: string };
+type BarangaysResponse = { success: boolean; barangays: BarangayItem[] };
+
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,9 +29,16 @@ const SignUp: React.FC = () => {
   const [isSSO, setIsSSO] = useState(false);
   const [isBarangayOpen, setIsBarangayOpen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  
+
+  // ✅ NEW: attachment state (Barangay only)
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null);
+  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
+
   const barangayRef = useRef<HTMLDivElement>(null);
   const signupImage = new URL('../assets/images/lilisignup.png', import.meta.url).href;
+
+  const isBarangayRoleSelected = String(role) === '2'; // role select uses "1"/"2"
 
   // Check if user is already logged in
   useEffect(() => {
@@ -57,7 +67,7 @@ const SignUp: React.FC = () => {
     let cancelled = false;
     async function loadBarangays() {
       try {
-        const res = await api.get('/api/auth/barangays');
+        const res = await api.get<BarangaysResponse>('/api/auth/barangays');
         if (!cancelled && res.data?.success && Array.isArray(res.data.barangays)) {
           setBarangays(res.data.barangays);
         }
@@ -88,6 +98,28 @@ const SignUp: React.FC = () => {
     };
   }, [dispatch]);
 
+  useEffect(() => {
+    // cleanup object URL
+    return () => {
+      if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+    };
+  }, [attachmentPreviewUrl]);
+
+  // If role changes away from Barangay, clear attachment
+  useEffect(() => {
+    if (!isBarangayRoleSelected) {
+      if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+      setAttachmentPreviewUrl(null);
+      setAttachmentFile(null);
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.attachment;
+        return next;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBarangayRoleSelected]);
+
   const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
   const nameRegex = /^[A-Za-z\s.'-]+$/;
 
@@ -117,6 +149,11 @@ const SignUp: React.FC = () => {
       else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) newErrors.barangay = 'Barangay must be a valid number';
       else delete newErrors.barangay;
     }
+    if (field === 'attachment') {
+      if (isBarangayRoleSelected && !attachmentFile) newErrors.attachment = 'Valid ID image is required';
+      else delete newErrors.attachment;
+    }
+
     setErrors(newErrors);
     setTouched(prev => ({ ...prev, [field]: true }));
   };
@@ -131,41 +168,69 @@ const SignUp: React.FC = () => {
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Invalid email";
     if (!barangay.trim()) newErrors.barangay = "Barangay is required";
-    
+    // ✅ Barangay requires attachment
+    if (isBarangayRoleSelected && !attachmentFile) {
+      newErrors.attachment = 'Valid ID image is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    const roleMap: Record<string, number> = { Admin: 1, User: 2 };
-    const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
-
-    const payload = {
-      firstName,
-      lastName,
-      barangayId: Number(barangay),
-      email,
-      roleId: Number(roleId),
-      isSSO: Boolean(isSSO),
-    };
+    const roleId = Number(role);
 
     try {
+      let payload: any;
+
+      if (isBarangayRoleSelected) {
+        // ✅ Send multipart only when Barangay
+        const form = new FormData();
+        form.append('firstName', firstName);
+        form.append('lastName', lastName);
+        form.append('barangayId', String(Number(barangay)));
+        form.append('email', email);
+        form.append('roleId', String(roleId));
+        form.append('isSSO', String(Boolean(isSSO)));
+        form.append('attachment', attachmentFile as File); // field name must be "attachment"
+
+        payload = form;
+      } else {
+        // ✅ Non-barangay: JSON (no attachment)
+        payload = {
+          firstName,
+          lastName,
+          barangayId: Number(barangay),
+          email,
+          roleId: Number(roleId),
+          isSSO: Boolean(isSSO),
+        };
+      }
+
       const result = await dispatch(register(payload)).unwrap();
-      
+
       if (result.success) {
         setPendingEmail(null);
+
+        const params: Record<string, string> = {
+          email,
+        };
+
+        if (isSSO) params.sso = 'true';
+        if (result.username) params.username = result.username; // ✅ only include if defined
+
+        const qs = new URLSearchParams(params).toString();
+
         if (isSSO) {
-          navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(result.username)}`);
+          navigate(`/pending-approval?${qs}`);
         } else {
-          navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(result.username)}`);
+          navigate(`/email-verification?${qs}`);
         }
       }
     } catch (error: any) {
-      // Error is in Redux state
       if (error?.email) setPendingEmail(error.email);
     }
   };
@@ -332,6 +397,118 @@ const SignUp: React.FC = () => {
               
               {errors.barangay && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.barangay}</div>}
             </div>
+
+            {/* ✅ Attachment UI (Barangay only) */}
+            {isBarangayRoleSelected && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
+                  Upload Valid ID (Image)
+                </label>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+
+                    // clear previous preview URL
+                    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+
+                    setAttachmentFile(file);
+                    setTouched(prev => ({ ...prev, attachment: true }));
+
+                    if (file) {
+                      const url = URL.createObjectURL(file);
+                      setAttachmentPreviewUrl(url);
+
+                      setErrors(prev => {
+                        const next = { ...prev };
+                        delete next.attachment;
+                        return next;
+                      });
+                    } else {
+                      setAttachmentPreviewUrl(null);
+                      setErrors(prev => ({ ...prev, attachment: 'Valid ID image is required' }));
+                    }
+                  }}
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
+                    errors.attachment
+                      ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
+                      : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
+                  }`}
+                />
+
+                {errors.attachment && (
+                  <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.attachment}</div>
+                )}
+
+                {/* Thumbnail + actions */}
+                {attachmentPreviewUrl && (
+                  <div className="mt-3 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowAttachmentPreview(true)}
+                      className="bg-transparent border-0 p-0"
+                      title="Tap to preview"
+                    >
+                      <img
+                        src={attachmentPreviewUrl}
+                        alt="Attachment thumbnail"
+                        className="h-16 w-16 rounded-lg object-cover border border-gray-200"
+                      />
+                    </button>
+
+                    <div className="flex flex-col gap-1">
+                      <div className="text-sm text-gray-700">
+                        {attachmentFile?.name}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+                          setAttachmentPreviewUrl(null);
+                          setAttachmentFile(null);
+                        }}
+                        className="text-xs font-semibold text-red-600 hover:underline bg-transparent border-0 p-0 text-left"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Preview modal */}
+                {showAttachmentPreview && attachmentPreviewUrl && (
+                  <div
+                    className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
+                    onClick={() => setShowAttachmentPreview(false)}
+                  >
+                    <div
+                      className="bg-white rounded-2xl overflow-hidden max-w-2xl w-full"
+                      onClick={(ev) => ev.stopPropagation()}
+                    >
+                      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+                        <div className="font-bold text-gray-900">Preview</div>
+                        <button
+                          type="button"
+                          className="bg-transparent border-0 font-semibold text-sibol-green hover:underline"
+                          onClick={() => setShowAttachmentPreview(false)}
+                        >
+                          Close
+                        </button>
+                      </div>
+                      <div className="bg-black">
+                        <img
+                          src={attachmentPreviewUrl}
+                          alt="Attachment preview"
+                          className="w-full max-h-[70vh] object-contain"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Error Message */}
             {authError && (

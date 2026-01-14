@@ -15,6 +15,20 @@ export type AuthResponse = {
   [key: string]: any; 
 };
 
+// ✅ ADD: typed register response (matches backend registerUser + attachment additions)
+export type RegisterResponse = {
+  success: boolean;
+  message?: string;
+  pendingId?: number;
+  username?: string;
+  email?: string;
+  isSSO?: boolean;
+  emailVerified?: boolean;
+  note?: string;
+  attachmentUrl?: string;
+  attachmentPublicId?: string;
+};
+
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const res = await api.post('/api/auth/login', { username, password });
   const data = res.data as any;
@@ -26,9 +40,10 @@ export async function login(username: string, password: string): Promise<AuthRes
   return data;
 }
 
-export async function register(payload: any) {
+// ✅ CHANGE: return typed response
+export async function register(payload: any): Promise<RegisterResponse> {
   const res = await api.post('/api/auth/register', payload);
-  return res.data;
+  return res.data as RegisterResponse;
 }
 
 export async function verifyToken(): Promise<boolean> {

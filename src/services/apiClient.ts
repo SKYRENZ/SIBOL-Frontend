@@ -14,6 +14,16 @@ const api = axios.create({
   withCredentials: true, // ✅ CRITICAL: Send cookies with requests
 });
 
+// Request interceptor to handle FormData
+api.interceptors.request.use((config) => {
+  const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+  if (isFormData) {
+    delete (config.headers as any)['Content-Type'];
+    delete (config.headers as any)['content-type'];
+  }
+  return config;
+});
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
