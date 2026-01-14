@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { Upload, X, Download, File } from 'lucide-react';
+import { Upload, X, Download, File as FileIcon } from 'lucide-react'; // ✅ rename icon
 import type { MaintenanceAttachment } from '../../../types/maintenance';
 
 interface AttachmentViewerProps {
@@ -45,7 +45,7 @@ const AttachmentsViewer: React.FC<AttachmentViewerProps> = ({
             />
           ) : (
             <div className="text-center py-12">
-              <File className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <FileIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
               <p className="text-gray-600 mb-2">{attachment.File_name}</p>
               <p className="text-sm text-gray-500">
                 {attachment.File_size ? `${(attachment.File_size / 1024).toFixed(2)} KB` : 'File preview not available'}
@@ -168,7 +168,7 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <File className="w-5 h-5 text-gray-400" />
+                  <FileIcon className="w-5 h-5 text-gray-400" />
                 </div>
               )}
 

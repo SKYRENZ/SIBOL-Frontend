@@ -4,6 +4,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { register, resendVerification, clearError, clearSuccess } from '../store/slices/authSlice';
 import { isAuthenticated } from '../services/authService';
 import api from '../services/apiClient';
+import AttachmentsUpload from '../Components/maintenance/attachments/AttachmentsUpload';
 
 type BarangayItem = { id: number; name: string };
 type BarangaysResponse = { success: boolean; barangays: BarangayItem[] };
@@ -357,15 +358,15 @@ const SignUp: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 Barangay
               </label>
+
               <button
                 type="button"
                 onClick={() => setIsBarangayOpen(!isBarangayOpen)}
                 onBlur={() => validateField('barangay')}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all text-left flex justify-between items-center bg-white hover:bg-gray-50 ${
-                  errors.barangay 
-                    ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
-                    : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                }`}
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border text-sm sm:text-base outline-none transition-all text-left flex justify-between items-center bg-white hover:bg-gray-50
+                  focus:outline-none focus:ring-0 focus:ring-offset-0
+                  ${errors.barangay ? 'border-red-600' : 'border-gray-200'}
+                `}
               >
                 <span className={selectedBarangay ? 'text-gray-900' : 'text-gray-400'}>
                   {selectedBarangay ? selectedBarangay.name : 'Select Barangay'}
@@ -379,15 +380,16 @@ const SignUp: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
+
               {isBarangayOpen && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 shadow-lg max-h-48 overflow-y-auto rounded-none">
                   {barangays.map((b) => (
                     <button
                       key={b.id}
                       type="button"
                       onClick={() => handleBarangaySelect(b.id, b.name)}
-                      className="w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base hover:bg-gray-100 transition-colors"
+                      className="w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base bg-white text-gray-900 hover:bg-gray-100
+                               focus:outline-none focus:ring-0 focus:ring-offset-0"
                     >
                       {b.name}
                     </button>
@@ -401,83 +403,41 @@ const SignUp: React.FC = () => {
             {/* ✅ Attachment UI (Barangay only) */}
             {isBarangayRoleSelected && (
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
-                  Upload Valid ID (Image)
-                </label>
-
-                <input
-                  type="file"
+                <AttachmentsUpload
+                  label="Upload Valid ID (Image)"
+                  required
+                  disabled={isLoading}
                   accept="image/*"
+                  multiple={false}
+                  files={attachmentFile ? [attachmentFile] : []}
                   onChange={(e) => {
                     const file = e.target.files?.[0] ?? null;
 
-                    // clear previous preview URL
                     if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
 
                     setAttachmentFile(file);
-                    setTouched(prev => ({ ...prev, attachment: true }));
+                    setTouched((prev) => ({ ...prev, attachment: true }));
 
                     if (file) {
-                      const url = URL.createObjectURL(file);
-                      setAttachmentPreviewUrl(url);
-
-                      setErrors(prev => {
+                      setAttachmentPreviewUrl(URL.createObjectURL(file));
+                      setErrors((prev) => {
                         const next = { ...prev };
                         delete next.attachment;
                         return next;
                       });
                     } else {
                       setAttachmentPreviewUrl(null);
-                      setErrors(prev => ({ ...prev, attachment: 'Valid ID image is required' }));
+                      setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
                     }
                   }}
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
-                    errors.attachment
-                      ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
-                      : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                  }`}
+                  onRemove={() => {
+                    if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+                    setAttachmentPreviewUrl(null);
+                    setAttachmentFile(null);
+                  }}
                 />
 
-                {errors.attachment && (
-                  <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.attachment}</div>
-                )}
-
-                {/* Thumbnail + actions */}
-                {attachmentPreviewUrl && (
-                  <div className="mt-3 flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowAttachmentPreview(true)}
-                      className="bg-transparent border-0 p-0"
-                      title="Tap to preview"
-                    >
-                      <img
-                        src={attachmentPreviewUrl}
-                        alt="Attachment thumbnail"
-                        className="h-16 w-16 rounded-lg object-cover border border-gray-200"
-                      />
-                    </button>
-
-                    <div className="flex flex-col gap-1">
-                      <div className="text-sm text-gray-700">
-                        {attachmentFile?.name}
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
-                          setAttachmentPreviewUrl(null);
-                          setAttachmentFile(null);
-                        }}
-                        className="text-xs font-semibold text-red-600 hover:underline bg-transparent border-0 p-0 text-left"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* Preview modal */}
+                {/* keep your existing preview modal if you want */}
                 {showAttachmentPreview && attachmentPreviewUrl && (
                   <div
                     className="fixed inset-0 bg-black/70 flex items-center justify-center p-4 z-50"
