@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Gift, ImageIcon } from "lucide-react";
 import { useCreateReward } from "../../hooks/household/useRewardHooks";
+import { updateReward, uploadRewardImage } from "../../services/rewardService"; // ✅ ADD
 
 interface AddRewardModalProps {
   isOpen: boolean;
@@ -95,11 +96,10 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
     try {
-      // Create reward first
+      // 1) Create reward first (get Reward_id)
       const result = await createReward({
         Item: formData.Item.trim(),
         Description: formData.Description.trim() || undefined,
@@ -107,14 +107,17 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
         Quantity: Number(formData.Quantity),
       });
 
-      // Store image in localStorage with reward ID
-      if (selectedFile && imagePreview && result) {
-        const rewardImages = JSON.parse(localStorage.getItem('rewardImages') || '{}');
-        rewardImages[result.Reward_id] = imagePreview; // Store base64 image
-        localStorage.setItem('rewardImages', JSON.stringify(rewardImages));
-        console.log('Image saved to localStorage for reward ID:', result.Reward_id);
+      // 2) If an image was selected, upload then save URL to reward row
+      if (selectedFile && result?.Reward_id) {
+        const { imageUrl, publicId } = await uploadRewardImage(selectedFile);
+
+        await updateReward(result.Reward_id, {
+          Image_url: imageUrl,
+          Image_public_id: publicId,
+        });
       }
 
+      // ✅ Clear form
       setFormData({
         Item: "",
         Description: "",
@@ -123,7 +126,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
       });
       setImagePreview(null);
       setSelectedFile(null);
-      
+
       onSave();
       onClose();
     } catch (err) {
