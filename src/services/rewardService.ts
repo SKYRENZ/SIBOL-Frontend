@@ -107,18 +107,36 @@ export const markTransactionRedeemed = async (transactionId: number): Promise<{ 
   return response.data;
 };
 
-// ✅ Upload reward image to Cloudinary (via backend)
-export const uploadRewardImage = async (
-  file: File
-): Promise<{ imageUrl: string; publicId: string }> => {
+// ----------------- attachments -----------------
+export const uploadClaimedRewardAttachment = async (
+  file: File,
+  transactionId: number
+): Promise<any> => {
   const form = new FormData();
-  form.append('file', file);
+  form.append("file", file);
+  form.append("reward_transaction_id", String(transactionId));
+  const res = await api.post<{ attachment: any }>("/api/upload/reward-attachment", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.attachment;
+};
 
-  const res = await api.post<{ imageUrl: string; publicId: string }>(
-    '/api/upload/reward-image',
-    form,
-    { headers: { 'Content-Type': 'multipart/form-data' } }
-  );
+export const uploadRewardImage = async (file: File): Promise<{ imageUrl: string; publicId: string }> => {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await api.post<{ imageUrl: string; publicId: string }>("/api/upload/reward-image", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
 
+
+export const listRewardAttachments = async (transactionId: number): Promise<any[]> => {
+  const res = await api.get<any[]>(`/api/rewards/transaction/${transactionId}/attachments`);
+  return res.data ?? [];
+};
+
+export const deleteRewardAttachment = async (attachmentId: number): Promise<{ message: string }> => {
+  const res = await api.delete<{ message: string }>(`/api/rewards/attachment/${attachmentId}`);
   return res.data;
 };
