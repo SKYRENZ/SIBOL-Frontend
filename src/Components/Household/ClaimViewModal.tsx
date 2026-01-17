@@ -3,6 +3,7 @@ import FormModal from "../common/FormModal";
 import * as rewardService from "../../services/rewardService";
 import AttachmentsUpload from "../maintenance/attachments/AttachmentsUpload";
 import AttachmentsList from "../maintenance/attachments/AttachmentsList";
+import AttachmentsViewer from "../maintenance/attachments/AttachmentsViewer";
 
 interface ClaimViewModalProps {
   isOpen: boolean;
@@ -23,6 +24,8 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [viewerAttachment, setViewerAttachment] = useState<any | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const isClaimed = Boolean(row?.Status === "Claimed");
 
   useEffect(() => {
     if (isOpen && row) fetchAttachments();
@@ -64,6 +67,17 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
     copy.splice(index, 1);
     setSelectedFiles(copy);
     if (fileInputRef.current && copy.length === 0) fileInputRef.current.value = "";
+  };
+
+  const handleDownloadAttachment = (attachment: any) => {
+    if (!attachment?.File_path) return;
+    const a = document.createElement("a");
+    a.href = attachment.File_path;
+    a.download = attachment.File_name ?? "";
+    a.target = "_blank";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   // upload selectedFiles, then mark transaction redeemed. If mark fails, delete uploaded attachments.
@@ -124,9 +138,8 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
     }
   };
 
-  const isClaimed = Boolean(row?.Status === "Claimed");
-
   return (
+    <>
     <FormModal isOpen={!!isOpen} onClose={onClose} title="Claim Details" width="520px">
       {!row ? null : (
         <div className="space-y-4">
@@ -168,16 +181,29 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
           <div>
             <div className="text-xs text-gray-500 mb-2">Attachments</div>
 
-            <AttachmentsUpload
-              files={selectedFiles}
-              onChange={handleLocalFilesChange}
-              onRemove={handleRemoveLocal}
-              label="Upload attachments"
-              itemLayout="thumb"
-              accept="image/*,.pdf,.doc,.docx"
-              multiple={true}
-              disabled={uploading || marking || isClaimed} // read-only when claimed
-            />
+            {isClaimed ? (
+              <div>
+                <div className="text-sm text-gray-700 mb-2 font-medium">Uploaded Attachments</div>
+                <AttachmentsList
+                  attachments={attachments}
+                  onView={(att) => setViewerAttachment(att)}
+                  onRemove={() => {}}
+                  isReadOnly={true}
+                  size="md"
+                />
+              </div>
+            ) : (
+              <AttachmentsUpload
+                files={selectedFiles}
+                onChange={handleLocalFilesChange}
+                onRemove={handleRemoveLocal}
+                label="Upload attachments"
+                itemLayout="thumb"
+                accept="image/*,.pdf,.doc,.docx"
+                multiple={true}
+                disabled={uploading || marking}
+              />
+            )}
 
             <div className="mt-3">
               {loadingAttachments ? (
@@ -186,56 +212,28 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
                 <div className="text-sm text-red-600">No attachments yet. Add at least one before marking as claimed.</div>
               ) : (
                 <>
-                  {/* show existing attachments (from DB) */}
-                  {attachments.length > 0 && (
+                  {/* show existing attachments (from DB) - only when NOT already shown for claimed */}
+                  {!isClaimed && attachments.length > 0 && (
                     <>
                       <AttachmentsList
                         attachments={attachments}
                         onView={(att) => setViewerAttachment(att)}
                         onRemove={(index: number) => {
-                          // only allow delete when not claimed
-                          if (!isClaimed) handleDeleteAttachment(attachments[index].Attachment_id);
+                          handleDeleteAttachment(attachments[index].Attachment_id);
                         }}
-                        isReadOnly={isClaimed}
+                        isReadOnly={false}
                         size="md"
                       />
-                      <div className="text-xs text-gray-500 mt-2">
-                        {isClaimed ? "This record is claimed — attachments are view-only." : "Existing attachments. Click a thumbnail to view. Use Delete to remove."}
-                      </div>
+                      <div className="text-xs text-gray-500 mt-2">Existing attachments. Click a thumbnail to view. Use Delete to remove.</div>
                     </>
                   )}
 
                   {/* removed manual selectedFiles thumbnail rendering to avoid duplicate previews.
-                      AttachmentsUpload already displays selected thumbnails. */}
+                       AttachmentsUpload already displays selected thumbnails. */}
                 </>
               )}
             </div>
           </div>
-
-          {/* show locally selected files only when not already claimed */}
-          {!isClaimed && selectedFiles.length > 0 && (
-            <div className="mt-3">
-              <div className="text-xs text-gray-500 mb-2">Selected (will upload when claiming)</div>
-
-              <div className="flex flex-wrap gap-2">
-                {selectedFiles.map((f, i) => {
-                  const url = URL.createObjectURL(f);
-                  return (
-                    <div key={`sel-${i}`} className="w-24 h-24 rounded overflow-hidden bg-gray-50 relative">
-                      <img src={url} alt={f.name} className="object-cover w-full h-full" />
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveLocal(i)}
-                        className="absolute top-1 right-1 bg-white bg-opacity-80 text-red-600 text-xs px-2 py-1 rounded"
-                      >
-                        Remove
-                      </button>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          )}
 
           <div className="flex justify-end gap-3 pt-4">
             <button
@@ -265,6 +263,14 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
         </div>
       )}
     </FormModal>
+
+    <AttachmentsViewer
+      attachment={viewerAttachment}
+      isOpen={!!viewerAttachment}
+      onClose={() => setViewerAttachment(null)}
+      onDownload={() => handleDownloadAttachment(viewerAttachment)}
+    />
+    </>
   );
 };
 
