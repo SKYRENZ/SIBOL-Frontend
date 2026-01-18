@@ -29,12 +29,15 @@ export type RegisterResponse = {
   attachmentPublicId?: string;
 };
 
+let cachedUser: User | null = null; // <-- in-memory cache
+
 export async function login(username: string, password: string): Promise<AuthResponse> {
   const res = await api.post('/api/auth/login', { username, password });
   const data = res.data as any;
   
+  // do NOT persist to localStorage — use in-memory cache
   if (data.user) {
-    localStorage.setItem('user', JSON.stringify(data.user));
+    cachedUser = data.user;
   }
   
   return data;
@@ -46,21 +49,21 @@ export async function register(payload: any): Promise<RegisterResponse> {
   return res.data as RegisterResponse;
 }
 
-export async function verifyToken(): Promise<boolean> {
+export async function verifyToken(): Promise<User | null> {
   try {
     const response = await api.get('/api/auth/verify');
     const data = response.data as { valid?: boolean; user?: User } | undefined;
     
     if (data?.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return true;
+      cachedUser = data.user; // populate in-memory cache from server (httpOnly cookie)
+      return data.user;
     }
     
-    localStorage.removeItem('user');
-    return false;
+    cachedUser = null;
+    return null;
   } catch (error) {
-    localStorage.removeItem('user');
-    return false;
+    cachedUser = null;
+    return null;
   }
 }
 
@@ -76,16 +79,11 @@ export function logout(): void {
 }
 
 export function getUser(): User | null {
-  try {
-    const userStr = localStorage.getItem('user');
-    return userStr ? JSON.parse(userStr) : null;
-  } catch {
-    return null;
-  }
+  return cachedUser;
 }
 
 export function isAuthenticated(): boolean {
-  return !!getUser();
+  return !!cachedUser;
 }
 
 export async function changePassword(currentPassword: string, newPassword: string) {

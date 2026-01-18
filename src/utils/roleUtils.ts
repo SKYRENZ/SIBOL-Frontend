@@ -15,16 +15,8 @@ export function getRoleNameFromId(roleId: number | string | null | undefined): s
   }
 }
 
-export function getUserRole(): string | null {
-  const user = localStorage.getItem('user');
+export function getUserRole(user?: any): string | null {
   if (!user) return null;
-  
-  try {
-    const userData = JSON.parse(user);
-    const roleId = userData.Roles ?? userData.roleId ?? userData.role;
-    return getRoleNameFromId(roleId);
-  } catch (err) {
-    console.error('Error parsing user data:', err);
-    return null;
-  }
+  const roleId = user.Roles ?? user.roleId ?? user.role;
+  return getRoleNameFromId(roleId);
 }

@@ -22,11 +22,11 @@ interface AuthState {
 }
 
 const initialState: AuthState = {
-  user: authService.getUser(),
-  isAuthenticated: authService.isAuthenticated(),
+  user: null,                      // <-- no localStorage bootstrap
+  isAuthenticated: false,          // <-- default false; will be set by verify/login
   isLoading: false,
   error: null,
-  isFirstLogin: authService.isFirstLogin(),
+  isFirstLogin: false,
   successMessage: null,
 };
 
@@ -265,12 +265,7 @@ const authSlice = createSlice({
     setUser: (state, action: PayloadAction<User | null>) => {
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
-      if (action.payload) {
-        state.isFirstLogin = action.payload.IsFirstLogin === 1;
-        localStorage.setItem('user', JSON.stringify(action.payload));
-      } else {
-        localStorage.removeItem('user');
-      }
+      state.isFirstLogin = action.payload ? action.payload.IsFirstLogin === 1 : false;
     },
     logout: (state) => {
       state.user = null;
@@ -290,7 +285,7 @@ const authSlice = createSlice({
       state.isFirstLogin = action.payload;
       if (state.user) {
         state.user.IsFirstLogin = action.payload ? 1 : 0;
-        localStorage.setItem('user', JSON.stringify(state.user));
+        // DO NOT write to localStorage
       }
     },
   },
@@ -326,7 +321,6 @@ const authSlice = createSlice({
       state.isLoading = false;
       state.isAuthenticated = false;
       state.user = null;
-      localStorage.removeItem('user');
     });
 
     // Change Password
@@ -341,7 +335,6 @@ const authSlice = createSlice({
       state.successMessage = 'Password changed successfully';
       if (state.user) {
         state.user.IsFirstLogin = 0;
-        localStorage.setItem('user', JSON.stringify(state.user));
       }
     });
     builder.addCase(changePassword.rejected, (state, action) => {
