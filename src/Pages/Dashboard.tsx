@@ -43,23 +43,13 @@ const Dashboard: React.FC = () => {
     const userParam = get("user");
     const auth = get("auth");
 
-    console.log('🔍 Dashboard URL params:', { 
-      token: token ? 'present' : 'none', 
-      user: userParam ? 'present' : 'none', 
-      auth,
-      location: location.pathname + location.search
-    });
-
     // ✅ CRITICAL: Handle user data from approval email link FIRST
     if (userParam) {
       try {
         const parsed = JSON.parse(decodeURIComponent(userParam));
         console.log('✅ User data from URL:', parsed);
         
-        // Store in localStorage
-        localStorage.setItem("user", JSON.stringify(parsed));
-        
-        // ✅ Update Redux state immediately
+        // Populate Redux state (do not persist to localStorage)
         dispatch(setUser(parsed));
         
         // ✅ Mark that we processed URL params
@@ -102,8 +92,7 @@ const Dashboard: React.FC = () => {
       console.log('⏭️ Skipping verifyToken - URL params present or already processed');
       return;
     }
-
-    console.log('🔄 Verifying token...');
+    
     dispatch(verifyToken());
   }, [hasProcessedUrlParams, isAuthenticated, dispatch]); // ✅ CHANGED: Removed location.search from deps
 
@@ -142,7 +131,6 @@ const Dashboard: React.FC = () => {
 
   // ✅ FIX: Show modal based on Redux isFirstLogin state (with extra logging)
   useEffect(() => {
-    console.log('🔍 Modal check - isAuthenticated:', isAuthenticated, 'isFirstLogin:', isFirstLoginRedux, 'user:', user);
     
     if (isAuthenticated && isFirstLoginRedux) {
       console.log('✅ Showing password modal');

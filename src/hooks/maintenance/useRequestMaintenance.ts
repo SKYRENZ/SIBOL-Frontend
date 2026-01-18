@@ -24,7 +24,16 @@ export function useRequestMaintenance() {
 
   useEffect(() => {
     fetch();
+    const onRefresh = () => fetch();
+    window.addEventListener('maintenance:refresh', onRefresh);
+    return () => {
+      window.removeEventListener('maintenance:refresh', onRefresh);
+    };
   }, [fetch]);
+  // debug log
+  useEffect(() => {
+    console.debug('useRequestMaintenance initialized');
+  }, []);
 
   const create = useCallback(
     async (payload: MaintenanceTicketPayload) => {

@@ -34,16 +34,6 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
   // ✅ track explicit remove intent (so “remove image” can be persisted)
   const [removeImage, setRemoveImage] = useState(false);
 
-  // ❌ REMOVE (no longer using localStorage for reward images)
-  // const getStoredImage = (rewardId: number) => {
-  //   try {
-  //     const rewardImages = JSON.parse(localStorage.getItem("rewardImages") || "{}");
-  //     return rewardImages?.[rewardId] ?? null;
-  //   } catch {
-  //     return null;
-  //   }
-  // };
-
   // Populate form when reward changes
   useEffect(() => {
     if (reward?.Reward_id) {

@@ -7,12 +7,15 @@ import { usePendingMaintenance } from "../../hooks/maintenance/usePendingMainten
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 
+import { useAppSelector } from '../../store/hooks';
+
 interface PendingMaintenanceProps {
   onOpenForm: (mode: 'pending', ticket: MaintenanceTicket) => void;
 }
 
 export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenForm }) => {
   const { tickets, loading, error, refetch } = usePendingMaintenance();
+    const { user: reduxUser } = useAppSelector(state => state.auth);
 
   const [selectedTicketForCompletion, setSelectedTicketForCompletion] = useState<MaintenanceTicket | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -84,9 +87,7 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
     try {
       setIsSubmitting(true);
 
-      const user = localStorage.getItem('user');
-      const userData = user ? JSON.parse(user) : {};
-      const staffId = userData.Account_id ?? userData.account_id;
+      const staffId = reduxUser?.Account_id ?? reduxUser?.account_id;
 
       if (staffId) {
         await maintenanceService.verifyCompletion(requestId, staffId);
@@ -110,10 +111,7 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
     try {
       setIsCancelling(true);
 
-      const user = localStorage.getItem('user');
-      const userData = user ? JSON.parse(user) : {};
-      const actorId = userData.Account_id ?? userData.account_id;
-
+      const actorId = reduxUser?.Account_id ?? reduxUser?.account_id;
       if (!actorId) throw new Error("actor_account_id not found");
 
       // ✅ Staff/Admin cancels immediately (no reason required)
