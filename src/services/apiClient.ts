@@ -10,8 +10,25 @@ export { API_URL };
 // Axios instance with cookie support
 const api = axios.create({
   baseURL: API_URL,
-  headers: { 'Content-Type': 'application/json' },
-  withCredentials: true, // ✅ CRITICAL: Send cookies with requests
+  headers: {
+    'Content-Type': 'application/json',
+    'x-client-type': 'web', // ✅ ADD THIS
+  },
+  withCredentials: true, // ✅ Send cookies with requests
+});
+
+// Request interceptor to handle FormData
+api.interceptors.request.use((config) => {
+  // ✅ ensure header is present even if someone overwrote headers downstream
+  config.headers = config.headers ?? {};
+  (config.headers as any)['x-client-type'] = (config.headers as any)['x-client-type'] ?? 'web';
+
+  const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+  if (isFormData) {
+    delete (config.headers as any)['Content-Type'];
+    delete (config.headers as any)['content-type'];
+  }
+  return config;
 });
 
 // Response interceptor for error handling
@@ -65,12 +82,11 @@ function normalizeUrl(path: string) {
 // ✅ Low-level fetch wrapper with cookie support (no Authorization header needed)
 export async function apiFetch(path: string, opts: RequestInit = {}) {
   const url = normalizeUrl(path);
-  const defaultHeaders: Record<string,string> = {};
 
-  // ❌ No longer add Authorization header - token is in HTTP-only cookie
-  // The browser will automatically send the cookie with credentials: 'include'
+  const defaultHeaders: Record<string, string> = {
+    'x-client-type': 'web', // ✅ ADD THIS
+  };
 
-  // Only set Content-Type default if a JSON body will be sent
   const method = (opts.method || 'GET').toUpperCase();
   const hasBody = !!(opts as any).body;
   if (hasBody && method !== 'GET' && method !== 'HEAD') {
@@ -80,7 +96,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   const headers = mergeHeaders(defaultHeaders, opts.headers);
 
   const merged: RequestInit = {
-    credentials: 'include', // ✅ CRITICAL: Send cookies
+    credentials: 'include',
     ...opts,
     headers,
   };

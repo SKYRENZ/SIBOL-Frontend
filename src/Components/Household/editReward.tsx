@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Gift, ImageIcon } from "lucide-react";
 import { useUpdateReward } from "../../hooks/household/useRewardHooks";
 import type { Reward } from "../../services/rewardService";
+import { uploadRewardImage } from "../../services/rewardService"; // ✅ ADD
 
 interface EditRewardModalProps {
   isOpen: boolean;
@@ -30,18 +31,34 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
+  // ✅ track explicit remove intent (so “remove image” can be persisted)
+  const [removeImage, setRemoveImage] = useState(false);
+
+  // ❌ REMOVE (no longer using localStorage for reward images)
+  // const getStoredImage = (rewardId: number) => {
+  //   try {
+  //     const rewardImages = JSON.parse(localStorage.getItem("rewardImages") || "{}");
+  //     return rewardImages?.[rewardId] ?? null;
+  //   } catch {
+  //     return null;
+  //   }
+  // };
+
   // Populate form when reward changes
   useEffect(() => {
-    if (reward) {
+    if (reward?.Reward_id) {
       setFormData({
         Item: reward.Item || "",
         Description: reward.Description || "",
         Points_cost: String(reward.Points_cost || ""),
         Quantity: String(reward.Quantity || ""),
       });
-      // Set existing image if available
+
+      // ✅ use backend image as initial preview
       setImagePreview(reward.Image_url || null);
+
       setSelectedFile(null);
+      setRemoveImage(false);
     }
   }, [reward]);
 
@@ -58,24 +75,22 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
     const file = e.target.files?.[0];
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
+      if (!file.type.startsWith("image/")) {
+        alert("Please select an image file");
         return;
       }
 
       // Validate file size (10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
+        alert("File size must be less than 10MB");
         return;
       }
 
       setSelectedFile(file);
-      
-      // Create preview URL
+      setRemoveImage(false);
+
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
+      reader.onloadend = () => setImagePreview(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -83,6 +98,7 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
   const handleRemoveImage = () => {
     setImagePreview(null);
     setSelectedFile(null);
+    setRemoveImage(true); // ✅ persist removal on save
   };
 
   const validateForm = (): boolean => {
@@ -112,24 +128,31 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm() || !reward?.Reward_id) return;
 
     try {
-      await updateReward(reward.Reward_id, {
+      // 1) Update basic fields
+      const patch: any = {
         Item: formData.Item.trim(),
         Description: formData.Description.trim() || undefined,
         Points_cost: Number(formData.Points_cost),
         Quantity: Number(formData.Quantity),
-      });
+      };
 
-      // Update image in localStorage if new image was selected
-      if (selectedFile && imagePreview) {
-        const rewardImages = JSON.parse(localStorage.getItem('rewardImages') || '{}');
-        rewardImages[reward.Reward_id] = imagePreview;
-        localStorage.setItem('rewardImages', JSON.stringify(rewardImages));
-        console.log('Image updated in localStorage for reward ID:', reward.Reward_id);
+      // 2) If user picked a new file: upload then include URL/publicId
+      if (selectedFile) {
+        const { imageUrl, publicId } = await uploadRewardImage(selectedFile);
+        patch.Image_url = imageUrl;
+        patch.Image_public_id = publicId;
       }
+
+      // 3) If user explicitly removed the image: clear fields
+      if (removeImage) {
+        patch.Image_url = null;
+        patch.Image_public_id = null;
+      }
+
+      await updateReward(reward.Reward_id, patch);
 
       onSave();
       onClose();

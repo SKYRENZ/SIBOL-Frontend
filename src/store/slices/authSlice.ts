@@ -76,15 +76,19 @@ export const changePassword = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Registration thunk
-export const register = createAsyncThunk(
+// ✅ CHANGE: type the thunk return + rejectValue
+export const register = createAsyncThunk<
+  authService.RegisterResponse,
+  any,
+  { rejectValue: string }
+>(
   'auth/register',
   async (payload: any, { rejectWithValue }) => {
     try {
       const data = await authService.register(payload);
       return data;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
@@ -94,15 +98,21 @@ export const register = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Resend verification thunk
-export const resendVerification = createAsyncThunk(
+type ApiMessageResponse = { success?: boolean; message?: string; [k: string]: any };
+
+// ✅ Resend verification thunk (typed)
+export const resendVerification = createAsyncThunk<
+  ApiMessageResponse,
+  string,
+  { rejectValue: string }
+>(
   'auth/resendVerification',
   async (email: string, { rejectWithValue }) => {
     try {
       const res = await api.post('/api/auth/resend-verification', { email });
-      return res.data;
+      return res.data as ApiMessageResponse;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
@@ -112,15 +122,19 @@ export const resendVerification = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Verify email thunk
-export const verifyEmail = createAsyncThunk(
+// ✅ Verify email thunk (typed)
+export const verifyEmail = createAsyncThunk<
+  ApiMessageResponse,
+  string,
+  { rejectValue: string }
+>(
   'auth/verifyEmail',
   async (token: string, { rejectWithValue }) => {
     try {
       const res = await api.get(`/api/auth/verify-email/${token}`);
-      return res.data;
+      return res.data as ApiMessageResponse;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
@@ -130,15 +144,19 @@ export const verifyEmail = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Forgot password thunk
-export const forgotPassword = createAsyncThunk(
+// ✅ Forgot password thunk (typed)
+export const forgotPassword = createAsyncThunk<
+  ApiMessageResponse,
+  string,
+  { rejectValue: string }
+>(
   'auth/forgotPassword',
   async (email: string, { rejectWithValue }) => {
     try {
       const res = await api.post('/api/auth/forgot-password', { email });
-      return res.data;
+      return res.data as ApiMessageResponse;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
@@ -148,15 +166,19 @@ export const forgotPassword = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Verify reset code thunk
-export const verifyResetCode = createAsyncThunk(
+// ✅ Verify reset code thunk (typed)
+export const verifyResetCode = createAsyncThunk<
+  ApiMessageResponse,
+  { email: string; code: string },
+  { rejectValue: string }
+>(
   'auth/verifyResetCode',
-  async ({ email, code }: { email: string; code: string }, { rejectWithValue }) => {
+  async ({ email, code }, { rejectWithValue }) => {
     try {
       const res = await api.post('/api/auth/verify-reset-code', { email, code });
-      return res.data;
+      return res.data as ApiMessageResponse;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
@@ -166,15 +188,19 @@ export const verifyResetCode = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Reset password thunk
-export const resetPassword = createAsyncThunk(
+// ✅ Reset password thunk (typed)
+export const resetPassword = createAsyncThunk<
+  ApiMessageResponse,
+  { email: string; code: string; newPassword: string },
+  { rejectValue: string }
+>(
   'auth/resetPassword',
-  async ({ email, code, newPassword }: { email: string; code: string; newPassword: string }, { rejectWithValue }) => {
+  async ({ email, code, newPassword }, { rejectWithValue }) => {
     try {
       const res = await api.post('/api/auth/reset-password', { email, code, newPassword });
-      return res.data;
+      return res.data as ApiMessageResponse;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
@@ -184,15 +210,45 @@ export const resetPassword = createAsyncThunk(
   }
 );
 
-// ✅ NEW: Get queue position thunk
-export const getQueuePosition = createAsyncThunk(
+type QueueInfo = {
+  position: number;
+  totalPending: number;
+  estimatedWaitTime: string;
+};
+
+// ✅ Replace your previous QueuePositionResponse/getQueuePosition with this:
+export const getQueuePosition = createAsyncThunk<
+  QueueInfo,
+  string,
+  { rejectValue: string }
+>(
   'auth/getQueuePosition',
   async (email: string, { rejectWithValue }) => {
     try {
-      const res = await api.get(`/api/auth/queue-position?email=${encodeURIComponent(email)}`);
-      return res.data;
+      const res = await api.get('/api/auth/queue-position', {
+        params: { email },
+      });
+
+      const data: any = res.data;
+
+      if (data?.success === false) {
+        return rejectWithValue(data?.error || data?.message || 'Failed to get queue position');
+      }
+
+      // supports either {position,totalPending,estimatedWaitTime} or {queueInfo:{...}}
+      const q = data?.queueInfo ?? data;
+
+      const position = Number(q?.position);
+      const totalPending = Number(q?.totalPending);
+      const estimatedWaitTime = String(q?.estimatedWaitTime ?? '');
+
+      if (!Number.isFinite(position) || !Number.isFinite(totalPending) || !estimatedWaitTime) {
+        return rejectWithValue('Invalid queue position response from server');
+      }
+
+      return { position, totalPending, estimatedWaitTime };
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
