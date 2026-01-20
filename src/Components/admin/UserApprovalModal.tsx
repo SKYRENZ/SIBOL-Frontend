@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import FormModal from "../common/FormModal";
+import AdminConfirmModal from "./AdminConfirmModal";
 import * as adminService from "../../services/adminService";
 import type { Account } from "../../types/adminTypes";
 import AttachmentsList from "../maintenance/attachments/AttachmentsList";
@@ -19,6 +20,12 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
   const [error, setError] = useState<string | null>(null);
   const [viewerAttachment, setViewerAttachment] = useState<any | null>(null);
 
+  // confirm modal states
+  const [showApproveConfirm, setShowApproveConfirm] = useState(false);
+  const [showRejectConfirm, setShowRejectConfirm] = useState(false);
+  const [rejectReason, setRejectReason] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState(false);
+
   useEffect(() => {
     if (!isOpen || !pendingId) return;
     let mounted = true;
@@ -29,6 +36,8 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         const res = await adminService.fetchPendingById(Number(pendingId));
         if (!mounted) return;
         setAccount(res?.pendingAccount ?? res?.data ?? res);
+        // reset reason when loading a pending account
+        setRejectReason("");
       } catch (err: any) {
         setError(err?.message ?? "Failed to load pending account");
       } finally {
@@ -65,25 +74,43 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
     a.remove();
   };
 
-  const handleApprove = async () => {
+  const handleApprove = () => {
+    if (!account) return;
+    setShowApproveConfirm(true);
+  };
+
+  const confirmApprove = async () => {
     if (!account) return;
     try {
+      setActionLoading(true);
       await onApprove(account);
+      setShowApproveConfirm(false);
+      setActionLoading(false);
       onClose();
     } catch (err: any) {
+      // minimal UI feedback (modal remains open for retry)
+      console.error("approve failed", err);
       alert(err?.message || "Approve failed");
+      setActionLoading(false);
     }
   };
 
-  const handleReject = async () => {
+  // Reject directly from the main modal — reason must be provided
+  const confirmReject = async () => {
     if (!account) return;
-    const reason = prompt("Reason for rejection (optional)", "") ?? undefined;
-    if (!confirm("Confirm rejection?")) return;
+    if (!rejectReason || !rejectReason.trim()) {
+      return alert("Please provide a reason to reject the account.");
+    }
     try {
-      await onReject(account, reason);
+      setActionLoading(true);
+      await onReject(account, rejectReason.trim());
+      setActionLoading(false);
+      setRejectReason("");
       onClose();
     } catch (err: any) {
+      console.error("reject failed", err);
       alert(err?.message || "Reject failed");
+      setActionLoading(false);
     }
   };
 
@@ -142,22 +169,84 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
               </div>
             ) : null}
 
+            {/* Reject reason input (required to enable Reject) */}
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">Rejection Reason (required to reject)</label>
+              <textarea
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                className="w-full border rounded px-2 py-2 text-sm"
+                rows={3}
+                placeholder="Provide reason for rejecting this account..."
+                disabled={actionLoading}
+              />
+            </div>
+
             <div className="flex justify-end gap-3 pt-4">
               <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
                 Close
               </button>
 
-              <button onClick={handleReject} className="px-3 py-1 text-white text-sm rounded bg-red-600 hover:bg-red-700">
-                Reject
+              <button
+                onClick={() => setShowRejectConfirm(true)}
+                className="px-3 py-1 text-white text-sm rounded bg-red-600 hover:bg-red-700 disabled:opacity-60"
+                disabled={actionLoading || !rejectReason.trim()}
+              >
+                {actionLoading ? "Processing..." : "Reject"}
               </button>
 
-              <button onClick={handleApprove} className="px-3 py-1 text-white text-sm rounded bg-green-600 hover:bg-green-700">
+              <button
+                onClick={handleApprove}
+                className="px-3 py-1 text-white text-sm rounded bg-green-600 hover:bg-green-700"
+                disabled={actionLoading}
+              >
                 Approve
               </button>
             </div>
           </div>
         )}
       </FormModal>
+
+      {/* Approve confirmation modal */}
+      <AdminConfirmModal
+        isOpen={showApproveConfirm}
+        onClose={() => setShowApproveConfirm(false)}
+        title="Confirm Approval"
+        onConfirm={confirmApprove}
+        message={
+          <div className="space-y-4">
+            <div>
+              Approve account for{" "}
+              <strong>{account ? account.Username ?? account.Email : "this user"}</strong>?
+            </div>
+          </div>
+        }
+        loading={actionLoading}
+      />
+
+      {/* Reject confirmation modal (requires reason entered in main modal) */}
+      <AdminConfirmModal
+        isOpen={showRejectConfirm}
+        onClose={() => setShowRejectConfirm(false)}
+        title="Confirm Rejection"
+        onConfirm={async () => {
+          // call the same confirmReject handler which validates reason and performs the reject
+          await confirmReject();
+          setShowRejectConfirm(false);
+        }}
+        message={
+          <div className="space-y-4">
+            <div>
+              Reject account for{" "}
+              <strong>{account ? account.Username ?? account.Email : "this user"}</strong>?
+            </div>
+            <div className="text-sm text-gray-600">
+              Reason: <em>{rejectReason}</em>
+            </div>
+          </div>
+        }
+        loading={actionLoading}
+      />
 
       <AttachmentsViewer
         attachment={viewerAttachment}

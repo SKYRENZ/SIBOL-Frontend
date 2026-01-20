@@ -94,7 +94,6 @@ export default function Admin() {
   const onAccept = async (a: Account) => {
     const pendingId = (a as any).Pending_id;
     if (!pendingId) return;
-    if (!confirm(`Approve account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
     dispatch(approvePendingAccount(Number(pendingId)))
       .unwrap()
       .then(() => {
@@ -107,9 +106,7 @@ export default function Admin() {
   const onReject = async (a: Account) => {
     const pendingId = (a as any).Pending_id;
     if (!pendingId) return;
-    const reason = prompt('Reason for rejection (optional)', '') ?? undefined;
-    if (!confirm(`Reject account for ${a.Username ?? a.Email ?? 'this user'}?`)) return;
-    dispatch(rejectPendingAccount({ pendingId: Number(pendingId), reason }))
+    dispatch(rejectPendingAccount({ pendingId: Number(pendingId), reason: undefined }))
       .unwrap()
       .then(() => alert('Account rejected'))
       .catch((err) => alert(err?.message ?? 'Reject failed'));
