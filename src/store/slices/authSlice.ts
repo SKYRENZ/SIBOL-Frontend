@@ -52,11 +52,9 @@ export const verifyToken = createAsyncThunk(
   'auth/verifyToken',
   async (_, { rejectWithValue }) => {
     try {
-      const isValid = await authService.verifyToken();
-      if (!isValid) {
-        return rejectWithValue('Token verification failed');
-      }
-      const user = authService.getUser();
+      // authService.verifyToken() should return the User or null
+      const user = await authService.verifyToken();
+      if (!user) return rejectWithValue('Token verification failed');
       return { user };
     } catch (error: any) {
       return rejectWithValue(error?.message || 'Token verification failed');
