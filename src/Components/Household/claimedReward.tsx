@@ -1,107 +1,128 @@
-import React, { useState } from "react";
-import FilterPanel from "../common/filterPanel";
+import React, { useMemo, useState } from "react";
+import Table from "../common/Table";
 import SearchBar from "../common/SearchBar";
+import FilterPanel from "../common/filterPanel";
+import useClaimedReward from "../../hooks/household/useClaimedReward";
+// removed: import MarkConfirmModal from "./claimConfirmModal";
+import ClaimViewModal from "./claimViewModal";
+
+const formatDate = (v?: string) => (v ? String(v).split("T")[0] : "-----");
 
 const ClaimedRewards: React.FC = () => {
+  const { data, loading, error, refresh } = useClaimedReward();
   const [searchTerm, setSearchTerm] = useState("");
 
-  const rewardsData = [
+  // view modal state
+  const [selectedRowForView, setSelectedRowForView] = useState<any | null>(null);
+
+  // removed confirm modal state
+  const [isMarking, setIsMarking] = useState(false);
+
+  const filteredData = useMemo(() => {
+    if (!searchTerm.trim()) return data;
+    const q = searchTerm.toLowerCase();
+    return data.filter((item) =>
+      [
+        item.Fullname,
+        item.Item,
+        item.Status,
+        item.Redemption_code,
+        String(item.Total_points ?? ""),
+        String(item.Redeemed_at ?? item.Created_at ?? ""),
+        item.Email,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase()
+        .includes(q)
+    );
+  }, [data, searchTerm]);
+
+  const columns = [
+    { key: "Fullname", label: "Name" },
+    { key: "Item", label: "Reward" },
+    { key: "Total_points", label: "Points Used", render: (v: any) => v ?? 0 },
+    { key: "Redemption_code", label: "Code" },
     {
-      id: 1,
-      name: "Krisha Mae Alcaide",
-      reward: "1 kilo of Rice",
-      points: "100pts",
-      code: "112103",
-      status: "Unclaimed",
-      date: "....",
+      key: "Status",
+      label: "Status",
+      render: (v: any) => (
+        <span
+          className={`px-3 py-1 rounded-full text-xs font-medium ${
+            v === "Claimed" ? "bg-[#D9EBD9] text-[#355842]" : "bg-gray-200 text-gray-600"
+          }`}
+        >
+          {v}
+        </span>
+      ),
     },
     {
-      id: 2,
-      name: "Joemen Barrios",
-      reward: "1 kilo of Rice",
-      points: "100pts",
-      code: "112103",
-      status: "Claimed",
-      date: "10/08/25",
+      key: "Created_at",
+      label: "Date Generated",
+      render: (v: any) => (v ? String(v).split("T")[0] : ""),
+    },
+    {
+      key: "Redeemed_at",
+      label: "Date Claimed",
+      render: (v: any) => formatDate(v),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      render: (_: any, row: any) => (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedRowForView(row);
+            }}
+            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
+          >
+            View
+          </button>
+        </div>
+      ),
     },
   ];
-
-  const filteredData = rewardsData.filter((item) =>
-    [item.name, item.reward, item.status, item.code, item.points, item.date]
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
 
   return (
     <div className="w-full px-6 py-4">
       <div className="flex justify-between items-center mb-4">
-        {/* Search Input */}
         <SearchBar
           value={searchTerm}
           onChange={setSearchTerm}
           placeholder="Search claimed rewards..."
           className="max-w-[100vh] flex-grow"
         />
-        <FilterPanel />
+        <div className="ml-4">
+          <FilterPanel />
+        </div>
       </div>
 
-      {/* 🧾 Table Section */}
       <div className="overflow-x-auto bg-white border border-gray-200 rounded-lg">
-        <table className="min-w-full text-sm text-left text-gray-700">
-          <thead className="bg-[#E6F0E6] text-[#355842] font-medium">
-            <tr>
-              <th className="px-6 py-3 w-10">#</th>
-              <th className="px-6 py-3">Name</th>
-              <th className="px-6 py-3">Reward</th>
-              <th className="px-6 py-3">Points Used</th>
-              <th className="px-6 py-3">Code</th>
-              <th className="px-6 py-3">Status</th>
-              <th className="px-6 py-3">Date Claimed</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredData.length > 0 ? (
-              filteredData.map((item, index) => (
-                <tr
-                  key={index}
-                  className="border-t border-gray-100 hover:bg-[#f9fbf9] transition"
-                >
-                  <td className="px-6 py-3">{item.id}</td>
-                  <td className="px-6 py-3">{item.name}</td>
-                  <td className="px-6 py-3">{item.reward}</td>
-                  <td className="px-6 py-3">{item.points}</td>
-                  <td className="px-6 py-3">{item.code}</td>
-
-                  <td className="px-6 py-3">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        item.status === "Claimed"
-                          ? "bg-[#D9EBD9] text-[#355842]"
-                          : "bg-gray-200 text-gray-600"
-                      }`}
-                    >
-                      {item.status}
-                    </span>
-                  </td>
-
-                  <td className="px-6 py-3">{item.date}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={7}
-                  className="px-6 py-6 text-center text-gray-500 italic"
-                >
-                  No matching results found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        <Table
+          columns={columns}
+          data={filteredData}
+          emptyMessage={loading ? "Loading..." : "No claimed rewards found."}
+          enablePagination={true}
+          initialPageSize={10}
+          className=""
+        />
       </div>
+
+      {error && <div className="mt-3 text-red-600">Error: {error}</div>}
+
+      {/* View modal (new file) */}
+      <ClaimViewModal
+        isOpen={!!selectedRowForView}
+        onClose={() => setSelectedRowForView(null)}
+        row={selectedRowForView}
+        onMarked={() => {
+          setIsMarking(false);
+          setSelectedRowForView(null);
+          refresh();
+        }}
+      />
     </div>
   );
 };
