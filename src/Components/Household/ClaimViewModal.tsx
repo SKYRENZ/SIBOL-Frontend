@@ -144,38 +144,26 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
       {!row ? null : (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            <div>
-              <div className="text-xs text-gray-500">Name</div>
-              <div className="font-medium">{row.Fullname ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Email</div>
-              <div className="font-medium">{row.Email ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Reward</div>
-              <div className="font-medium">{row.Item ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Points Used</div>
-              <div className="font-medium">{row.Total_points ?? 0}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Code</div>
-              <div className="font-medium">{row.Redemption_code ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Status</div>
-              <div className="font-medium">{row.Status ?? "—"}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Date Generated</div>
-              <div className="font-medium">{formatDate(row.Created_at)}</div>
-            </div>
-            <div>
-              <div className="text-xs text-gray-500">Date Claimed</div>
-              <div className="font-medium">{formatDate(row.Redeemed_at)}</div>
-            </div>
+            {[
+              ["Name", row.Fullname ?? "—"],
+              ["Email", row.Email ?? "—"],
+              ["Reward", row.Item ?? "—"],
+              ["Points Used", row.Total_points ?? 0],
+              ["Code", row.Redemption_code ?? "—"],
+              ["Status", row.Status ?? "—"],
+              ["Date Generated", formatDate(row.Created_at)],
+              ["Date Claimed", formatDate(row.Redeemed_at)],
+            ].map(([label, value]) => (
+              <div key={String(label)}>
+                <div className="text-xs text-gray-500 mb-1">{label}</div>
+                <div 
+                  className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 font-medium"
+                  style={{ borderRadius: '8px' }}
+                >
+                   {value}
+                 </div>
+               </div>
+             ))}
           </div>
 
           <div>
