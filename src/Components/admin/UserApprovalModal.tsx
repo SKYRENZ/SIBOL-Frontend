@@ -14,6 +14,25 @@ interface Props {
   onReject: (a: Account, reason?: string) => void;
 }
 
+// small date formatter used in this file (same style as ClaimViewModal)
+const formatDate = (v?: string) => {
+  if (!v) return "-";
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) {
+    const iso = String(v).split("T")[0];
+    const parts = iso.split("-");
+    if (parts.length === 3) {
+      const [y, m, day] = parts.map((p) => Number(p));
+      const dd = new Date(y, (m || 1) - 1, day || 1);
+      if (!Number.isNaN(dd.getTime())) {
+        return dd.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+      }
+    }
+    return String(v);
+  }
+  return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+};
+
 const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onApprove, onReject }) => {
   const [loading, setLoading] = useState(false);
   const [account, setAccount] = useState<any | null>(null);
@@ -62,6 +81,17 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
     }
     return list;
   }, [account]);
+  // prepare labeled fields for display (apply same style as ClaimViewModal)
+  const fields: [string, any][] = account
+    ? [
+        ["Name", `${account.FirstName ?? ""} ${account.LastName ?? ""}`.trim() || "-"],
+        ["Email", account.Email ?? "-"],
+        ["Username", account.Username ?? "-"],
+        ["Barangay / Area", account.Barangay_Name ?? account.Area_Name ?? "-"],
+        ["Role", account.RoleName ?? account.Roles ?? "-"],
+        ["Created", account.Created_at ? formatDate?.(account.Created_at) ?? String(account.Created_at).split("T")[0] : "-"],
+      ]
+    : [];
 
   const handleDownloadAttachment = (attachment: any) => {
     if (!attachment?.File_path) return;
@@ -126,39 +156,20 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         ) : (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <div className="text-xs text-gray-500">Name</div>
-                <div className="font-medium">{`${account.FirstName ?? ""} ${account.LastName ?? ""}`.trim() || "-"}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Email</div>
-                <div className="font-medium">{account.Email ?? "-"}</div>
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-500">Username</div>
-                <div className="font-medium">{account.Username ?? "-"}</div>
-              </div>
-              <div>
-                <div className="text-xs text-gray-500">Barangay / Area</div>
-                <div className="font-medium">{account.Barangay_Name ?? account.Area_Name ?? "-"}</div>
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-500">Role</div>
-                <div className="font-medium">{account.RoleName ?? account.Roles ?? "-"}</div>
-              </div>
-
-              <div>
-                <div className="text-xs text-gray-500">Created</div>
-                <div className="font-medium">{account.Created_at ? String(account.Created_at).split("T")[0] : "-"}</div>
-              </div>
+              {fields.map(([label, value]) => (
+                <div key={label}>
+                  <div className="text-sm text-gray-700 mb-1 font-semibold">{label}</div>
+                  <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 font-normal" style={{ borderRadius: "8px" }}>
+                    {value}
+                  </div>
+                </div>
+              ))}
             </div>
 
-            {account.AttachmentUrl || account.AttachmentFileName ? (
-              <div>
-                <div className="text-xs text-gray-500">Attachment</div>
-                <div className="mt-2">
+            <div>
+              <div className="text-sm text-gray-700 mb-1 font-semibold">Attachments</div>
+              <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
+                <div className="text-sm text-gray-800 font-normal">
                   <AttachmentsList
                     attachments={attachments}
                     onView={(att) => setViewerAttachment(att)}
@@ -167,7 +178,7 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
                   />
                 </div>
               </div>
-            ) : null}
+            </div>
 
             {/* Reject reason input (required to enable Reject) */}
             <div>
