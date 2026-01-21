@@ -31,14 +31,15 @@ export default function UserApproval({ accounts, loading, error, onAccept, onRej
     { key: "Email", label: "Email" },
     {
       key: "actions",
-      label: "Actions",
+      label: "Actions", // must be string to match Column<Account> type
       render: (_: any, row: Account) => (
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-start gap-2">
           <button
             onClick={() => openModal((row as any).Pending_id)}
-            className="px-3 py-1 text-xs font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 transition"
+            className="py-1 text-sm font-semibold text-white bg-green-900 rounded-lg hover:bg-green-700 transition focus:outline-none"
+            style={{ borderRadius: "5px" }}
           >
-            View
+            View Details
           </button>
         </div>
       ),
