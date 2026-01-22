@@ -71,7 +71,6 @@ const MascotPanel: React.FC<MascotPanelProps> = ({ user, onHelpClick }) => {
         >
           How may I help?
         </button>
-
       </div>
     </aside>
   );

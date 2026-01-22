@@ -18,14 +18,11 @@ const defaultFAQs = [
 ];
 
 const ChatSupport: React.FC = () => {
-  // Tracks if user has clicked "How may I help?" or a FAQ
   const [isChatMode, setIsChatMode] = useState(false);
-  // Optional first user message (FAQ clicked)
   const [initialUserMessage, setInitialUserMessage] = useState<string | undefined>(undefined);
 
-  // Handler for clicking "How may I help?" (shows suggested FAQs)
   const handleHelpClick = () => {
-    setInitialUserMessage(undefined); // no initial FAQ
+    setInitialUserMessage(undefined); 
     setIsChatMode(true);
   };
 
@@ -41,7 +38,6 @@ const ChatSupport: React.FC = () => {
 
       <main className="min-h-[calc(100vh-80px)] bg-[#f4f9f4] px-4 sm:px-6 pt-24 pb-8">
         <div className="relative mx-auto w-full max-w-[1400px] bg-white rounded-[28px] shadow-sm overflow-hidden flex flex-col lg:flex-row flex-1">
-
 
           {/* LEFT PANEL */}
           <section className="relative lg:w-[45%] w-full">

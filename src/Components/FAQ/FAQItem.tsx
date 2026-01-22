@@ -19,6 +19,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ onSelectFAQ }) => {
         Frequently Asked Questions:
       </h3>
 
+
       <div className="space-y-4">
         {faqs.map((q, i) => (
           <button
