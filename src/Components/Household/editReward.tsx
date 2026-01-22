@@ -321,7 +321,8 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
         <div className="flex justify-end gap-3 mt-8">
           <button
             type="submit"
-            className="px-8 py-3 bg-[#2d5f4a] hover:bg-[#234a39] text-white font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+            className="px-4 py-2 text-sm bg-[#2d5f4a] hover:bg-[#234a39] text-white font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed min-w-[96px] rounded-[6px]"
+            style={{ borderRadius: '6px' }}
             disabled={loading}
           >
             {loading ? (
