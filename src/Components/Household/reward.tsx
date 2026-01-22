@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useRewards, useArchiveReward } from "../../hooks/household/useRewardHooks";
 import type { Reward } from "../../services/rewardService";
 import { Gift, Archive, RotateCcw, Sparkles, Edit2, ImageIcon } from "lucide-react";
@@ -12,23 +12,16 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
   const [showArchived, setShowArchived] = useState(false);
   const { rewards, loading, error, refetch } = useRewards(showArchived);
   const { archiveReward, restoreReward, loading: archiveLoading } = useArchiveReward();
-  const [rewardImages, setRewardImages] = useState<Record<number, string>>({});
-
-  // Load images from localStorage
-  useEffect(() => {
-    const storedImages = JSON.parse(localStorage.getItem('rewardImages') || '{}');
-    setRewardImages(storedImages);
-  }, [rewards]);
 
   const handleArchive = async (id: number) => {
     if (!confirm("Are you sure you want to archive this reward?")) return;
-    
+
     try {
       await archiveReward(id);
       refetch();
     } catch (err: any) {
       console.error("Failed to archive reward:", err);
-      alert(err?.message || 'Failed to archive reward');
+      alert(err?.message || "Failed to archive reward");
     }
   };
 
@@ -38,25 +31,18 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
       refetch();
     } catch (err: any) {
       console.error("Failed to restore reward:", err);
-      alert(err?.message || 'Failed to restore reward');
+      alert(err?.message || "Failed to restore reward");
     }
-  };
-
-  // Get image URL - prioritize localStorage, fallback to Image_url from backend
-  const getImageUrl = (reward: Reward): string | null => {
-    if (reward.Reward_id && rewardImages[reward.Reward_id]) {
-      return rewardImages[reward.Reward_id];
-    }
-    return reward.Image_url || null;
   };
 
   // Apply filters based on status (Active/Archived)
-  const filteredData = filters.length === 0 
-    ? rewards 
-    : rewards.filter(reward => {
-        const status = reward.IsArchived ? "Archived" : "Active";
-        return filters.includes(status);
-      });
+  const filteredData =
+    filters.length === 0
+      ? rewards
+      : rewards.filter((reward) => {
+          const status = reward.IsArchived ? "Archived" : "Active";
+          return filters.includes(status);
+        });
 
   if (loading) {
     return (
@@ -103,15 +89,13 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filteredData.map((reward) => {
-            const imageUrl = getImageUrl(reward);
-            
+            const imageUrl = reward.Image_url || null;
+
             return (
               <div
                 key={reward.Reward_id}
                 className={`group relative bg-white rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 overflow-hidden border-2 ${
-                  reward.IsArchived 
-                    ? 'border-gray-200 opacity-75' 
-                    : 'border-transparent hover:border-green-100'
+                  reward.IsArchived ? "border-gray-200 opacity-75" : "border-transparent hover:border-green-100"
                 }`}
               >
                 {/* Status Badge */}
@@ -131,14 +115,10 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
 
                 {/* Card Content */}
                 <div className="p-6">
-                  {/* Image Placeholder */}
+                  {/* Image */}
                   <div className="w-full h-40 mb-4 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center overflow-hidden">
                     {imageUrl ? (
-                      <img 
-                        src={imageUrl} 
-                        alt={reward.Item}
-                        className="w-full h-full object-cover"
-                      />
+                      <img src={imageUrl} alt={reward.Item} className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex flex-col items-center justify-center text-gray-400">
                         <ImageIcon className="w-12 h-12 mb-2" />
@@ -191,7 +171,7 @@ const RewardTab: React.FC<RewardTabProps> = ({ filters, onEditReward }) => {
                         Edit
                       </button>
                     )}
-                    
+
                     {reward.IsArchived ? (
                       <button
                         onClick={() => handleRestore(reward.Reward_id!)}

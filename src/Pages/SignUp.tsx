@@ -4,6 +4,10 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { register, resendVerification, clearError, clearSuccess } from '../store/slices/authSlice';
 import { isAuthenticated } from '../services/authService';
 import api from '../services/apiClient';
+import AttachmentsUpload from '../Components/maintenance/attachments/AttachmentsUpload';
+
+type BarangayItem = { id: number; name: string };
+type BarangaysResponse = { success: boolean; barangays: BarangayItem[] };
 
 const SignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -26,9 +30,16 @@ const SignUp: React.FC = () => {
   const [isSSO, setIsSSO] = useState(false);
   const [isBarangayOpen, setIsBarangayOpen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  
+
+  // ✅ NEW: attachment state (Barangay only)
+  const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
+  const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null);
+  const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
+
   const barangayRef = useRef<HTMLDivElement>(null);
   const signupImage = new URL('../assets/images/lilisignup.png', import.meta.url).href;
+
+  const isBarangayRoleSelected = String(role) === '2'; // role select uses "1"/"2"
 
   // Check if user is already logged in
   useEffect(() => {
@@ -57,7 +68,7 @@ const SignUp: React.FC = () => {
     let cancelled = false;
     async function loadBarangays() {
       try {
-        const res = await api.get('/api/auth/barangays');
+        const res = await api.get<BarangaysResponse>('/api/auth/barangays');
         if (!cancelled && res.data?.success && Array.isArray(res.data.barangays)) {
           setBarangays(res.data.barangays);
         }
@@ -88,6 +99,28 @@ const SignUp: React.FC = () => {
     };
   }, [dispatch]);
 
+  useEffect(() => {
+    // cleanup object URL
+    return () => {
+      if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+    };
+  }, [attachmentPreviewUrl]);
+
+  // If role changes away from Barangay, clear attachment
+  useEffect(() => {
+    if (!isBarangayRoleSelected) {
+      if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+      setAttachmentPreviewUrl(null);
+      setAttachmentFile(null);
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next.attachment;
+        return next;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isBarangayRoleSelected]);
+
   const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
   const nameRegex = /^[A-Za-z\s.'-]+$/;
 
@@ -117,6 +150,11 @@ const SignUp: React.FC = () => {
       else if (isNaN(parseInt(barangay)) || parseInt(barangay) <= 0) newErrors.barangay = 'Barangay must be a valid number';
       else delete newErrors.barangay;
     }
+    if (field === 'attachment') {
+      if (isBarangayRoleSelected && !attachmentFile) newErrors.attachment = 'Valid ID image is required';
+      else delete newErrors.attachment;
+    }
+
     setErrors(newErrors);
     setTouched(prev => ({ ...prev, [field]: true }));
   };
@@ -131,41 +169,69 @@ const SignUp: React.FC = () => {
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Invalid email";
     if (!barangay.trim()) newErrors.barangay = "Barangay is required";
-    
+    // ✅ Barangay requires attachment
+    if (isBarangayRoleSelected && !attachmentFile) {
+      newErrors.attachment = 'Valid ID image is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!validateForm()) return;
 
-    const roleMap: Record<string, number> = { Admin: 1, User: 2 };
-    const roleId = typeof role === 'string' ? roleMap[role] ?? Number(role) : role;
-
-    const payload = {
-      firstName,
-      lastName,
-      barangayId: Number(barangay),
-      email,
-      roleId: Number(roleId),
-      isSSO: Boolean(isSSO),
-    };
+    const roleId = Number(role);
 
     try {
+      let payload: any;
+
+      if (isBarangayRoleSelected) {
+        // ✅ Send multipart only when Barangay
+        const form = new FormData();
+        form.append('firstName', firstName);
+        form.append('lastName', lastName);
+        form.append('barangayId', String(Number(barangay)));
+        form.append('email', email);
+        form.append('roleId', String(roleId));
+        form.append('isSSO', String(Boolean(isSSO)));
+        form.append('attachment', attachmentFile as File); // field name must be "attachment"
+
+        payload = form;
+      } else {
+        // ✅ Non-barangay: JSON (no attachment)
+        payload = {
+          firstName,
+          lastName,
+          barangayId: Number(barangay),
+          email,
+          roleId: Number(roleId),
+          isSSO: Boolean(isSSO),
+        };
+      }
+
       const result = await dispatch(register(payload)).unwrap();
-      
+
       if (result.success) {
         setPendingEmail(null);
+
+        const params: Record<string, string> = {
+          email,
+        };
+
+        if (isSSO) params.sso = 'true';
+        if (result.username) params.username = result.username; // ✅ only include if defined
+
+        const qs = new URLSearchParams(params).toString();
+
         if (isSSO) {
-          navigate(`/pending-approval?email=${encodeURIComponent(email)}&sso=true&username=${encodeURIComponent(result.username)}`);
+          navigate(`/pending-approval?${qs}`);
         } else {
-          navigate(`/email-verification?email=${encodeURIComponent(email)}&username=${encodeURIComponent(result.username)}`);
+          navigate(`/email-verification?${qs}`);
         }
       }
     } catch (error: any) {
-      // Error is in Redux state
       if (error?.email) setPendingEmail(error.email);
     }
   };
@@ -292,15 +358,15 @@ const SignUp: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 Barangay
               </label>
+
               <button
                 type="button"
                 onClick={() => setIsBarangayOpen(!isBarangayOpen)}
                 onBlur={() => validateField('barangay')}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all text-left flex justify-between items-center bg-white hover:bg-gray-50 ${
-                  errors.barangay 
-                    ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
-                    : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                }`}
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border text-sm sm:text-base outline-none transition-all text-left flex justify-between items-center bg-white hover:bg-gray-50
+                  focus:outline-none focus:ring-0 focus:ring-offset-0
+                  ${errors.barangay ? 'border-red-600' : 'border-gray-200'}
+                `}
               >
                 <span className={selectedBarangay ? 'text-gray-900' : 'text-gray-400'}>
                   {selectedBarangay ? selectedBarangay.name : 'Select Barangay'}
@@ -314,15 +380,16 @@ const SignUp: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
-              
+
               {isBarangayOpen && (
-                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 shadow-lg max-h-48 overflow-y-auto rounded-none">
                   {barangays.map((b) => (
                     <button
                       key={b.id}
                       type="button"
                       onClick={() => handleBarangaySelect(b.id, b.name)}
-                      className="w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base hover:bg-gray-100 transition-colors"
+                      className="w-full px-3 sm:px-4 py-2 text-left text-sm sm:text-base bg-white text-gray-900 hover:bg-gray-100
+                               focus:outline-none focus:ring-0 focus:ring-offset-0"
                     >
                       {b.name}
                     </button>
@@ -332,6 +399,36 @@ const SignUp: React.FC = () => {
               
               {errors.barangay && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.barangay}</div>}
             </div>
+
+            {/* ✅ Attachment UI (Barangay only) */}
+            {isBarangayRoleSelected && (
+              <div>
+                <AttachmentsUpload
+                  label="Upload Valid ID (Image)"
+                  required
+                  disabled={isLoading}
+                  accept="image/*"
+                  multiple={false}
+                  itemLayout="thumb+name"
+                  files={attachmentFile ? [attachmentFile] : []}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return; // keep previous if user cancels
+                    setAttachmentFile(file);
+                    setTouched((prev) => ({ ...prev, attachment: true }));
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next.attachment;
+                      return next;
+                    });
+                  }}
+                  onRemove={() => {
+                    setAttachmentFile(null);
+                    setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
+                  }}
+                />
+              </div>
+            )}
 
             {/* Error Message */}
             {authError && (

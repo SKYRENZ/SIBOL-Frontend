@@ -6,10 +6,11 @@ export interface Reward {
   Description?: string;
   Points_cost: number;
   Quantity: number;
-  Image_url?: string;
   IsArchived?: boolean;
-  Created_at?: string;
-  Updated_at?: string;
+
+  // ✅ add these (must exist in DB + backend response)
+  Image_url?: string | null;
+  Image_public_id?: string | null;
 }
 
 export interface RewardTransaction {
@@ -47,55 +48,95 @@ export const listRewards = async (archived?: boolean): Promise<Reward[]> => {
   let url = '/api/rewards';
   if (archived === true) url += '?archived=true';
   else if (archived === false) url += '?archived=false';
-  
-  const response = await api.get(url);
+
+  const response = await api.get<Reward[]>(url);
   return response.data;
 };
 
 // Get single reward by ID
 export const getRewardById = async (id: number): Promise<Reward> => {
-  const response = await api.get(`/api/rewards/${id}`);
+  const response = await api.get<Reward>(`/api/rewards/${id}`);
   return response.data;
 };
 
 // Create new reward (Admin only)
-export const createReward = async (reward: Omit<Reward, 'Reward_id' | 'IsArchived'>): Promise<{ message: string; Reward_id: number }> => {
-  const response = await api.post('/api/rewards', reward);
+export const createReward = async (
+  reward: Omit<Reward, 'Reward_id' | 'IsArchived'>
+): Promise<{ message: string; Reward_id: number }> => {
+  const response = await api.post<{ message: string; Reward_id: number }>('/api/rewards', reward);
   return response.data;
 };
 
 // Update existing reward (Admin only)
 export const updateReward = async (id: number, fields: Partial<Reward>): Promise<{ message: string }> => {
-  const response = await api.put(`/api/rewards/${id}`, fields);
+  const response = await api.put<{ message: string }>(`/api/rewards/${id}`, fields);
   return response.data;
 };
 
 // Archive reward (Admin only)
 export const archiveReward = async (id: number): Promise<{ message: string }> => {
-  const response = await api.patch(`/api/rewards/${id}/archive`);
+  const response = await api.patch<{ message: string }>(`/api/rewards/${id}/archive`);
   return response.data;
 };
 
 // Restore archived reward (Admin only)
 export const restoreReward = async (id: number): Promise<{ message: string }> => {
-  const response = await api.patch(`/api/rewards/${id}/restore`);
+  const response = await api.patch<{ message: string }>(`/api/rewards/${id}/restore`);
   return response.data;
 };
 
 // Redeem a reward (Household)
 export const redeemReward = async (payload: RedeemRewardPayload): Promise<RedeemRewardResponse> => {
-  const response = await api.post('/api/rewards/redeem', payload);
+  const response = await api.post<RedeemRewardResponse>('/api/rewards/redeem', payload);
   return response.data;
 };
 
 // Validate redemption code
-export const validateRedemptionCode = async (code: string): Promise<RewardTransaction & { Item?: string; Points_cost?: number }> => {
-  const response = await api.get(`/api/rewards/code/${code}`);
+export const validateRedemptionCode = async (
+  code: string
+): Promise<RewardTransaction & { Item?: string; Points_cost?: number }> => {
+  const response = await api.get<RewardTransaction & { Item?: string; Points_cost?: number }>(
+    `/api/rewards/code/${code}`
+  );
   return response.data;
 };
 
 // Mark transaction as redeemed (Staff only)
 export const markTransactionRedeemed = async (transactionId: number): Promise<{ message: string }> => {
-  const response = await api.patch(`/api/rewards/transaction/${transactionId}/redeemed`);
+  const response = await api.patch<{ message: string }>(`/api/rewards/transaction/${transactionId}/redeemed`);
   return response.data;
+};
+
+// ----------------- attachments -----------------
+export const uploadClaimedRewardAttachment = async (
+  file: File,
+  transactionId: number
+): Promise<any> => {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("reward_transaction_id", String(transactionId));
+  const res = await api.post<{ attachment: any }>("/api/upload/reward-attachment", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data.attachment;
+};
+
+export const uploadRewardImage = async (file: File): Promise<{ imageUrl: string; publicId: string }> => {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await api.post<{ imageUrl: string; publicId: string }>("/api/upload/reward-image", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
+
+export const listRewardAttachments = async (transactionId: number): Promise<any[]> => {
+  const res = await api.get<any[]>(`/api/rewards/transaction/${transactionId}/attachments`);
+  return res.data ?? [];
+};
+
+export const deleteRewardAttachment = async (attachmentId: number): Promise<{ message: string }> => {
+  const res = await api.delete<{ message: string }>(`/api/rewards/attachment/${attachmentId}`);
+  return res.data;
 };

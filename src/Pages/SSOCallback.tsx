@@ -12,8 +12,8 @@ const SSOCallback: React.FC = () => {
         const queryParams = new URLSearchParams(location.search);
         const user = queryParams.get('user');
         const auth = queryParams.get('auth');
-        const errorParam = queryParams.get('error');
-        const errorMessage = queryParams.get('message');
+        const errorParam = queryParams.get('error');   // error code
+        const errorMessage = queryParams.get('message'); // human message
         const email = queryParams.get('email');
         const sso = queryParams.get('sso');
         const username = queryParams.get('username');
@@ -22,32 +22,33 @@ const SSOCallback: React.FC = () => {
 
         const isPopup = window.opener && !window.opener.closed;
 
-        console.log('SSO Callback params:', { 
-          user: user ? 'present' : 'null', 
-          auth, 
-          errorParam, 
-          errorMessage, 
+        console.log('SSO Callback params:', {
+          user: user ? 'present' : 'null',
+          auth,
+          errorParam,
+          errorMessage,
           email,
-          isPopup 
+          isPopup
         });
 
-        // ✅ Handle authentication failure
+        // ✅ Handle authentication failure (prefer human message)
         if (auth === 'fail' || errorParam) {
-          const error = errorParam || errorMessage || 'Authentication failed';
-          setMessage(`Error: ${error}`);
-          console.error('SSO Error:', error);
-          
+          const code = errorParam || 'auth_failed';
+          const msg = errorMessage || errorParam || 'Authentication failed';
+
+          setMessage(`Error: ${msg}`);
+          console.error('SSO Error:', { code, msg });
+
           if (isPopup) {
-            window.opener.postMessage({
-              type: 'SSO_ERROR',
-              message: error
-            }, window.location.origin);
-            setTimeout(() => window.close(), 2000);
+            window.opener.postMessage(
+              { type: 'SSO_ERROR', code, message: msg },
+              window.location.origin
+            );
+            setTimeout(() => window.close(), 1500);
           } else {
-            // Not a popup - redirect directly
             setTimeout(() => {
               window.location.href = '/login';
-            }, 2000);
+            }, 1500);
           }
           return;
         }
@@ -55,25 +56,23 @@ const SSOCallback: React.FC = () => {
         // ✅ Handle successful authentication
         if (auth === 'success' && user) {
           try {
-            const parsedUser = JSON.parse(decodeURIComponent(user));
-            console.log('SSO Success - User:', parsedUser);
-            
-            // ✅ Store user in localStorage (cookie is already set by backend)
+            let parsedUser: any;
+            try {
+              parsedUser = JSON.parse(user);
+            } catch {
+              parsedUser = JSON.parse(decodeURIComponent(user));
+            }
+
             localStorage.setItem('user', JSON.stringify(parsedUser));
-            
+
             if (isPopup) {
-              // ✅ POPUP: Send message to parent window
               setMessage('Success! Redirecting...');
-              
-              window.opener.postMessage({
-                type: 'SSO_SUCCESS',
-                user: parsedUser
-              }, window.location.origin);
-              
-              // Close popup after sending message
+              window.opener.postMessage(
+                { type: 'SSO_SUCCESS', user: parsedUser },
+                window.location.origin
+              );
               setTimeout(() => window.close(), 500);
             } else {
-              // ✅ DIRECT ACCESS: Redirect to dashboard
               setMessage('Success! Redirecting to dashboard...');
               window.location.href = '/dashboard';
             }
@@ -82,12 +81,9 @@ const SSOCallback: React.FC = () => {
             console.error('Failed to parse user:', e);
             setMessage('Error parsing user data');
             setTimeout(() => {
-              if (isPopup) {
-                window.close();
-              } else {
-                window.location.href = '/login';
-              }
-            }, 2000);
+              if (isPopup) window.close();
+              else window.location.href = '/login';
+            }, 1500);
           }
           return;
         }
@@ -164,7 +160,7 @@ const SSOCallback: React.FC = () => {
           } else {
             window.location.href = '/login';
           }
-        }, 2000);
+        }, 1500);
       }
     };
 

@@ -14,6 +14,7 @@ const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({});
+  const [ssoError, setSsoError] = useState<string | null>(null); // ✅ ADD
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -57,9 +58,9 @@ const Login: React.FC = () => {
           navigate('/dashboard', { replace: true });
         }
       } else if (event.data?.type === 'SSO_ERROR') {
-        const error = event.data?.message || 'SSO authentication failed';
-        console.error('SSO Error:', error);
-        // Error will show in UI via Redux
+        const msg = event.data?.message || event.data?.code || 'SSO authentication failed';
+        setSsoError(msg); // ✅ SHOW IT
+        console.error('SSO Error:', msg);
       }
     };
 
@@ -73,6 +74,7 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSsoError(null); // ✅ clear SSO error when trying normal login
     setTouched({ username: true, password: true });
 
     if (!isValid) return;
@@ -202,9 +204,9 @@ const Login: React.FC = () => {
             </div>
 
             {/* Server Error */}
-            {authError && (
+            {(ssoError || authError) && (
               <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 p-2 sm:p-3 rounded-lg">
-                {authError}
+                {ssoError || authError}
               </div>
             )}
 
