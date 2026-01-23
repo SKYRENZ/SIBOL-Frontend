@@ -65,12 +65,12 @@ const MascotPanel: React.FC<MascotPanelProps> = ({ user, onHelpClick }) => {
 
         {/* CTA BUTTON */}
         <button
-          className="bg-[#a8c3ad] text-white text-sm px-7 py-2 rounded-full shadow-md hover:shadow-lg hover:bg-[#98b89e] transition focus:outline-none focus:ring-0
-             active:outline-none"
+          className="bg-[#a8c3ad] text-white text-sm px-7 py-2 rounded-full shadow-md hover:shadow-lg hover:bg-[#98b89e] transition "
           onClick={onHelpClick}
         >
           How may I help?
         </button>
+
       </div>
     </aside>
   );
