@@ -3,12 +3,9 @@ import Header from "../Components/Header";
 import MascotPanel from "../Components/FAQ/MascotPanel";
 import FAQItem from "../Components/FAQ/FAQItem";
 import ChatPanel from "../Components/FAQ/ChatPanel";
+import ChatHistory from "../Components/FAQ/ChatHistory";
 
-const user = {
-  firstName: "Laurenz",
-  lastName: "Listangco",
-};
-
+const user = { firstName: "Laurenz", lastName: "Listangco" };
 const defaultFAQs = [
   "How long does the stage 1 process usually take?",
   "How do I properly segregate food waste?",
@@ -17,58 +14,114 @@ const defaultFAQs = [
   "Is the system safe for households?",
 ];
 
+interface ChatSummary {
+  id: number;
+  title?: string;
+  messages: { sender: "user" | "bot"; text: string }[];
+}
+
 const ChatSupport: React.FC = () => {
   const [isChatMode, setIsChatMode] = useState(false);
+  const [activeChatId, setActiveChatId] = useState<number | null>(null);
+  const [chats, setChats] = useState<ChatSummary[]>([]);
   const [initialUserMessage, setInitialUserMessage] = useState<string | undefined>(undefined);
 
-  const handleHelpClick = () => {
-    setInitialUserMessage(undefined); 
+  const startNewChat = (message?: string) => {
+    const newChat: ChatSummary = {
+      id: Date.now(),
+      title: message,
+      messages: message
+        ? [{ sender: "user", text: message }]
+        : [],
+    };
+    setChats((prev) => [...prev, newChat]);
+    setActiveChatId(newChat.id);
+    setInitialUserMessage(message);
     setIsChatMode(true);
   };
 
-  // Handler for clicking a FAQ (user message)
+  const handleHelpClick = () => startNewChat();
+
   const handleSelectFAQ = (faq: string) => {
-    setInitialUserMessage(faq); // this FAQ becomes first user message
+    if (activeChatId) {
+      // Append to existing chat
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === activeChatId
+            ? {
+                ...chat,
+                messages: [
+                  ...chat.messages,
+                  { sender: "user", text: faq },
+                  {
+                    sender: "bot",
+                    text: "Thanks for asking! Here’s what you need to know.",
+                  },
+                ],
+              }
+            : chat
+        )
+      );
+      setInitialUserMessage(faq); // update chat panel
+    } else {
+      startNewChat(faq);
+    }
     setIsChatMode(true);
+  };
+
+  const handleSelectChatHistory = (chatId: number) => {
+    setActiveChatId(chatId);
+    setInitialUserMessage(undefined);
+    setIsChatMode(true);
+  };
+
+  const handleEndConversation = () => {
+    setIsChatMode(false);
+    setActiveChatId(null);
+    setInitialUserMessage(undefined);
   };
 
   return (
     <>
       <Header />
 
-      <main className="min-h-[calc(100vh-80px)] bg-[#f4f9f4] px-4 sm:px-6 pt-24 pb-8">
-        <div className="relative mx-auto w-full max-w-[1400px] bg-white rounded-[28px] shadow-sm overflow-hidden flex flex-col lg:flex-row flex-1">
-
+      <main className="min-h-screen bg-[#f4f9f4] px-4 sm:px-6 pt-24 pb-8">
+        <div className="relative mx-auto w-full max-w-[1400px] bg-white rounded-[28px] shadow-sm flex flex-col lg:flex-row h-[calc(100vh-6rem)] overflow-hidden">
+          
           {/* LEFT PANEL */}
-          <section className="relative lg:w-[45%] w-full">
+          <section className="relative lg:w-[45%] w-full h-full overflow-auto">
             {!isChatMode ? (
               <MascotPanel user={user} onHelpClick={handleHelpClick} />
             ) : (
-              <FAQItem onSelectFAQ={handleSelectFAQ} />
+              <ChatHistory
+                chats={chats}
+                activeChatId={activeChatId}
+                onSelectChat={handleSelectChatHistory}
+              />
             )}
           </section>
 
           {/* CURVE DIVIDER */}
-          <div className="hidden lg:block absolute left-[40%] top-0 bottom-0 translate-x-[-1px] pointer-events-none">
+          <div className="hidden lg:block absolute left-[45%] top-0 h-full pointer-events-none">
             <img
               src={new URL("../assets/images/border.svg", import.meta.url).href}
               className="h-full w-auto"
-              alt=""
+              alt="divider"
             />
           </div>
 
           {/* RIGHT PANEL */}
-          <section className="flex-1 bg-[#e6efe6]">
-            {isChatMode ? (
+          <section className="flex-1 bg-[#e6efe6] h-full overflow-auto">
+            {isChatMode && activeChatId ? (
               <ChatPanel
                 initialUserMessage={initialUserMessage}
                 suggestedFAQs={defaultFAQs}
+                onEndConversation={handleEndConversation}
               />
             ) : (
               <FAQItem onSelectFAQ={handleSelectFAQ} />
             )}
           </section>
-
         </div>
       </main>
     </>
