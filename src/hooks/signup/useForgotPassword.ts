@@ -1,16 +1,41 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { fetchJson } from '../../services/apiClient';
 
 type Step = 'email' | 'verify' | 'reset' | 'done';
 
 export function useForgotPassword(initialEmail = '') {
-  const [step, setStep] = useState<Step>('email');
-  const [email, setEmail] = useState(initialEmail);
+  const [searchParams, setSearchParams] = useSearchParams();
+  
+  // ✅ Get email and step from URL params
+  const emailParam = searchParams.get('email');
+  const stepParam = searchParams.get('step') as Step | null;
+  
+  // ✅ FIX: Initialize state with URL params immediately
+  const [step, setStep] = useState<Step>(() => {
+    // If step is in URL and is valid, use it
+    if (stepParam && ['email', 'verify', 'reset', 'done'].includes(stepParam)) {
+      return stepParam;
+    }
+    return 'email';
+  });
+  
+  const [email, setEmail] = useState(() => emailParam || initialEmail);
   const [code, setCode] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [info, setInfo] = useState<string | null>(null);
+
+  // ✅ Sync with URL params when they change
+  useEffect(() => {
+    if (emailParam && emailParam !== email) {
+      setEmail(emailParam);
+    }
+    if (stepParam && stepParam !== step && ['email', 'verify', 'reset', 'done'].includes(stepParam)) {
+      setStep(stepParam as Step);
+    }
+  }, [emailParam, stepParam]);
 
   // Resend cooldown logic
   const COOLDOWN_SECONDS = 60;
@@ -54,13 +79,13 @@ export function useForgotPassword(initialEmail = '') {
     setLoading(false);
     setResendAvailableAt(null);
     setResendCooldown(0);
-  }, []);
+    setSearchParams({});
+  }, [setSearchParams]);
 
   const sendResetRequest = useCallback(async () => {
     setError(null);
     setInfo(null);
     
-    // Prevent resending while cooldown active
     if (resendAvailableAt && Date.now() < resendAvailableAt) {
       return setError(`Please wait ${Math.ceil((resendAvailableAt - Date.now()) / 1000)}s before resending.`);
     }
@@ -77,18 +102,16 @@ export function useForgotPassword(initialEmail = '') {
       });
       
       setInfo(data?.message || 'Reset code sent. Check your email.');
-      
-      // Start cooldown
       setResendAvailableAt(Date.now() + COOLDOWN_SECONDS * 1000);
       setResendCooldown(COOLDOWN_SECONDS);
       setStep('verify');
+      setSearchParams({ email, step: 'verify' });
     } catch (err: any) {
-      // Display the error message from backend
       setError(err?.message || 'Failed to send reset code. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [email, emailValid, resendAvailableAt]);
+  }, [email, emailValid, resendAvailableAt, setSearchParams]);
 
   const verifyCode = useCallback(async () => {
     setError(null);
@@ -107,12 +130,15 @@ export function useForgotPassword(initialEmail = '') {
       
       setInfo(data?.message || 'Code verified. Enter your new password.');
       setStep('reset');
+      
+      // Update URL
+      setSearchParams({ email, step: 'reset' });
     } catch (err: any) {
       setError(err?.message || 'Invalid or expired code. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [email, code, codeValid]);
+  }, [email, code, codeValid, setSearchParams]);
 
   const submitNewPassword = useCallback(async () => {
     setError(null);
@@ -131,12 +157,15 @@ export function useForgotPassword(initialEmail = '') {
       
       setInfo(data?.message || 'Password reset successfully. You can now sign in with your new password.');
       setStep('done');
+      
+      // Update URL
+      setSearchParams({ step: 'done' });
     } catch (err: any) {
       setError(err?.message || 'Failed to reset password. Please try again.');
     } finally {
       setLoading(false);
     }
-  }, [email, code, newPassword, passwordValid]);
+  }, [email, code, newPassword, passwordValid, setSearchParams]);
 
   const closeAndReset = useCallback(() => {
     resetState();

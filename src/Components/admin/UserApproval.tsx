@@ -1,86 +1,76 @@
-import { useEffect, useState } from 'react';
-import { Account } from '../../types/Types';
-import { fetchPendingAccounts} from '../../services/adminService';
+import React, { useState } from "react";
+import Table from "../common/Table";
+import PendingAccountModal from "./UserApprovalModal";
+import type { Account } from "../../types/adminTypes";
 
 type Props = {
-  onAccept: (a: Account) => Promise<void> | void;
-  onReject: (a: Account) => Promise<void> | void;
+  accounts: Account[];
+  loading: boolean;
+  error: string | null;
+  onAccept: (a: Account) => void;
+  onReject: (a: Account, reason?: string) => void;
 };
 
-export default function UserApproval({ onAccept, onReject }: Props) {
-  const [accounts, setAccounts] = useState<Account[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
+export default function UserApproval({ accounts, loading, error, onAccept, onReject }: Props) {
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
 
-  const load = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const rows = await fetchPendingAccounts();
-      setAccounts(rows);
-    } catch (err: any) {
-      setError(err?.message ?? 'Failed to load pending accounts');
-    } finally {
-      setLoading(false);
-    }
+  const openModal = (pendingId?: number | null) => {
+    if (!pendingId) return;
+    setSelectedId(pendingId);
+    setModalOpen(true);
   };
 
-  useEffect(() => {
-    load();
-  }, []);
-
-  const handleAccept = async (pendingAccount: any) => {
-    try {
-      await onAccept(pendingAccount); // parent performs network call
-      // remove from local list after success (pessimistic update)
-      setAccounts((prev) => prev.filter((p) => p.Pending_id !== pendingAccount.Pending_id && p.Email !== pendingAccount.Email));
-    } catch (err: any) {
-      alert(err?.message ?? 'Approve failed');
-    }
+  const closeModal = () => {
+    setSelectedId(null);
+    setModalOpen(false);
   };
 
-  const handleReject = async (pendingAccount: any) => {
-    try {
-      await onReject(pendingAccount);
-      // remove from local list after success
-      setAccounts((prev) => prev.filter((p) => p.Pending_id !== pendingAccount.Pending_id && p.Email !== pendingAccount.Email));
-    } catch (err: any) {
-      alert(err?.message ?? 'Reject failed');
-    }
-  };
+  const columns = [
+    { key: "Username", label: "Username" },
+    { key: "Email", label: "Email" },
+    {
+      key: "actions",
+      label: "Actions", // must be string to match Column<Account> type
+      render: (_: any, row: Account) => (
+        <div className="flex justify-start gap-2">
+          <button
+            onClick={() => openModal((row as any).Pending_id)}
+            className="py-1 text-sm font-semibold text-white bg-green-900 rounded-lg hover:bg-green-700 transition focus:outline-none"
+            style={{ borderRadius: "5px" }}
+          >
+            View Details
+          </button>
+        </div>
+      ),
+    },
+  ];
 
-  if (loading) return <div className="py-6 text-sm text-gray-600">Loading pending accounts...</div>;
-  if (error) return <div className="py-6 text-sm text-rose-600">{error}</div>;
-
-  if (!accounts.length) {
-    return <div className="py-6 text-sm text-gray-600">No pending accounts.</div>;
-  }
+  if (loading) return <div className="p-4 text-center">Loading pending accounts...</div>;
+  if (error) return <div className="p-4 text-center text-red-500">Error: {error}</div>;
 
   return (
-    <div className="py-4 space-y-3">
-      {accounts.map((a) => (
-        <div key={a.Pending_id ?? a.Email} className="flex items-center justify-between bg-white border rounded-md p-3">
-          <div>
-            <div className="font-medium text-sibol-green">{a.Username ?? `${a.FirstName ?? ''} ${a.LastName ?? ''}`}</div>
-            <div className="text-sm text-gray-500">{a.Email}</div>
-          </div>
+    <div className="space-y-4">
+      <Table
+        columns={columns}
+        data={accounts}
+        emptyMessage="No pending accounts to approve."
+        enablePagination={true}
+        initialPageSize={5}
+        fixedPagination={false}
+      />
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => handleAccept(a)}
-              className="btn btn-primary"
-            >
-              Accept
-            </button>
-            <button
-              onClick={() => handleReject(a)}
-              className="btn btn-outline"
-            >
-              Reject
-            </button>
-          </div>
-        </div>
-      ))}
+      <PendingAccountModal
+        pendingId={selectedId}
+        isOpen={modalOpen}
+        onClose={closeModal}
+        onApprove={async (a) => {
+          await onAccept(a);
+        }}
+        onReject={async (a, reason) => {
+          await onReject(a);
+        }}
+      />
     </div>
   );
 }

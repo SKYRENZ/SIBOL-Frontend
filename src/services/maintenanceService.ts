@@ -1,5 +1,5 @@
 import apiClient from "./apiClient";
-import type { MaintenanceTicket, MaintenanceTicketPayload } from "../types/maintenance";
+import type { MaintenanceTicket, MaintenanceTicketPayload, MaintenanceAttachment, MaintenanceRemark, MaintenanceEvent } from "../types/maintenance";
 
 const BASE_URL = "/api/maintenance";
 
@@ -24,22 +24,70 @@ export async function getTicket(id: number): Promise<MaintenanceTicket> {
 }
 
 export async function createTicket(payload: MaintenanceTicketPayload): Promise<MaintenanceTicket> {
-  console.log("Creating ticket with payload:", payload); // Debug log
+  console.log("Creating ticket with payload:", payload);
   const response = await apiClient.post<MaintenanceTicket>(BASE_URL, payload);
+  return response.data;
+}
+
+// NEW: Upload file to Cloudinary, then save attachment metadata
+export async function uploadAttachment(
+  requestId: number,
+  uploadedBy: number,
+  file: File
+): Promise<MaintenanceAttachment> {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const uploadResponse = await apiClient.post<{ filepath: string; publicId: string }>(
+    '/api/upload',
+    formData,
+    { headers: { 'Content-Type': 'multipart/form-data' } }
+  );
+
+  const body = {
+    uploaded_by: uploadedBy,
+    filepath: uploadResponse.data.filepath,
+    filename: file.name,
+    filetype: file.type,
+    filesize: file.size,
+    public_id: uploadResponse.data.publicId, // ✅ add
+  };
+
+  const response = await apiClient.post<MaintenanceAttachment>(
+    `${BASE_URL}/${requestId}/attachments`,
+    body
+  );
+  return response.data;
+}
+
+// NEW: Get all attachments for a ticket
+export async function getAttachments(requestId: number): Promise<MaintenanceAttachment[]> {
+  const response = await apiClient.get<MaintenanceAttachment[]>(
+    `${BASE_URL}/${requestId}/attachments`
+  );
+  return response.data;
+}
+
+// NEW: Get ticket attachments (alternative function name)
+export async function getTicketAttachments(requestId: number): Promise<MaintenanceAttachment[]> {
+  const response = await apiClient.get<MaintenanceAttachment[]>(`${BASE_URL}/${requestId}/attachments`);
   return response.data;
 }
 
 export async function acceptAndAssign(
   requestId: number,
   staffAccountId: number,
-  assignToAccountId: number | null
+  assignToAccountId: number | null,
+  priority?: string | null,
+  due_date?: string | null
 ): Promise<any> {
   const body = {
     staff_account_id: staffAccountId,
     assign_to: assignToAccountId,
+    priority: priority ?? null,
+    due_date: due_date ?? null,
   };
-  
-  console.log("Accept & Assign - Request ID:", requestId, "Body:", body);
+
   const response = await apiClient.put(`${BASE_URL}/${requestId}/accept`, body);
   return response.data;
 }
@@ -49,6 +97,31 @@ export async function markOnGoing(requestId: number, operator_account_id: number
   return response.data;
 }
 
+// ✅ NEW: Add a remark to a ticket
+export async function addRemark(
+  requestId: number,
+  remarkText: string,
+  createdBy: number,
+  userRole: string | null  // ✅ Already allows null
+): Promise<MaintenanceRemark> {
+  const response = await apiClient.post<MaintenanceRemark>(
+    `${BASE_URL}/${requestId}/remarks`,
+    {
+      remark_text: remarkText,
+      created_by: createdBy,
+      user_role: userRole,  // Backend should handle null
+    }
+  );
+  return response.data;
+}
+
+// ✅ NEW: Get all remarks for a ticket
+export async function getTicketRemarks(requestId: number): Promise<MaintenanceRemark[]> {
+  const response = await apiClient.get<MaintenanceRemark[]>(`/api/maintenance/${requestId}/remarks`);
+  return response.data;
+}
+
+// ✅ Keep the old addRemarks function for backward compatibility if needed
 export async function addRemarks(
   requestId: number,
   remarks: string
@@ -78,5 +151,41 @@ export async function verifyCompletion(
 
 export async function cancelTicket(requestId: number, actor_account_id: number) {
   const response = await apiClient.put<MaintenanceTicket>(`${BASE_URL}/${requestId}/cancel`, { actor_account_id });
+  return response.data;
+}
+
+// NEW: Get all priorities
+export async function getPriorities(): Promise<Array<{ Priority_Id: number; Priority: string }>> {
+  const response = await apiClient.get<Array<{ Priority_Id: number; Priority: string }>>('/api/maintenance/priorities');
+  return response.data;
+}
+
+// NEW: Delete a ticket
+export async function deleteTicket(
+  requestId: number,
+  actor_account_id: number,
+  reason: string
+): Promise<{ deleted: boolean }> {
+  const response = await apiClient.delete<{ deleted: boolean }>(`${BASE_URL}/${requestId}`, {
+    params: { actor_account_id, reason },
+  });
+  return response.data;
+}
+
+// ✅ NEW: List all soft-deleted tickets (backend: GET /api/maintenance/deleted)
+export async function listDeletedTickets(): Promise<MaintenanceTicket[]> {
+  const response = await apiClient.get<MaintenanceTicket[]>(`${BASE_URL}/deleted`);
+  return response.data;
+}
+
+// ✅ NEW: Get ticket events (history)
+export async function getTicketEvents(requestId: number): Promise<MaintenanceEvent[]> {
+  const response = await apiClient.get<MaintenanceEvent[]>(`${BASE_URL}/${requestId}/events`);
+  return response.data;
+}
+
+// ✅ NEW: Get event details (with remarks and attachments)
+export async function getEventDetails(requestId: number, eventId: number): Promise<MaintenanceEvent> {
+  const response = await apiClient.get<MaintenanceEvent>(`${BASE_URL}/${requestId}/events/${eventId}`);
   return response.data;
 }

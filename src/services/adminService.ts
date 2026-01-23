@@ -1,5 +1,13 @@
 import api, { fetchJson } from './apiClient';
-import { Account } from '../types/Types';
+import {
+  Account,
+  PendingAccountsResponse,
+  PendingAccount,
+  AccountsResponse,
+  SinglePendingResponse,
+  ApproveRejectResponse,
+  GenericListResponse,
+} from '../types/adminTypes';
 
 // helper to extract array from various backend shapes
 function asArray(payload: any): any[] {
@@ -18,32 +26,25 @@ function asArray(payload: any): any[] {
 }
 
 export const fetchAccounts = async (): Promise<Account[]> => {
-  const res = await api.get('/api/admin/accounts');  // Added /api
-  if (!res.data?.success) throw new Error(res.data?.error || 'Failed to fetch accounts');
-  // normalize various shapes (res.data.users | res.data.data | res.data)
-  return asArray(res.data.users ?? res.data);
+  const res = await api.get<AccountsResponse>('/api/admin/accounts');
+  const payload = res.data ?? {};
+  if (payload.success === false) throw new Error(payload.error || 'Failed to fetch accounts');
+  return asArray(payload.users ?? payload.data ?? payload) as Account[];
 };
 
-export const fetchPendingAccounts = async (): Promise<any[]> => {
-  const tries = ['/api/admin/pending-accounts', '/admin/pending-accounts', '/api/pending-accounts', '/pending-accounts'];
-  for (const path of tries) {
-    try {
-      const res = await api.get(path);
-      return asArray(res.data.pendingAccounts ?? res.data);
-    } catch (err) {
-      // try next
-    }
-  }
-  console.warn('fetchPendingAccounts: no endpoint responded, returning []');
-  return [];
+export const fetchPendingAccounts = async (): Promise<PendingAccount[]> => {
+  const res = await api.get<PendingAccountsResponse>('/api/admin/pending-accounts');
+  const payload = res.data ?? {};
+  if (payload.success === false) throw new Error(payload.error || 'Failed to fetch pending accounts');
+  return asArray(payload.pendingAccounts ?? payload.data ?? payload) as PendingAccount[];
 };
 
-export const fetchPendingById = async (pendingId: number) => {
-  const res = await api.get(`/api/admin/pending-accounts/${pendingId}`);  // Added /api
-  return res.data;
+export const fetchPendingById = async (pendingId: number): Promise<SinglePendingResponse> => {
+  const res = await api.get<SinglePendingResponse>(`/api/admin/pending-accounts/${pendingId}`);
+  return res.data ?? {};
 };
 
-export const approvePending = async (pendingId: number) => {
+export const approvePending = async (pendingId: number): Promise<ApproveRejectResponse> => {
   const tries = [
     `/api/admin/pending-accounts/${pendingId}/approve`,
     `/admin/pending-accounts/${pendingId}/approve`,
@@ -52,8 +53,8 @@ export const approvePending = async (pendingId: number) => {
   ];
   for (const path of tries) {
     try {
-      const res = await api.post(path);
-      return res.data;
+      const res = await api.post<ApproveRejectResponse>(path);
+      return res.data ?? {};
     } catch (err) {
       // try next
     }
@@ -61,7 +62,7 @@ export const approvePending = async (pendingId: number) => {
   throw new Error(`approvePending: no endpoint available for pendingId=${pendingId}`);
 };
 
-export const rejectPending = async (pendingId: number, reason?: string) => {
+export const rejectPending = async (pendingId: number, reason?: string): Promise<ApproveRejectResponse> => {
   const tries = [
     `/api/admin/pending-accounts/${pendingId}/reject`,
     `/admin/pending-accounts/${pendingId}/reject`,
@@ -70,8 +71,8 @@ export const rejectPending = async (pendingId: number, reason?: string) => {
   ];
   for (const path of tries) {
     try {
-      const res = await api.post(path, { reason });
-      return res.data;
+      const res = await api.post<ApproveRejectResponse>(path, { reason });
+      return res.data ?? {};
     } catch (err) {
       // try next
     }
@@ -79,40 +80,47 @@ export const rejectPending = async (pendingId: number, reason?: string) => {
   throw new Error(`rejectPending: no endpoint available for pendingId=${pendingId}`);
 };
 
-export const createAccount = async (accountData: Partial<Account>) => {
-  const res = await api.post('/api/admin/create', accountData);  // Added /api
-  return res.data;
+export const createAccount = async (accountData: Partial<Account>): Promise<Account> => {
+  const res = await api.post<GenericListResponse<Account> | { data?: Account } | Account>('/api/admin/create', accountData);
+  const payload = (res.data as any) ?? {};
+  // support shapes: { data: Account } | { user: Account } | Account
+  return (payload.data ?? payload.user ?? payload) as Account;
 };
 
-export const updateAccount = async (accountId: number, updates: Partial<Account>) => {
-  const res = await api.put(`/api/admin/${accountId}`, updates);  // Added /api
-  return res.data;
+export const updateAccount = async (accountId: number, updates: Partial<Account>): Promise<Account> => {
+  const res = await api.put<GenericListResponse<Account> | { data?: Account } | Account>(`/api/admin/${accountId}`, updates);
+  const payload = (res.data as any) ?? {};
+  return (payload.data ?? payload.user ?? payload) as Account;
 };
 
-export const toggleAccountActive = async (accountId: number, isActive: boolean) => {
-  const res = await api.patch(`/api/admin/${accountId}/active`, { isActive });  // Added /api
-  return res.data;
+export const toggleAccountActive = async (accountId: number, isActive: boolean): Promise<Account> => {
+  const res = await api.patch<GenericListResponse<Account> | { data?: Account } | Account>(`/api/admin/${accountId}/active`, { isActive });
+  const payload = (res.data as any) ?? {};
+  return (payload.data ?? payload.user ?? payload) as Account;
 };
 
 // new: fetch roles used by AdminControls
 export const fetchUserRoles = async (): Promise<{ Roles_id: number; Roles: string }[]> => {
-  const res = await api.get('/api/admin/roles');  // Added /api
-  return asArray(res.data.roles ?? res.data) as { Roles_id: number; Roles: string }[];
+  const res = await api.get<GenericListResponse<{ Roles_id: number; Roles: string }>>('/api/admin/roles');
+  const payload = res.data ?? {};
+  return asArray(payload.data ?? payload) as { Roles_id: number; Roles: string }[];
 };
 
 // Fetch modules and normalize shape (handles modules_tbl.Name or Module_name)
 export const fetchModules = async (): Promise<any[]> => {
-  const res = await api.get('/api/admin/modules');  // Added /api
-  return asArray(res.data.modules ?? res.data);
+  const res = await api.get<GenericListResponse<any>>('/api/admin/modules');
+  const payload = res.data ?? {};
+  return asArray(payload.data ?? payload) as any[];
 };
 
-export async function approvePendingAccount(pendingId: number): Promise<any> {
-  return fetchJson(`/api/admin/pending-accounts/${pendingId}/approve`, {
+// fetchJson usage with generics (fetchJson<T>)
+export async function approvePendingAccount(pendingId: number): Promise<ApproveRejectResponse> {
+  return fetchJson<ApproveRejectResponse>(`/api/admin/pending-accounts/${pendingId}/approve`, {
     method: 'POST',
   });
 }
-export async function rejectPendingAccount(pendingId: number, reason?: string): Promise<any> {
-  return fetchJson(`/api/admin/pending-accounts/${pendingId}/reject`, {
+export async function rejectPendingAccount(pendingId: number, reason?: string): Promise<ApproveRejectResponse> {
+  return fetchJson<ApproveRejectResponse>(`/api/admin/pending-accounts/${pendingId}/reject`, {
     method: 'POST',
     body: JSON.stringify({ reason }),
   });
@@ -123,8 +131,9 @@ export const fetchBarangays = async () => {
   const tries = ['/api/admin/barangays', '/admin/barangays', '/api/barangays', '/barangays'];
   for (const path of tries) {
     try {
-      const res = await api.get(path);
-      return asArray(res.data.barangays ?? res.data);
+      const res = await api.get<GenericListResponse<{ Barangay_id: number; Barangay_Name: string }>>(path);
+      const payload = res.data ?? {};
+      return asArray(payload.data ?? payload) as { Barangay_id: number; Barangay_Name: string }[];
     } catch (err) {
       // try next
     }

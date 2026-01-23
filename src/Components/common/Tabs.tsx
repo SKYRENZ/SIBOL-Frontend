@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { Menu } from "lucide-react";
 
 interface Tab {
   id: string;
@@ -9,9 +10,10 @@ interface TabsProps {
   tabs: Tab[];
   activeTab: string;
   onTabChange: (tabId: string) => void;
+  className?: string;
 }
 
-const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange }) => {
+const Tabs = ({ tabs, activeTab, onTabChange, className = "" }: TabsProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -34,82 +36,73 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange }) => {
     }
   }, [mobileMenuOpen]);
 
+  // Find the active tab label for mobile view
+  const activeTabLabel = tabs.find(tab => tab.id === activeTab)?.label || 'Menu';
+
   return (
-    <div className="relative">
-      {/* Desktop tabs - hidden on mobile/tablet */}
-      <div className="hidden md:flex gap-2 overflow-x-auto">
+    <div className={`relative ${className}`}>
+      {/* Desktop Tabs */}
+      <div className="hidden md:flex gap-2 overflow-x-auto py-1">
         {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => onTabChange(tab.id)}
-            className={`
-              px-4 py-2 rounded-[20px] text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap focus:outline-none
-              ${
-                activeTab === tab.id
-                  ? "bg-[#2E523A] text-white shadow-sm"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-              }
-            `}
-          >
-            {tab.label}
-          </button>
+          <div key={tab.id} className="relative">
+            <button
+              onClick={() => onTabChange(tab.id)}
+              className={`
+                px-4 py-2 rounded-[20px] text-xs sm:text-sm font-medium transition-all duration-200 
+                whitespace-nowrap focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1
+                border-2 ${activeTab === tab.id 
+                  ? 'bg-[#2E523A] text-white border-transparent' 
+                  : 'border-gray-200 bg-white text-gray-700 hover:border-green-400 hover:bg-green-50'
+                }
+              `}
+            >
+              {tab.label}
+            </button>
+          </div>
         ))}
       </div>
 
-      {/* Mobile hamburger menu - visible only on mobile/tablet */}
-      <div className="md:hidden flex items-center relative">
+      {/* Mobile Dropdown */}
+      <div className="md:hidden relative w-full">
         <button
           ref={buttonRef}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="
-            p-2 rounded-lg bg-gray-100 hover:bg-gray-200 transition-all duration-200 focus:outline-none
-          "
-          aria-label="Toggle menu"
+          className="flex items-center justify-between w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border-2 border-gray-200 rounded-lg hover:border-green-400 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors"
+          type="button"
+          aria-haspopup="menu"
+          aria-expanded={mobileMenuOpen}
         >
-          <svg
-            className="w-5 h-5 text-gray-700"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
+          <span className="text-sm font-medium">{activeTabLabel}</span>
+          <Menu className="w-5 h-5 ml-2 text-gray-500" />
         </button>
 
-        {/* Mobile dropdown menu - positioned absolute relative to parent */}
         {mobileMenuOpen && (
           <div
             ref={menuRef}
-            className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-2xl z-[9999] min-w-[180px] border border-gray-200 origin-top-left"
+            className="absolute right-0 z-10 w-full mt-1 bg-white rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+            role="menu"
             style={{
               maxHeight: 'calc(100vh - 200px)',
               overflowY: 'auto'
             }}
           >
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => {
-                  onTabChange(tab.id);
-                  setMobileMenuOpen(false);
-                }}
-                className={`
-                  w-full text-left px-3 py-2 text-xs font-medium transition-all duration-200 first:rounded-t-lg last:rounded-b-lg focus:outline-none
-                  ${
-                    activeTab === tab.id
-                      ? "bg-[#2E523A] text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-100"
-                  }
-                `}
-              >
-                {tab.label}
-              </button>
-            ))}
+            <div className="py-1" role="none">
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => {
+                    onTabChange(tab.id);
+                    setMobileMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-4 py-2.5 text-sm border-l-4 ${activeTab === tab.id
+                    ? 'border-green-500 bg-green-50 text-green-900 font-medium' 
+                    : 'border-transparent text-gray-700 hover:bg-gray-50'}`}
+                  role="menuitem"
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -117,4 +110,8 @@ const Tabs: React.FC<TabsProps> = ({ tabs, activeTab, onTabChange }) => {
   );
 };
 
+// Default export for better compatibility with existing imports
 export default Tabs;
+
+// Keep named exports for type exports
+export type { TabsProps };

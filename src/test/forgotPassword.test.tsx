@@ -4,18 +4,19 @@ import React from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { vi, describe, it, expect, afterEach } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 
-// mock API client before importing the modal/hook
+// mock API client before importing the page/hook
 vi.mock('../services/apiClient', () => ({
   fetchJson: vi.fn()
 }));
 
-// dynamically import mocked fetchJson and the modal after mock is installed
+// dynamically import mocked fetchJson and the page after mock is installed
 const { fetchJson } = await import('../services/apiClient');
-const ModalModule = await import('../Components/verification/ForgotPasswordModal');
-const ForgotPasswordModal = ModalModule.default ?? ModalModule;
+const PageModule = await import('../Pages/ForgotPassword');
+const ForgotPassword = PageModule.default ?? PageModule;
 
-describe('ForgotPasswordModal', () => {
+describe('ForgotPassword page', () => {
   afterEach(() => {
     vi.clearAllMocks();
   });
@@ -23,12 +24,17 @@ describe('ForgotPasswordModal', () => {
   it('sends reset request and shows verify (OTP) inputs', async () => {
     (fetchJson as any).mockResolvedValueOnce({ debugCode: '123456' });
 
-    render(<ForgotPasswordModal open={true} onClose={vi.fn()} />);
+    render(
+      <MemoryRouter>
+        <ForgotPassword />
+      </MemoryRouter>
+    );
 
-    const emailInput = screen.getByPlaceholderText(/you@example.com/i);
+    // accept either placeholder used in modal or page to be tolerant
+    const emailInput = screen.getByPlaceholderText(/you@example.com|enter your email/i);
     await userEvent.type(emailInput, 'test@example.com');
 
-    const sendBtn = screen.getByRole('button', { name: /send reset code/i });
+    const sendBtn = screen.getByRole('button', { name: /send reset code|send code/i });
     await userEvent.click(sendBtn);
 
     await waitFor(() => {
@@ -46,12 +52,15 @@ describe('ForgotPasswordModal', () => {
       .mockResolvedValueOnce({}) // verify code
       .mockResolvedValueOnce({}); // reset password
 
-    const onClose = vi.fn();
-    render(<ForgotPasswordModal open={true} onClose={onClose} />);
+    render(
+      <MemoryRouter>
+        <ForgotPassword />
+      </MemoryRouter>
+    );
 
     // send reset
-    await userEvent.type(screen.getByPlaceholderText(/you@example.com/i), 'user@example.com');
-    await userEvent.click(screen.getByRole('button', { name: /send reset code/i }));
+    await userEvent.type(screen.getByPlaceholderText(/you@example.com|enter your email/i), 'user@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /send reset code|send code/i }));
 
     await waitFor(() => expect(fetchJson).toHaveBeenCalledWith('/api/auth/forgot-password', expect.any(Object)));
 

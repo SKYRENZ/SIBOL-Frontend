@@ -20,7 +20,7 @@ vi.mock('../services/auth', () => ({
   verifyToken: vi.fn()
 }));
 
-import * as auth from '../services/auth';
+import * as auth from '../services/authService';
 import SignIN from '../Pages/SignIN';
 
 const mockLogin = auth.login as Mock;

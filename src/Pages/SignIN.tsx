@@ -1,84 +1,91 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
-import ForgotPasswordModal from '../Components/verification/ForgotPasswordModal';
-import { login as apiLogin, isAuthenticated } from '../services/auth';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { login as loginAction, clearError, setUser, verifyToken } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {
-  const navigate = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({})
-  const [loading, setLoading] = useState(false)
-  const [serverError, setServerError] = useState<string | null>(null)
-  const [fpOpen, setFpOpen] = useState(false);
-  const [isRedirecting, setIsRedirecting] = useState(false);
+  const navigate = useNavigate();
+  const dispatch = useAppDispatch();
+  const { isLoading, error: authError, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({});
+  const [ssoError, setSsoError] = useState<string | null>(null); // ✅ ADD
 
-  // Check if user is already logged in - IMMEDIATE check
   useEffect(() => {
-    if (isAuthenticated()) {
-      setIsRedirecting(true);
-      // Use replace to prevent back button issues
+    if (isAuthenticated) {
       navigate('/dashboard', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
 
-  // Listen for SSO messages from popup
+  useEffect(() => {
+    return () => {
+      dispatch(clearError());
+    };
+  }, [dispatch]);
+
+  // ✅ FIX: Listen for SSO messages from popup
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const allowedOrigin = new URL(API_URL).origin;
       
+      // Allow messages from same origin (popup) or API origin
       if (event.origin !== allowedOrigin && event.origin !== window.location.origin) {
+        console.warn('Message from unauthorized origin:', event.origin);
         return;
       }
 
       if (event.data?.type === 'SSO_SUCCESS') {
-        const { token, user } = event.data;
-        if (token) localStorage.setItem('token', token);
-        if (user) localStorage.setItem('user', JSON.stringify(user));
-        setIsRedirecting(true);
-        navigate('/dashboard', { replace: true });
+        dispatch(verifyToken()).unwrap().then(() => {
+          navigate('/dashboard', { replace: true });
+        }).catch((err) => {
+          // If server verify failed but popup sent user object, fall back to setUser
+          if (event.data?.user) {
+            dispatch(setUser(event.data.user));
+            navigate('/dashboard', { replace: true });
+          } else {
+            setSsoError('SSO verification failed');
+          }
+        });
       } else if (event.data?.type === 'SSO_ERROR') {
-        setServerError(event.data.message || 'Google sign-in failed');
+        const msg = event.data?.message || event.data?.code || 'SSO authentication failed';
+        setSsoError(msg);
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
-  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password])
-
-  const usernameError = !username.trim() && touched.username ? 'This field is required' : ''
-  const passwordError = !password.trim() && touched.password ? 'This field is required' : ''
+  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
+  const usernameError = !username.trim() && touched.username ? 'This field is required' : '';
+  const passwordError = !password.trim() && touched.password ? 'This field is required' : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setTouched({ username: true, password: true })
-    setServerError(null)
+    e.preventDefault();
+    setSsoError(null); // ✅ clear SSO error when trying normal login
+    setTouched({ username: true, password: true });
 
-    if (!isValid) return
+    if (!isValid) return;
 
     try {
-      setLoading(true)
-      const data = await apiLogin(username.trim(), password);
-      if (data?.user) {
-        if (data?.token) localStorage.setItem('token', data.token);
-        if (data?.user) localStorage.setItem('user', JSON.stringify(data.user));
-        setIsRedirecting(true);
+      const result = await dispatch(loginAction({ username: username.trim(), password })).unwrap();
+      
+      // ✅ Only navigate on successful login
+      if (result?.user) {
         navigate('/dashboard', { replace: true });
-      } else {
-        setServerError(data?.message || 'Invalid response from server');
       }
-    } catch (err: any) {
-      setServerError(err?.message ?? 'Login failed')
-    } finally {
-      setLoading(false)
+    } catch (error: any) {
+      // ✅ Error is now in Redux state and will persist
+      console.error('Login failed:', error);
+      // Don't navigate - let the error show
     }
-  }
+  };
 
   const handleGoogleLogin = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -96,7 +103,7 @@ const Login: React.FC = () => {
     );
 
     if (!popup || popup.closed || typeof popup.closed === 'undefined') {
-      setServerError('Popup blocked. Please allow popups for this site.');
+      // Handle popup blocked - Redux will show error if needed
     }
   };
 
@@ -104,18 +111,6 @@ const Login: React.FC = () => {
   const leftBg = new URL('../assets/images/TRASHBG.png', import.meta.url).href
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
-
-  // Show loading state while redirecting to prevent flash of old content
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Redirecting to dashboard...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
@@ -180,7 +175,7 @@ const Login: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword((s) => !s)}
-                  className="absolute inset-y-0 right-3 flex items-center justify-center text-gray-600 bg-transparent border-0 p-0 focus:outline-none hover:text-gray-800"
+                  className="absolute inset-y-0 right-3 flex items-center justify-center bg-transparent border-0 text-gray-600 hover:text-gray-800 focus:outline-none cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Eye className="h-4 w-4 sm:h-5 sm:w-5" />}
@@ -191,31 +186,31 @@ const Login: React.FC = () => {
               )}
             </div>
 
-            {/* Forgot Password */}
+            {/* Forgot Password Link */}
             <div className="flex justify-end mt-1">
               <button 
                 type="button" 
-                className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer"
-                onClick={() => setFpOpen(true)}
+                className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer focus:outline-none"
+                onClick={() => navigate('/forgot-password')}
               >
                 Forgot Password?
               </button>
             </div>
 
             {/* Server Error */}
-            {serverError && (
+            {(ssoError || authError) && (
               <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 p-2 sm:p-3 rounded-lg">
-                {serverError}
+                {ssoError || authError}
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* ✅ REMOVED: Loading spinner - Submit Button shows text only */}
             <button 
               className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
               type="submit" 
-              disabled={!isValid || loading}
+              disabled={!isValid || isLoading}
             >
-              {loading ? 'Signing in…' : 'Sign in'}
+              {isLoading ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
 
@@ -242,15 +237,13 @@ const Login: React.FC = () => {
           <p className="text-center mt-6 sm:mt-8 text-gray-700 text-sm sm:text-base">
             Don't have an account?{' '}
             <button 
-              className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold transition-colors cursor-pointer"
+              className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold transition-colors cursor-pointer focus:outline-none"
               type="button" 
               onClick={() => navigate('/signup')}
             >
               Sign up
             </button>
           </p>
-
-          <ForgotPasswordModal open={fpOpen} onClose={() => setFpOpen(false)} />
         </div>
       </div>
     </div>

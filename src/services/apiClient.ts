@@ -1,3 +1,5 @@
+import axios from 'axios';
+
 const API_URL =
   import.meta.env.VITE_API_URL ??
   import.meta.env.VITE_API_BASE_URL ??
@@ -5,6 +7,54 @@ const API_URL =
 
 export { API_URL };
 
+// Axios instance with cookie support
+const api = axios.create({
+  baseURL: API_URL,
+  headers: {
+    'Content-Type': 'application/json',
+    'x-client-type': 'web', // ✅ ADD THIS
+  },
+  withCredentials: true, // ✅ Send cookies with requests
+});
+
+// Request interceptor to handle FormData
+api.interceptors.request.use((config) => {
+  // ✅ ensure header is present even if someone overwrote headers downstream
+  config.headers = config.headers ?? {};
+  (config.headers as any)['x-client-type'] = (config.headers as any)['x-client-type'] ?? 'web';
+
+  const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+  if (isFormData) {
+    delete (config.headers as any)['Content-Type'];
+    delete (config.headers as any)['content-type'];
+  }
+  return config;
+});
+
+// Response interceptor for error handling
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const authEndpoints = ['/api/auth/login', '/api/auth/register'];
+    const isAuthRequest = authEndpoints.some((path) => error.config?.url?.includes(path));
+    if (isAuthRequest) {
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401) {
+      // Don’t force a redirect here — let callers handle auth state.
+      console.warn('API returned 401 Unauthorized', error);
+      // Optional: emit an event so UI can react if desired
+      window.dispatchEvent(new CustomEvent('api:unauthorized', { detail: error }));
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+export default api;
+
+// Helper types
 type HeadersLike = HeadersInit;
 
 function headersToObject(h?: HeadersLike): Record<string, string> {
@@ -32,22 +82,14 @@ function normalizeUrl(path: string) {
   return `${base}${p}`;
 }
 
-// low-level fetch wrapper that applies credentials and headers
+// ✅ Low-level fetch wrapper with cookie support (no Authorization header needed)
 export async function apiFetch(path: string, opts: RequestInit = {}) {
   const url = normalizeUrl(path);
-  const defaultHeaders: Record<string,string> = {};
-  
-  // ✅ FIXED: attach token from localStorage if present
-  try {
-    const token = localStorage.getItem('token');
-    if (token) {
-      defaultHeaders['Authorization'] = `Bearer ${token}`;
-    }
-  } catch {
-    // ignore in non-browser env
-  }
 
-  // Only set Content-Type default if a JSON body will be sent
+  const defaultHeaders: Record<string, string> = {
+    'x-client-type': 'web', // ✅ ADD THIS
+  };
+
   const method = (opts.method || 'GET').toUpperCase();
   const hasBody = !!(opts as any).body;
   if (hasBody && method !== 'GET' && method !== 'HEAD') {
@@ -65,7 +107,7 @@ export async function apiFetch(path: string, opts: RequestInit = {}) {
   return fetch(url, merged);
 }
 
-// Robust JSON fetch with timeout + unified error handling
+// ✅ Robust JSON fetch with timeout + unified error handling
 export async function fetchJson<T = any>(path: string, opts: RequestInit = {}, timeoutMs = 15000): Promise<T> {
   const controller = new AbortController();
   const signal = opts.signal ?? controller.signal;
@@ -86,7 +128,7 @@ export async function fetchJson<T = any>(path: string, opts: RequestInit = {}, t
       const error: any = new Error(msg);
       error.status = res.status;
       error.payload = payload;
-      error.data = payload; // ✅ ADDED: for compatibility with error.data?.message
+      error.data = payload; // ✅ for compatibility with error.data?.message
       throw error;
     }
 
@@ -99,7 +141,7 @@ export async function fetchJson<T = any>(path: string, opts: RequestInit = {}, t
   }
 }
 
-// Add axios-like convenience helpers
+// ✅ Add axios-like convenience helpers
 export async function get<T = any>(path: string, opts: RequestInit = {}) {
   const payload = await fetchJson<T>(path, { ...opts, method: 'GET' });
   return { data: payload };
@@ -128,14 +170,12 @@ export async function del<T = any>(path: string, opts: RequestInit = {}) {
   return { data: payload };
 }
 
-// keep default export but include the helpers for existing imports
-export default {
-  apiFetch,
-  fetchJson,
-  API_URL,
-  get,
-  post,
-  put,
-  patch,
-  delete: del,
+// ✅ Keep all exports for backward compatibility
+export {
+  api,
+  get as apiGet,
+  post as apiPost,
+  put as apiPut,
+  patch as apiPatch,
+  del as apiDelete,
 };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin } from 'lucide-react';
-import { isAuthenticated } from '../services/auth';
+import { isAuthenticated } from '../services/authService';
 
 const Landingpage: React.FC = () => {
   const navigate = useNavigate();

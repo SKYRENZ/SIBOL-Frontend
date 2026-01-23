@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from "react";
 import Header from "../Components/Header";
+import AddScheduleModal from "../Components/Household/addSchedule";
+import EditScheduleModal from "../Components/Household/editScheduleModal";
+import AddRewardModal from "../Components/Household/addReward";
+import EditRewardModal from "../Components/Household/editReward";
 import HouseholdTabs from "../Components/Household/tabs";
 import SearchBar from "../Components/common/SearchBar";
 import FilterPanel from "../Components/common/filterPanel";
 import ScheduleTab from "../Components/Household/schedule";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
-import AddScheduleModal from "../Components/Household/addSchedule";
-import EditScheduleModal from "../Components/Household/editScheduleModal";
-import AddRewardModal from "../Components/Household/addReward";
-import EditRewardModal from "../Components/Household/editReward";
 import LeaderboardTab from "../Components/Household/leaderboard";
 import PointSystem from "../Components/Household/pointSystem";
-import WasteCollectionTab from "../Components/Household/wasteCollection";
 import type { Reward } from "../services/rewardService";
-import "../types/Household.css";
 
 interface RowData {
   maintenance: string;
@@ -44,7 +42,7 @@ const Household: React.FC = () => {
   const [rowToEdit, setRowToEdit] = useState<RowData | null>(null);
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
   const [isEditRewardModalOpen, setIsEditRewardModalOpen] = useState(false);
-  const [rewardToEdit, setRewardToEdit] = useState<Reward | null>(null);
+  const [rewardToEdit, setRewardToEdit] = useState<any | null>(null);
   const [searchValue, setSearchValue] = useState("");
 
   const handleAddSchedule = () => setIsAddModalOpen(true);
@@ -62,7 +60,7 @@ const Household: React.FC = () => {
   const handleAddReward = () => setIsRewardModalOpen(true);
   const handleCloseRewardModal = () => setIsRewardModalOpen(false);
 
-  const handleEditReward = (reward: Reward) => {
+  const handleEditReward = (reward: any) => {
     setRewardToEdit(reward);
     setIsEditRewardModalOpen(true);
   };
@@ -160,7 +158,6 @@ const Household: React.FC = () => {
   
           {/* Pass filters to child components */}
           {activeTab === "schedule" && <ScheduleTab filters={selectedFilters} />}
-          {activeTab === "wasteCollection" && <WasteCollectionTab />}
           {activeTab === "reward" && (
             <RewardTab 
               key={refreshKey} 

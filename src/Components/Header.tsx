@@ -2,7 +2,9 @@ import React, { useEffect, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { fetchAllowedModules } from '../services/moduleService';
 import api from '../services/apiClient';
-import "../types/Header.css";
+import "../tailwind.css";
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { logout as logoutAction } from '../store/slices/authSlice';
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -18,30 +20,29 @@ const Header: React.FC = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  
+  const dispatch = useAppDispatch();
+
+  const { isFirstLogin, user } = useAppSelector((state) => state.auth); // <- use Redux
+
   async function handleLogout() {
     try {
-      // Attempt to notify backend (if session-based logout exists)
-      await api.post('/api/auth/logout');
+      dispatch(logoutAction());
+      navigate('/login', { replace: true });
     } catch (err) {
-      // ignore network errors, still clear local state
-      console.warn('logout request failed', err);
+      console.warn('logout failed', err);
+      navigate('/login', { replace: true });
     }
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    navigate('/login', { replace: true });
   }
-  
+
   useEffect(() => {
     let mounted = true;
     (async () => {
       try {
-        const normalized = await fetchAllowedModules(); // { list, get, has }
+        const normalized = await fetchAllowedModules();
         if (!mounted) return;
         setModules(normalized);
       } catch (err) {
         console.error('modules/allowed error:', err);
-        // leave modules empty so UI doesn't crash
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
@@ -58,7 +59,6 @@ const Header: React.FC = () => {
         setMenuOpen(false);
       }
     };
-
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -73,12 +73,18 @@ const Header: React.FC = () => {
     );
   };
 
-  // fallback: check localStorage user for role/modules
-  const localUser = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+  const isAdminRole = (() => {
+    if (!user) return false;
+    const roleNum =
+      (typeof user.Roles === 'number' ? user.Roles : undefined) ??
+      (typeof user.roleId === 'number' ? user.roleId : undefined) ??
+      (typeof user.role === 'number' ? user.role : undefined);
+    const roleStr = typeof user.role === 'string' ? user.role : undefined;
+    return roleNum === 1 || roleStr === 'Admin';
   })();
-  const isAdminRole = localUser && (localUser.Roles === 1 || localUser.roleId === 1 || localUser.role === 'Admin');
-  const hasModule6 = localUser && Array.isArray(localUser.user_modules) && localUser.user_modules.includes(6);
+
+  const hasModule6 =
+    user && Array.isArray(user.user_modules) && user.user_modules.includes(6);
 
   const showAdmin = isAdminRole || hasModule6 || hasModule('admin') || hasModule(1);
 
@@ -88,14 +94,11 @@ const Header: React.FC = () => {
   });
 
   return (
-    <header className="header">
+    <header className={`header ${isFirstLogin ? 'pointer-events-none opacity-50' : ''}`}>
       <nav className="nav">
         <img
           className="nav-logo"
-          src={new URL(
-            "../assets/images/collection.png",
-            import.meta.url
-          ).href}
+          src={new URL("../assets/images/collection.png", import.meta.url).href}
           alt="SIBOL"
         />
 
@@ -106,13 +109,13 @@ const Header: React.FC = () => {
           aria-expanded={menuOpen}
           aria-controls="primary-navigation"
           aria-label="Toggle navigation menu"
+          disabled={isFirstLogin}
         >
           <span />
           <span />
           <span />
         </button>
 
-        {/* Navigation Links */}
         <div className={`nav-menu ${menuOpen ? "open" : ""}`} id="primary-navigation">
           <ul className="nav-links">
             {links.map((link) => (
@@ -122,6 +125,7 @@ const Header: React.FC = () => {
                   className={({ isActive }) =>
                     `nav-link ${isActive ? "active" : ""}`
                   }
+                  style={{ pointerEvents: isFirstLogin ? 'none' : 'auto' }}
                 >
                   {link.label}
                 </NavLink>
@@ -129,15 +133,15 @@ const Header: React.FC = () => {
             ))}
           </ul>
 
-          {/* Right-side Icons */}
+          {/* RIGHT ICONS */}
           <div className="nav-icons">
+            {/* Notifications */}
             <svg
               className="icon"
               width="20"
               height="20"
               viewBox="0 0 24 24"
               fill="none"
-              xmlns="http://www.w3.org/2000/svg"
               aria-hidden="true"
             >
               <path
@@ -146,36 +150,48 @@ const Header: React.FC = () => {
               />
             </svg>
 
-            <svg
-              className="icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              aria-hidden="true"
+            {/* ✅ PROFILE ICON → /profile */}
+            <NavLink
+              to="/profile"
+              title="Profile"
+              aria-label="Profile"
+              className={({ isActive }) =>
+                `icon-btn ${isActive ? "active-icon" : ""}`
+              }
+              style={{ pointerEvents: isFirstLogin ? 'none' : 'auto' }}
             >
-              <path
-                d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6Z"
-                fill="currentColor"
-              />
-            </svg>
+              <svg
+                className="icon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 12a5 5 0 1 0-5-5 5 5 0 0 0 5 5Zm0 2c-4 0-8 2-8 6v2h16v-2c0-4-4-6-8-6Z"
+                  fill="currentColor"
+                />
+              </svg>
+            </NavLink>
 
-            {/* Logout button */}
+            {/* Logout */}
             <button
               type="button"
               onClick={handleLogout}
               title="Logout"
               aria-label="Logout"
               className="logout-btn"
+              disabled={isFirstLogin}
               style={{
                 background: 'transparent',
                 border: 'none',
                 padding: '4px 8px',
                 marginLeft: 8,
-                cursor: 'pointer',
+                cursor: isFirstLogin ? 'not-allowed' : 'pointer',
                 color: 'inherit',
                 fontSize: 14,
+                opacity: isFirstLogin ? 0.5 : 1,
               }}
             >
               Logout

@@ -1,33 +1,107 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { isAuthenticated, isFirstLogin, getUser } from "../services/auth";
+import { isAuthenticated as checkIsAuthenticated, getUser } from "../services/authService";
 import Header from "../Components/Header";
 import ProcessPanel from "../Components/dashboard/ProcessPanel";
 import TotalWastePanel from "../Components/TotalWastePanel";
 import CollectionSchedule from "../Components/CollectionSchedule";
 import EnergyChart from "../Components/EnergyChart";
 import ChangePasswordModal from "../Components/verification/ChangePasswordModal";
+import { useAppDispatch, useAppSelector } from "../store/hooks";
+import { logout, updateFirstLogin, verifyToken, setUser } from "../store/slices/authSlice";
 
 const Dashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { user, isAuthenticated, isFirstLogin: isFirstLoginRedux } = useAppSelector((state) => state.auth);
   const [barangay] = useState("Barangay 176 - E");
   const [currentDate, setCurrentDate] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [hasProcessedUrlParams, setHasProcessedUrlParams] = useState(false); // ✅ NEW: Track if we processed URL params
 
   // 🔐 Auth check - redirect if not authenticated
   useEffect(() => {
-    if (!isAuthenticated()) {
+    if (!isAuthenticated) {
       navigate('/login', { replace: true });
     }
-  }, [navigate]);
+  }, [isAuthenticated, navigate]);
+
+  // ✅ FIX: Handle approval link FIRST - before anything else
+  useEffect(() => {
+    const parseHashParams = (hash: string) => {
+      if (!hash) return new URLSearchParams();
+      const trimmed = hash.startsWith("#") ? hash.slice(1) : hash;
+      return new URLSearchParams(trimmed);
+    };
+
+    const queryParams = new URLSearchParams(location.search);
+    const hashParams = parseHashParams(window.location.hash);
+    const get = (key: string) => queryParams.get(key) || hashParams.get(key);
+
+    const token = get("token") || get("access_token") || get("auth_token");
+    const userParam = get("user");
+    const auth = get("auth");
+
+    // ✅ CRITICAL: Handle user data from approval email link FIRST
+    if (userParam) {
+      try {
+        const parsed = JSON.parse(decodeURIComponent(userParam));
+        console.log('✅ User data from URL:', parsed);
+        
+        // Populate Redux state (do not persist to localStorage)
+        dispatch(setUser(parsed));
+        
+        // ✅ Mark that we processed URL params
+        setHasProcessedUrlParams(true);
+        
+        // Clean URL after extracting data
+        const cleanUrl = location.pathname;
+        window.history.replaceState({}, "", cleanUrl);
+        
+        // ✅ If IsFirstLogin=1, show modal immediately
+        if (parsed.IsFirstLogin === 1) {
+          console.log('✅ First login detected from URL - showing modal');
+          setTimeout(() => setShowPasswordModal(true), 100); // ✅ Small delay to ensure state is updated
+        }
+        
+        return; // ✅ Exit early - don't process anything else
+      } catch (e) {
+        console.error('Failed to parse user data from URL:', e);
+      }
+    }
+
+    // Handle token/auth params (secondary)
+    if (token) {
+      const cleanUrl = location.pathname;
+      window.history.replaceState({}, "", cleanUrl);
+    } else if (auth === "fail") {
+      navigate("/login");
+    }
+  }, [location.search, location.hash, navigate, dispatch]); // ✅ CHANGED: Removed location from deps to prevent re-runs
+
+  // ✅ FIX: Only verify token if NO user data in URL AND we haven't processed URL params
+  useEffect(() => {
+    // ✅ Don't run if:
+    // 1. We just processed URL params
+    // 2. URL contains user data
+    // 3. Not authenticated
+    const hasUrlParams = location.search.includes('user=') || location.search.includes('token=');
+    
+    if (hasProcessedUrlParams || hasUrlParams || !isAuthenticated) {
+      console.log('⏭️ Skipping verifyToken - URL params present or already processed');
+      return;
+    }
+    
+    dispatch(verifyToken());
+  }, [hasProcessedUrlParams, isAuthenticated, dispatch]); // ✅ CHANGED: Removed location.search from deps
 
   // Prevent back/forward navigation issues
   useEffect(() => {
     window.history.pushState(null, '', window.location.href);
     
     const handlePopState = () => {
-      if (!isAuthenticated()) {
+      if (!checkIsAuthenticated()) {
         navigate('/login', { replace: true });
       } else {
         window.history.pushState(null, '', window.location.href);
@@ -55,64 +129,16 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // 🔐 Token / Auth check
+  // ✅ FIX: Show modal based on Redux isFirstLogin state (with extra logging)
   useEffect(() => {
-    const parseHashParams = (hash: string) => {
-      if (!hash) return new URLSearchParams();
-      const trimmed = hash.startsWith("#") ? hash.slice(1) : hash;
-      return new URLSearchParams(trimmed);
-    };
-
-    const queryParams = new URLSearchParams(location.search);
-    const hashParams = parseHashParams(window.location.hash);
-    const get = (key: string) => queryParams.get(key) || hashParams.get(key);
-
-    const token = get("token") || get("access_token") || get("auth_token");
-    const user = get("user");
-    const auth = get("auth");
-
-    if (token) localStorage.setItem("token", token);
-
-    if (user) {
-      try {
-        const parsed = JSON.parse(decodeURIComponent(user));
-        localStorage.setItem("user", JSON.stringify(parsed));
-      } catch (e) {
-        console.warn("Failed to parse user from SSO redirect", e);
-      }
-    }
-
-    if (token) {
-      const cleanUrl = location.pathname;
-      window.history.replaceState({}, "", cleanUrl);
-    } else if (auth === "fail") {
-      navigate("/login");
-    }
-  }, [location, navigate]);
-
-  // 🔑 Check first login with detailed logging
-  useEffect(() => {
-    console.log('🔍 Dashboard - Checking first login status...');
-    console.log('📋 Is authenticated:', isAuthenticated());
     
-    const user = getUser();
-    console.log('👤 User from localStorage:', user);
-    console.log('🔑 IsFirstLogin value:', user?.IsFirstLogin);
-    console.log('🔑 IsFirstLogin type:', typeof user?.IsFirstLogin);
-    
-    const firstLogin = isFirstLogin();
-    console.log('✅ isFirstLogin() result:', firstLogin);
-
-    if (isAuthenticated() && firstLogin) {
-      console.log('🚀 SHOULD SHOW PASSWORD MODAL');
+    if (isAuthenticated && isFirstLoginRedux) {
+      console.log('✅ Showing password modal');
       setShowPasswordModal(true);
     } else {
-      console.log('❌ Not showing password modal:', {
-        authenticated: isAuthenticated(),
-        firstLogin: firstLogin
-      });
+      setShowPasswordModal(false);
     }
-  }, []);
+  }, [isAuthenticated, isFirstLoginRedux, user]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -167,18 +193,17 @@ const Dashboard: React.FC = () => {
       <ChangePasswordModal
         open={showPasswordModal}
         onClose={() => {
-          console.log('❌ User tried to close modal (blocked for first login)');
-        }} // Empty - force user to change password
+          // Only allow closing if NOT first login
+          if (!isFirstLoginRedux) {
+            setShowPasswordModal(false);
+          }
+        }}
         onSuccess={() => {
           console.log('✅ Password changed successfully');
           setShowPasswordModal(false);
-          // Update user data to reflect password change
-          const user = JSON.parse(localStorage.getItem('user') || '{}');
-          user.IsFirstLogin = 0;
-          localStorage.setItem('user', JSON.stringify(user));
-          console.log('📝 Updated user in localStorage:', user);
+          dispatch(updateFirstLogin(false));
         }}
-        isFirstLogin={true}
+        isFirstLogin={isFirstLoginRedux}
       />
     </div>
   );

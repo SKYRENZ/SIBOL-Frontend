@@ -1,13 +1,15 @@
-import React, { ReactNode, useState } from "react";
+import React, { ReactNode, useState, useMemo } from "react";
 import Pagination from "./Pagination";
+import SearchBar from "./SearchBar";
+import FilterPanel from "./filterPanel";
 
-interface Column {
+interface Column<T> {
   key: string;
   label: string;
-  render?: (value: any, row: any) => ReactNode;
+  render?: (value: any, row: T, index?: number) => ReactNode;
+  hideMobile?: boolean;
+  hideTablet?: boolean;
   sortable?: boolean;
-  hideMobile?: boolean; // Hide on mobile
-  hideTablet?: boolean; // Hide on tablet
 }
 
 interface TablePaginationConfig {
@@ -18,10 +20,10 @@ interface TablePaginationConfig {
   onPageSizeChange?: (pageSize: number) => void;
 }
 
-interface TableProps {
-  columns: Column[];
-  data: any[];
-  onRowClick?: (row: any) => void;
+interface TableProps<T> {
+  columns: Column<T>[];
+  data: T[];
+  onRowClick?: (row: T) => void;
   emptyMessage?: string;
   className?: string;
   sortBy?: string | null;
@@ -31,9 +33,14 @@ interface TableProps {
   initialPageSize?: number;
   fixedPagination?: boolean;
   pagination?: TablePaginationConfig;
+  filterTypes?: string[];
+  rowKey?: string;
+  customToolbar?: React.ReactNode;
 }
 
-const Table: React.FC<TableProps> = ({
+const HEADER_BG = "bg-[#355E3B] text-white";
+
+const Table = <T extends Record<string, any>>({
   columns,
   data,
   onRowClick,
@@ -46,260 +53,179 @@ const Table: React.FC<TableProps> = ({
   initialPageSize = 5,
   fixedPagination = true,
   pagination,
-}) => {
+  filterTypes = [],
+  rowKey = "id",
+  customToolbar,
+}: TableProps<T>) => {
+  const [search, setSearch] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
-  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const isControlled = Boolean(pagination);
   const currentPage = isControlled ? pagination!.currentPage : internalPage;
   const pageSize = isControlled ? pagination!.pageSize : internalPageSize;
-  const totalItems = isControlled ? pagination!.totalItems : data.length;
+
+  const filteredData = useMemo(() => {
+    let tempData = [...data];
+
+    if (search.trim()) {
+      const lower = search.toLowerCase();
+      tempData = tempData.filter((row) =>
+        columns.some((col) =>
+          String(row[col.key] ?? "").toLowerCase().includes(lower)
+        )
+      );
+    }
+
+    if (selectedFilters.length > 0) {
+      tempData = tempData.filter((row) =>
+        Object.values(row).some((val) =>
+          selectedFilters.includes(String(val))
+        )
+      );
+    }
+
+    return tempData;
+  }, [data, search, selectedFilters, columns]);
+
+  const totalItems = filteredData.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
   const paginatedData =
-    enablePagination && !isControlled ? data.slice(startIndex, endIndex) : data;
+    enablePagination ? filteredData.slice(startIndex, startIndex + pageSize) : filteredData;
 
-  const handlePageSizeChange = (newPageSize: number) => {
-    if (isControlled) {
-      pagination?.onPageSizeChange?.(newPageSize);
-    } else {
-      setInternalPageSize(newPageSize);
+  const handlePageChange = (page: number) => {
+    if (isControlled) pagination?.onPageChange(page);
+    else setInternalPage(page);
+  };
+
+  const handlePageSizeChange = (newSize: number) => {
+    if (isControlled) pagination?.onPageSizeChange?.(newSize);
+    else {
+      setInternalPageSize(newSize);
       setInternalPage(1);
     }
   };
 
-  const handlePageChange = (page: number) => {
-    if (isControlled) {
-      pagination?.onPageChange(page);
-    } else {
-      setInternalPage(page);
-    }
+  const handleFilterChange = (filters: string[]) => {
+    setSelectedFilters(filters);
+    if (!isControlled) setInternalPage(1);
+    else pagination?.onPageChange(1);
   };
 
-  // Filter columns for tablet view (hide less important columns)
-  const getVisibleColumns = (breakpoint: "mobile" | "tablet" | "desktop") => {
-    return columns.filter((col) => {
-      if (breakpoint === "mobile") return !col.hideMobile;
-      if (breakpoint === "tablet") return !col.hideTablet;
-      return true;
-    });
-  };
-
-  // Get primary column (usually first visible)
-  const getPrimaryColumn = (visibleColumns: Column[]) => visibleColumns[0];
-
-  const getInitialColumns = (visibleColumns: Column[]) => {
-    // Show first 3 visible columns initially
-    return visibleColumns.slice(0, 3);
-  };
-
-  const toggleRowExpand = (rowIndex: number) => {
-    const newExpandedRows = new Set(expandedRows);
-    if (newExpandedRows.has(rowIndex)) {
-      newExpandedRows.delete(rowIndex);
-    } else {
-      newExpandedRows.add(rowIndex);
-    }
-    setExpandedRows(newExpandedRows);
-  };
+  const getRowKey = (row: T, index: number) =>
+    row[rowKey] !== undefined ? String(row[rowKey]) : `row-${index}`;
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* Mobile Card View - visible only on mobile */}
-      <div className="lg:hidden space-y-3">
-        {data.map((row, rowIndex) => {
-          const visibleCols = getVisibleColumns("mobile");
-          const primaryCol = getPrimaryColumn(visibleCols);
-          const primaryValue = primaryCol.render
-            ? primaryCol.render(row[primaryCol.key], row)
-            : row[primaryCol.key];
-          const initialCols = getInitialColumns(visibleCols);
-          const isExpanded = expandedRows.has(rowIndex);
-          const hasMoreData = visibleCols.length > initialCols.length;
-
-          return (
-            <div
-              key={rowIndex}
-              className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 flex flex-col"
-            >
-              {/* Card Header - Primary Value with Label */}
-              <div 
-                className="px-4 py-3"
-                style={{ backgroundColor: '#AFC8AD9C' }}
-              >
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  {primaryCol.label}
-                </p>
-                <h3 className="text-sm font-bold text-gray-900 truncate mt-1">
-                  {primaryValue}
-                </h3>
+    <div className={`w-full flex flex-col space-y-2 ${className}`}>
+      {/* Table wrapper */}
+      <div className="relative w-full rounded-xl border border-[#00001A4D] bg-white shadow-sm flex flex-col">
+        {/* Search + Filter + Toolbar row */}
+        <div className="px-4 py-3 border-b border-[#00001A4D]">
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="w-full lg:w-1/3">
+                <SearchBar value={search} onChange={setSearch} />
               </div>
-
-              {/* Card Body - Initial Data Grid (Always Visible) */}
-              <div className="px-4 py-3 space-y-3 flex-1">
-                {initialCols.slice(1).map((column, colIndex) => {
-                  const isLastInitialCol = colIndex === initialCols.slice(1).length - 1;
-                  return (
-                    <div key={column.key} className="flex flex-col gap-1">
-                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                        {column.label}
-                      </span>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs sm:text-sm text-gray-900 font-medium break-words flex-1">
-                          {column.render ? column.render(row[column.key], row) : row[column.key]}
-                        </span>
-                        {/* Arrow Icon - on last initial column, hidden when expanded */}
-                        {isLastInitialCol && hasMoreData && !isExpanded && (
-                          <button
-                            onClick={() => toggleRowExpand(rowIndex)}
-                            className="ml-3 p-0.5 rounded-lg transition-all duration-200 flex-shrink-0 bg-transparent hover:bg-gray-100"
-                            aria-label="Expand"
-                          >
-                            <svg
-                              className="w-3.5 h-3.5 text-gray-600 transition-transform duration-200"
-                              fill="currentColor"
-                              viewBox="0 0 24 24"
-                            >
-                              <path d="M7 10l5 5 5-5z" />
-                            </svg>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="w-full lg:w-auto">
+                <FilterPanel
+                  types={filterTypes.length ? filterTypes : undefined}
+                  onFilterChange={handleFilterChange}
+                />
               </div>
-
-              {/* Card Body - Additional Data (Expandable) */}
-              {isExpanded && hasMoreData && (
-                <div className="px-4 py-3 space-y-3 border-t border-gray-200 bg-gray-50">
-                  {visibleCols.slice(initialCols.length).map((column, colIndex) => {
-                    const isLastCol = colIndex === visibleCols.slice(initialCols.length).length - 1;
-                    return (
-                      <div key={column.key} className="flex flex-col gap-1">
-                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                          {column.label}
-                        </span>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs sm:text-sm text-gray-900 font-medium break-words flex-1">
-                            {column.render ? column.render(row[column.key], row) : row[column.key]}
-                          </span>
-                          {/* Arrow Icon - on last expanded column */}
-                          {isLastCol && (
-                            <button
-                              onClick={() => toggleRowExpand(rowIndex)}
-                              className="ml-3 p-0.5 rounded-lg transition-all duration-200 flex-shrink-0 bg-transparent hover:bg-gray-100"
-                              aria-label="Collapse"
-                            >
-                              <svg
-                                className="w-3.5 h-3.5 text-gray-600 transition-transform duration-200 transform rotate-180"
-                                fill="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path d="M7 10l5 5 5-5z" />
-                              </svg>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Card Footer - Action Column if exists */}
-              {columns.some((col) => col.label === "Actions") && (
-                <div className="bg-gray-50 px-4 py-3 border-t border-gray-200">
-                  {columns
-                    .find((col) => col.label === "Actions")
-                    ?.render?.(
-                      columns.find((col) => col.label === "Actions")?.key,
-                      row
-                    )}
-                </div>
-              )}
             </div>
-          );
-        })}
-      </div>
+            {customToolbar && <div className="flex-shrink-0">{customToolbar}</div>}
+          </div>
+        </div>
 
-      {/* Tablet Table View - visible on tablet to small desktop */}
-      <div className="hidden lg:block xl:hidden overflow-x-auto border border-gray-200">
-        <table className="w-full">
-          <thead style={{ backgroundColor: '#AFC8AD9C' }}>
-            <tr>
-              {getVisibleColumns("tablet").map((column) => (
-                <th
-                  key={column.key}
-                  className="px-3 py-3 text-left text-xs font-semibold text-gray-700 whitespace-nowrap"
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {data.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
-                {getVisibleColumns("tablet").map((column) => (
-                  <td key={column.key} className="px-3 py-3 text-xs text-gray-700">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </td>
+        {/* Table scrollable area */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm table-fixed">
+            <thead className={HEADER_BG}>
+              <tr>
+                {columns.map((col) => (
+                  <th
+                    key={col.key}
+                    className="px-4 py-3 text-left font-semibold"
+                  >
+                    {col.sortable ? (
+                      <button
+                        type="button"
+                        onClick={() => onSort?.(col.key)}
+                        className="flex items-center gap-2 w-full bg-transparent p-0 m-0 border-0 appearance-none focus:outline-none"
+                      >
+                        <span>{col.label}</span>
+                        <span className="text-xs">
+                          {sortBy === col.key
+                            ? sortDir === "asc"
+                              ? "▲"
+                              : "▼"
+                            : "↕"}
+                        </span>
+                      </button>
+                    ) : (
+                      col.label
+                    )}
+                  </th>
                 ))}
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+          </table>
 
-      {/* Desktop Table View - visible on large desktop */}
-      <div className="hidden xl:block overflow-x-auto border border-gray-200">
-        <table className="w-full">
-          <thead style={{ backgroundColor: '#AFC8AD9C' }}>
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key}
-                  className="px-4 py-3 text-left text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap"
-                >
-                  {column.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-200">
-            {data.map((row, rowIndex) => (
-              <tr
-                key={rowIndex}
-                className="hover:bg-gray-50 transition-colors duration-200"
-              >
-                {columns.map((column) => (
-                  <td key={column.key} className="px-4 py-3 text-xs sm:text-sm text-gray-700">
-                    {column.render ? column.render(row[column.key], row) : row[column.key]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          {/* Table body scrollable */}
+          <div className="max-h-[60vh] overflow-y-auto">
+            <table className="w-full text-sm table-fixed">
+              <tbody className="divide-y divide-[#00001A4D]">
+                {paginatedData.length === 0 ? (
+                  <tr>
+                    <td colSpan={columns.length} className="text-center py-8 text-gray-500">
+                      {emptyMessage}
+                    </td>
+                  </tr>
+                ) : (
+                  paginatedData.map((row, rowIndex) => {
+                    const uniqueKey = getRowKey(row, rowIndex);
+                    return (
+                      <tr
+                        key={uniqueKey}
+                        className={`border-b border-[#00001A4D] last:border-b-0 ${
+                          onRowClick ? "cursor-pointer hover:bg-gray-50" : ""
+                        }`}
+                        onClick={() => onRowClick?.(row)}
+                      >
+                        {columns.map((col) => (
+                          <td
+                            key={`${uniqueKey}-${col.key}`}
+                            className="px-4 py-3 text-sm text-[#1A1A1A]"
+                          >
+                            {col.render ? col.render(row[col.key], row, rowIndex) : row[col.key]}
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
 
-{enablePagination && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          pageSize={pageSize}
-          totalItems={totalItems}
-          onPageSizeChange={handlePageSizeChange}
-          fixed={fixedPagination}
-        />
-      )}
+        {/* Pagination always visible at bottom */}
+        {enablePagination && totalPages > 1 && (
+          <div className="px-4 py-3 border-t border-[#00001A4D] flex justify-end">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              pageSize={pageSize}
+              totalItems={totalItems}
+              onPageChange={handlePageChange}
+              onPageSizeChange={handlePageSizeChange}
+              fixed={fixedPagination}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
