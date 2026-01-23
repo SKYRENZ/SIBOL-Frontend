@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { login as loginAction, clearError, setUser } from '../store/slices/authSlice';
+import { login as loginAction, clearError, setUser, verifyToken } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const Login: React.FC = () => {
@@ -40,27 +40,21 @@ const Login: React.FC = () => {
         return;
       }
 
-      console.log('Received SSO message:', event.data);
-
       if (event.data?.type === 'SSO_SUCCESS') {
-        const { user } = event.data;
-        
-        if (user) {
-          // ✅ Store user in localStorage
-          localStorage.setItem('user', JSON.stringify(user));
-          
-          // ✅ Update Redux state
-          dispatch(setUser(user));
-          
-          console.log('SSO Success - Navigating to dashboard');
-          
-          // ✅ Navigate to dashboard
+        dispatch(verifyToken()).unwrap().then(() => {
           navigate('/dashboard', { replace: true });
-        }
+        }).catch((err) => {
+          // If server verify failed but popup sent user object, fall back to setUser
+          if (event.data?.user) {
+            dispatch(setUser(event.data.user));
+            navigate('/dashboard', { replace: true });
+          } else {
+            setSsoError('SSO verification failed');
+          }
+        });
       } else if (event.data?.type === 'SSO_ERROR') {
         const msg = event.data?.message || event.data?.code || 'SSO authentication failed';
-        setSsoError(msg); // ✅ SHOW IT
-        console.error('SSO Error:', msg);
+        setSsoError(msg);
       }
     };
 

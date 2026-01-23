@@ -63,17 +63,12 @@ const SSOCallback: React.FC = () => {
               parsedUser = JSON.parse(decodeURIComponent(user));
             }
 
-            localStorage.setItem('user', JSON.stringify(parsedUser));
-
             if (isPopup) {
-              setMessage('Success! Redirecting...');
-              window.opener.postMessage(
-                { type: 'SSO_SUCCESS', user: parsedUser },
-                window.location.origin
-              );
+              // notify opener; main window should call verifyToken() and populate Redux from httpOnly cookie
+              window.opener.postMessage({ type: 'SSO_SUCCESS' }, window.location.origin);
               setTimeout(() => window.close(), 500);
             } else {
-              setMessage('Success! Redirecting to dashboard...');
+              // navigate main window — server cookie should already be set; main app will verify on mount
               window.location.href = '/dashboard';
             }
             return;

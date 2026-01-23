@@ -13,9 +13,32 @@ import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
 import RemarksForm from './remarks/RemarksForm'; // ✅ keep
 import MaintenanceEventLog from "./eventLog/MaintenanceEventLog";
+import { useAppSelector } from '../../store/hooks';
 import { getUserRole } from '../../utils/roleUtils';
 import { Maximize2 } from "lucide-react"; // ✅ add
 import RemarksMaxModal from "./remarks/RemarksMaxModal"; // ✅ add
+
+// ✅ helper: robust account id extractor (supports multiple possible field names)
+const getAccountIdFromUser = (u: any): number | null => {
+  if (!u) return null;
+  const candidates = [
+    u.Account_id,
+    u.account_id,
+    u.AccountId,
+    u.accountId,
+    u.id,
+    u.ID,
+  ];
+  for (const v of candidates) {
+    if (v == null) continue;
+    if (typeof v === 'number' && Number.isFinite(v)) return v;
+    if (typeof v === 'string') {
+      const n = Number(v.trim());
+      if (Number.isFinite(n)) return n;
+    }
+  }
+  return null;
+};
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -29,15 +52,19 @@ interface MaintenanceFormProps {
   readOnly?: boolean;
 }
 
-const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
-  isOpen,
-  onClose,
-  onSubmit,
-  mode = "create",
-  initialData,
-  submitError,
-  readOnly = false, // ✅ NEW
-}) => {
+const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
+  const reduxUser = useAppSelector((state) => state.auth.user); // <- add selector
+
+  const {
+    isOpen,
+    onClose,
+    onSubmit,
+    mode = "create",
+    initialData,
+    submitError,
+    readOnly = false, // ✅ NEW
+  } = props;
+
   const [formData, setFormData] = useState({
     title: '',
     issue: '',
@@ -75,21 +102,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      // Load user data
-      const user = localStorage.getItem('user');
-      if (user) {
-        try {
-          const userData = JSON.parse(user);
-          const accountId = userData.Account_id ?? userData.account_id;
-          setCurrentUserId(accountId);
-
-          if (mode === 'assign') {
-            setFormData(prev => ({ ...prev, staffAccountId: '' }));
-            (window as any).__currentStaffId = accountId;
-          }
-        } catch (err) {
-          console.error('Error parsing user data:', err);
-        }
+      const accountId = getAccountIdFromUser(reduxUser);
+      if (accountId) {
+        setCurrentUserId(accountId);
+        if (mode === 'assign') (window as any).__currentStaffId = accountId;
+      } else {
+        setCurrentUserId(null);
       }
 
       // Fetch priorities
@@ -194,7 +212,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
         setRemarks([]);
       }
     }
-  }, [isOpen, initialData, mode]);
+  }, [isOpen, initialData, mode, reduxUser]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -216,20 +234,20 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
   // ✅ New handler for remarks submission (used by Pending view only)
   const handleRemarkSubmit = async (remarkText: string, files: File[]) => {
     try {
-      const requestId = initialData?.Request_Id || initialData?.request_id;
-      if (!requestId || !currentUserId) {
-        throw new Error('Request ID or User ID not found');
-      }
+      const requestId = initialData?.Request_Id || initialData?.request_id || (initialData?.requestId ?? null);
+      if (!requestId) throw new Error('Request ID not found');
+      const userId = currentUserId ?? getAccountIdFromUser(reduxUser);
+      if (!userId) throw new Error('User ID not found (not signed in)');
 
       // ✅ Get user role using utility function
-      const userRole = getUserRole();
+      const userRole = getUserRole(reduxUser); // <- pass reduxUser
 
       // Add remark if there's text
       if (remarkText.trim()) {
         await maintenanceService.addRemark(
           requestId,
           remarkText,
-          currentUserId,
+          userId,
           userRole  // ✅ Now passing the actual role!
         );
       }
@@ -238,7 +256,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = ({
       if (files.length > 0) {
         await Promise.all(
           files.map((file: File) =>
-            maintenanceService.uploadAttachment(requestId, currentUserId, file)
+            maintenanceService.uploadAttachment(requestId, userId, file)
           )
         );
       }
