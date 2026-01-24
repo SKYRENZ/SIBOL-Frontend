@@ -9,7 +9,7 @@ interface FormModalProps {
   width?: string; // optional override for max width
   children?: React.ReactNode;
   showCloseButton?: boolean;
-  hasCancelButton?: boolean;
+  // removed hasCancelButton — Cancel button handled by consumer if needed
 
   // ✅ NEW (minimal): allow switching header color
   headerTone?: 'default' | 'danger';
@@ -22,12 +22,12 @@ const FormModal: React.FC<FormModalProps> = ({
   width = '720px',
   children,
   showCloseButton = true,
-  hasCancelButton = false,
   headerTone = 'default',
 }) => {
   if (!isOpen) return null;
 
-  const shouldShowCloseButton = showCloseButton && !hasCancelButton;
+  // always use showCloseButton (removed Cancel-button toggle)
+  const shouldShowCloseButton = showCloseButton;
 
   const headerBgClass =
     headerTone === 'danger'
@@ -67,9 +67,9 @@ const FormModal: React.FC<FormModalProps> = ({
               onClick={onClose}
               aria-label="Close"
               onMouseDown={(e) => e.stopPropagation()}
-              className="absolute top-4 right-4 z-30 text-white hover:bg-white/10 transition-colors rounded-full w-8 h-8 flex items-center justify-center p-1 focus:outline-none focus:ring-2 focus:ring-white/30"
+              className="absolute top-4 right-4 z-30 text-white bg-red-600 hover:bg-red-700 transition-colors rounded-full w-8 h-8 flex items-center justify-center p-1 focus:outline-none"
             >
-              <X size={16} strokeWidth={2} color="#ffffff" />
+              <X size={16} strokeWidth={3} color="#ffffff" />
             </button>
           )}
         </div>

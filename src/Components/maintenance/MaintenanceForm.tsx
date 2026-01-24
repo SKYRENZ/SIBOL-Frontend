@@ -807,14 +807,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
           {/* ✅ hide footer submit when readOnly */}
           {!readOnly && (
             <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                {isViewMode ? "Close" : "Cancel"}
-              </button>
-
               {/* ✅ show submit for create + assign */}
               {!isViewMode && (
                 <button
