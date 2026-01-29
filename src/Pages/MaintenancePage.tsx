@@ -18,7 +18,7 @@ import DeletedRequestsModal from "../Components/maintenance/DeletedRequestsModal
 const MaintenancePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("Request Maintenance");
   const [searchTerm, setSearchTerm] = useState("");
-  const [, setSelectedFilters] = useState<string[]>([]);
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [createdByAccountId, setCreatedByAccountId] = useState<number | null>(null);
   
   // State for the modal, lifted up to this parent component
@@ -149,15 +149,29 @@ const MaintenancePage: React.FC = () => {
 
     switch (activeTab) {
       case "Pending Maintenance":
-        return <PendingMaintenance onOpenForm={handleOpenForm} />;
+        return (
+          <PendingMaintenance
+            onOpenForm={handleOpenForm}
+            searchTerm={searchTerm}
+            selectedFilters={selectedFilters}
+          />
+        );
 
       case "Complete Maintenance":
-        return <CompletedMaintenance onOpenForm={handleOpenCompletedForm} />;
+        return (
+          <CompletedMaintenance
+            onOpenForm={handleOpenCompletedForm}
+            searchTerm={searchTerm}
+            selectedFilters={selectedFilters}
+          />
+        );
 
       default:
         return (
           <RequestMaintenance
             onOpenForm={handleOpenForm as (mode: "assign", ticket: MaintenanceTicket) => void}
+            searchTerm={searchTerm}
+            selectedFilters={selectedFilters}
           />
         );
     }
@@ -170,7 +184,7 @@ const MaintenancePage: React.FC = () => {
       case 'Pending Maintenance':
         return ['maintenancePriorities', 'maintenanceStatuses'];
       case 'Complete Maintenance':
-        return ['maintenancePriorities', 'maintenanceStatuses'];
+        return ['maintenancePriorities']; // ✅ only priorities
       default:
         return [];
     }
@@ -248,7 +262,18 @@ const MaintenancePage: React.FC = () => {
               <FilterPanel
                 types={getFilterTypesByTab(activeTab)}
                 onFilterChange={setSelectedFilters}
-                className="w-full sm:w-auto"
+                excludeOptions={{
+                  maintenanceStatuses:
+                    activeTab === "Pending Maintenance"
+                      ? ["Completed", "Requested", "Pending"]
+                      : activeTab === "Request Maintenance"
+                      ? ["Completed", "Pending", "On-going", "For Verification"]
+                      : ["Requested", "Pending", "On-going", "For Verification", "Cancelled", "Cancel Requested"],
+                }}
+                includeOptions={{
+                  maintenancePriorities:
+                    activeTab === "Complete Maintenance" ? ["Urgent", "Critical", "Mild"] : undefined,
+                }}
               />
             </div>
           </div>
