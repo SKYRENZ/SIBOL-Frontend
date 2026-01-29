@@ -1,53 +1,49 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Table from "../common/Table";
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
+import { fetchLeaderboard } from "../../services/leaderboardService";
+
+type Row = {
+  Account_id: number;
+  Username: string;
+  Total_kg: number;
+  Points?: number;
+  rank?: number;
+};
 
 const LeaderboardTab: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [data, setData] = useState<Row[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    setLoading(true);
+    fetchLeaderboard(100)
+      .then((rows: any[]) => {
+        if (!mounted) return;
+        const withRank = rows.map((r, i) => ({ ...r, rank: i + 1 }));
+        setData(withRank);
+      })
+      .catch(() => {
+        if (mounted) setData([]);
+      })
+      .finally(() => mounted && setLoading(false));
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const columns = [
-    { key: "rank", label: "#" },
-    { key: "name", label: "Name" },
-    { key: "barangay", label: "Barangay" },
-    { key: "points", label: "Points" },
-    {
-      key: "status",
-      label: "Status",
-      render: (value: string) => (
-        <span
-          className={`px-2 py-1 text-xs font-semibold rounded-full ${
-            value === "Active"
-              ? "bg-green-100 text-green-800"
-              : "bg-gray-100 text-gray-800"
-          }`}
-        >
-          {value}
-        </span>
-      ),
-    },
+    { key: "rank", label: "Rank" },
+    { key: "Username", label: "Name" },
+    { key: "Total_kg", label: "Total Contribution" },
+    { key: "Points", label: "Points" },
   ];
 
-  const leaderboardData = [
-    {
-      rank: 1,
-      name: "Laurenz.listangco",
-      barangay: "Barangay 178",
-      points: "100pts",
-      status: "Inactive",
-    },
-    {
-      rank: 2,
-      name: "Karl Miranda",
-      barangay: "Barangay 178",
-      points: "100pts",
-      status: "Active",
-    },
-  ];
-
-  // ✅ Filter leaderboard based on search input
-  const filteredData = leaderboardData.filter((item) =>
-    [item.name, item.barangay, item.status, item.points]
+  const filteredData = data.filter((item) =>
+    [item.Username, String(item.Total_kg), String(item.Points)]
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -55,7 +51,6 @@ const LeaderboardTab: React.FC = () => {
 
   return (
     <div className="mt-4">
-      {/* 🔍 Search + Filter Section */}
       <div className="flex justify-between items-center mb-4 gap-4">
         <SearchBar
           value={searchTerm}
@@ -66,11 +61,10 @@ const LeaderboardTab: React.FC = () => {
         <FilterPanel />
       </div>
 
-      {/* 🧾 Table Section */}
       <Table
         columns={columns}
         data={filteredData}
-        emptyMessage="No leaderboard data available"
+        emptyMessage={loading ? "Loading..." : "No leaderboard data available"}
         className="rounded-lg shadow-md"
       />
     </div>
