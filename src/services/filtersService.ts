@@ -6,6 +6,7 @@ export type AllFilters = {
   maintenancePriorities: FilterItem[];
   maintenanceStatuses: FilterItem[];
   scheduleStatuses: FilterItem[];
+  rewardStatuses?: FilterItem[];
 };
 
 type ApiResponse<T> = {

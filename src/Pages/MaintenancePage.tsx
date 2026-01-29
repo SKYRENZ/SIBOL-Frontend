@@ -139,7 +139,7 @@ const MaintenancePage: React.FC = () => {
     []
   );
 
-  const handleOpenCompletedForm = (mode: 'completed', ticket: MaintenanceTicket) => {
+  const handleOpenCompletedForm = (_mode: 'completed', ticket: MaintenanceTicket) => {
     // ✅ open as completed, not pending
     handleOpenForm('completed', ticket);
   };
@@ -272,7 +272,7 @@ const MaintenancePage: React.FC = () => {
                 }}
                 includeOptions={{
                   maintenancePriorities:
-                    activeTab === "Complete Maintenance" ? ["Urgent", "Critical", "Mild"] : undefined,
+                    activeTab === "Complete Maintenance" ? ["Urgent", "Critical", "Mild"] : [],
                 }}
               />
             </div>
