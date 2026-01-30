@@ -9,6 +9,7 @@ import MachineTab from '../Components/SibolMachine/MachineTab';
 import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
 import Analytics from '../Components/SibolMachine/Analytics';
+import ProcessPanelTab from '../Components/SibolMachine/ProcessPanelTab';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
 import "../tailwind.css";
 
@@ -53,6 +54,7 @@ const SibolMachinePage: React.FC = () => {
 
   const tabsConfig = [
     { id: 'Machines', label: 'Machines' },
+    { id: 'Process Panel', label: 'Process Panel' },
     { id: 'Chemical Additives', label: 'Additives' },
     { id: 'Waste Container', label: 'Waste Container' },
     { id: 'Analytics', label: 'Analytics' }
@@ -188,6 +190,8 @@ const SibolMachinePage: React.FC = () => {
         );
       case 'Analytics':
         return <Analytics />; // ✅ Analytics tab rendering
+      case 'Process Panel':
+        return <ProcessPanelTab />;
       default:
         return <div className="text-center py-10">Content for {activeTab}</div>;
     }

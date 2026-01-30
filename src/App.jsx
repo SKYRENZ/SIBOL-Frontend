@@ -1,8 +1,6 @@
-import React, { lazy, Suspense, useEffect } from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './Components/common/ProtectedRoute';
-import { useAppDispatch } from './store/hooks';
-import { verifyToken } from './store/slices/authSlice';
 
 // Lazy load page components
 const Landingpage = lazy(() => import('./Pages/Landingpage.tsx'));
@@ -19,26 +17,16 @@ const EmailVerification = lazy(() => import('./Pages/EmailVerification.tsx'));
 const AdminPending = lazy(() => import('./Pages/AdminPending.tsx'));
 const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
 const ProfilePage = lazy(() => import('./Pages/Profile.tsx'));
-const ChatSupport = lazy(() => import('./Pages/FAQ.tsx'));
+
 
 function App() {
-
-  const dispatch = useAppDispatch();
-
-  useEffect(() => {
-    // Attempt to populate Redux from httpOnly cookie on app start
-    dispatch(verifyToken()).catch(() => {
-      // ignore - verifyToken sets auth state; do not force redirect here
-    });
-  }, [dispatch]);
-
   return (
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<Landingpage />} />
       <Route path="/login" element={<SignIN />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ✅ NEW */}
       <Route path="/email-verification" element={<EmailVerification />} />
       <Route path="/pending-approval" element={<AdminPending />} />
       <Route path="/auth/callback" element={<SSOCallback />} />
@@ -50,7 +38,6 @@ function App() {
         <Route path="/household" element={<Household />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/chat-support" element={<ChatSupport />} />
       </Route>
 
       {/* Admin Only Routes */}
