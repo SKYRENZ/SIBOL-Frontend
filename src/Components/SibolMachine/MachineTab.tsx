@@ -1,5 +1,6 @@
 import React from 'react';
 import Table from '../common/Table';
+
 import type { Machine } from '../../services/machineService';
 
 interface MachineTabProps {

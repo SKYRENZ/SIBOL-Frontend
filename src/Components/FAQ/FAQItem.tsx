@@ -19,21 +19,21 @@ const FAQItem: React.FC<FAQItemProps> = ({
 }) => {
   return (
     <div
-      className={`relative h-full px-6 sm:px-12 lg:px-20 py-12 lg:py-16 overflow-hidden
+      className={`relative h-full px-4 sm:px-12 lg:px-20 py-8 sm:py-12 lg:py-16 overflow-hidden
         ${isChatMode ? "bg-[#f4f9f4]" : "bg-white"}`}
     >
       {/* TITLE */}
-      <h3 className="text-[#7fa98a] font-semibold text-lg mb-10">
+      <h3 className="text-[#7fa98a] font-semibold text-base sm:text-lg lg:text-xl mb-8 sm:mb-10">
         Frequently Asked Questions:
       </h3>
 
       {/* FAQ LIST */}
-      <div className="space-y-4 relative z-10">
+      <div className="space-y-3 sm:space-y-4 relative z-10">
         {faqs.map((q, i) => (
           <button
             key={i}
             onClick={() => onSelectFAQ(q)}
-            className={`w-full flex items-center justify-between px-6 py-4 rounded-2xl text-sm transition shadow
+            className={`w-full flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 rounded-2xl text-sm sm:text-base transition shadow
               ${
                 isChatMode
                   ? "bg-white text-[#4f7f63] hover:bg-[#eef5ef]"
@@ -41,15 +41,15 @@ const FAQItem: React.FC<FAQItemProps> = ({
               }`}
           >
             <span className="text-left">{q}</span>
-            <span className="text-lg">{">"}</span>
+            <span className="text-lg sm:text-xl">{">"}</span>
           </button>
         ))}
       </div>
 
       {/* CONTACT */}
       <p
-        className={`text-xs text-[#7fa98a]
-          ${isChatMode ? "absolute bottom-6 right-8" : "mt-14 text-right"}`}
+        className={`text-xs sm:text-sm text-[#7fa98a]
+          ${isChatMode ? "absolute bottom-4 sm:bottom-6 right-4 sm:right-8" : "mt-10 sm:mt-14 text-right"}`}
       >
         Contact us:{" "}
         <a
