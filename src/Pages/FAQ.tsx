@@ -5,6 +5,7 @@ import FAQItem from "../Components/FAQ/FAQItem";
 import ChatPanel from "../Components/FAQ/ChatPanel";
 import ChatHistory from "../Components/FAQ/ChatHistory";
 
+
 const user = { firstName: "Laurenz", lastName: "Listangco" };
 
 const defaultFAQs = [
@@ -30,6 +31,7 @@ const ChatSupport: React.FC = () => {
   const [isChatMode, setIsChatMode] = useState(false);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
+  const [initialUserMessage, setInitialUserMessage] = useState<string | undefined>(undefined);
 
   // Start a new chat
   const startNewChat = (initialMessage?: string) => {
@@ -73,6 +75,7 @@ const ChatSupport: React.FC = () => {
   const handleEndConversation = () => {
     setIsChatMode(false);
     setActiveChatId(null);
+    setInitialUserMessage(undefined);
   };
 
   const handleSelectFAQ = (faq: string) => {
@@ -118,16 +121,17 @@ const ChatSupport: React.FC = () => {
 
           {/* RIGHT PANEL */}
           <section className="flex-1 h-full overflow-auto bg-[#e6efe6]">
-            {!isChatMode ? (
-              <FAQItem onSelectFAQ={handleSelectFAQ} />
-            ) : activeChat ? (
+            {isChatMode ? (
               <ChatPanel
+                initialUserMessage={initialUserMessage}
                 suggestedFAQs={defaultFAQs}
-                messages={activeChat.messages}
+                messages={activeChat?.messages ?? []}
                 onEndConversation={handleEndConversation}
                 onSendMessage={handleSendMessage}
               />
-            ) : null}
+            ) : (
+              <FAQItem onSelectFAQ={handleSelectFAQ} />
+            )}
           </section>
         </div>
       </main>

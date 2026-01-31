@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { useAppSelector } from "../store/hooks";
 import Header from "../Components/Header";
 import Tabs from "../Components/common/Tabs";
 import SearchBar from "../Components/common/SearchBar";
@@ -26,6 +27,9 @@ const MaintenancePage: React.FC = () => {
   const [selectedTicket, setSelectedTicket] = useState<MaintenanceTicket | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // ✅ Read user from Redux instead of localStorage
+  const reduxUser = useAppSelector((state) => state.auth.user);
+  
   // ✅ NEW: deleted requests modal state
   const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
   const [deletedTickets, setDeletedTickets] = useState<MaintenanceTicket[]>([]);
@@ -33,21 +37,10 @@ const MaintenancePage: React.FC = () => {
   const [deletedError, setDeletedError] = useState<string | null>(null);
 
   useEffect(() => {
-    const user = localStorage.getItem('user');
-    if (user) {
-      try {
-        const userData = JSON.parse(user);
-        const accountId = userData.Account_id ?? userData.account_id;
-        setCreatedByAccountId(accountId || 1);
-      } catch (err) {
-        console.error("Failed to parse user data:", err);
-        setCreatedByAccountId(1);
-      }
-    } else {
-      console.warn("No user in localStorage");
-      setCreatedByAccountId(1);
-    }
-  }, []);
+    // derive account id from redux user; do NOT default to 1 (avoid accidental wrong actor)
+    const accountId = reduxUser?.Account_id ?? reduxUser?.account_id ?? null;
+    setCreatedByAccountId(accountId);
+  }, [reduxUser]);
 
   const handleOpenForm = (
     mode: 'create' | 'assign' | 'pending' | 'completed', // ✅ add completed
@@ -71,12 +64,13 @@ const MaintenancePage: React.FC = () => {
       const requestId = selectedTicket?.Request_Id || selectedTicket?.request_id;
 
       if (formMode === 'create') {
+        if (!createdByAccountId) throw new Error('Creator account not available. Please sign in / reload.');
         // Create ticket WITHOUT attachments first
         const ticket = await maintenanceService.createTicket({
           title: formData.title,
           details: formData.issue,
           priority: formData.priority,
-          created_by: createdByAccountId!,
+          created_by: createdByAccountId,
           due_date: formData.dueDate || null,
         });
 
@@ -95,11 +89,7 @@ const MaintenancePage: React.FC = () => {
       } else if (formMode === 'assign') {
         if (!requestId) throw new Error('Request ID not found');
 
-        const user = localStorage.getItem('user');
-        if (!user) throw new Error('User not found');
-
-        const userData = JSON.parse(user);
-        const staffId = userData.Account_id ?? userData.account_id;
+        const staffId = reduxUser?.Account_id ?? reduxUser?.account_id;
         if (!staffId) throw new Error('Staff account ID not found');
 
         const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
@@ -129,8 +119,9 @@ const MaintenancePage: React.FC = () => {
       }
       
       handleCloseForm();
-      window.location.reload();
-
+      // avoid full reload (loses app state). emit refresh event so hooks re-fetch.
+      window.dispatchEvent(new Event('maintenance:refresh'));
+      // close modal / UI already handled by handleCloseForm
     } catch (err: any) {
       console.error("Form submission error:", err);
       const errorMessage = err.response?.data?.message || err.message || "Failed to submit form";

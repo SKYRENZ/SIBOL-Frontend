@@ -22,7 +22,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const { isFirstLogin } = useAppSelector((state) => state.auth);
+  const { isFirstLogin, user } = useAppSelector((state) => state.auth); // <- use Redux
 
   async function handleLogout() {
     try {
@@ -73,15 +73,18 @@ const Header: React.FC = () => {
     );
   };
 
-  const localUser = (() => {
-    try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; }
+  const isAdminRole = (() => {
+    if (!user) return false;
+    const roleNum =
+      (typeof user.Roles === 'number' ? user.Roles : undefined) ??
+      (typeof user.roleId === 'number' ? user.roleId : undefined) ??
+      (typeof user.role === 'number' ? user.role : undefined);
+    const roleStr = typeof user.role === 'string' ? user.role : undefined;
+    return roleNum === 1 || roleStr === 'Admin';
   })();
 
-  const isAdminRole =
-    localUser && (localUser.Roles === 1 || localUser.roleId === 1 || localUser.role === 'Admin');
-
   const hasModule6 =
-    localUser && Array.isArray(localUser.user_modules) && localUser.user_modules.includes(6);
+    user && Array.isArray(user.user_modules) && user.user_modules.includes(6);
 
   const showAdmin = isAdminRole || hasModule6 || hasModule('admin') || hasModule(1);
 

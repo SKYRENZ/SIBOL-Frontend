@@ -3,10 +3,29 @@ import Table from "../common/Table";
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
 import useClaimedReward from "../../hooks/household/useClaimedReward";
-// removed: import MarkConfirmModal from "./claimConfirmModal";
 import ClaimViewModal from "./claimViewModal";
 
-const formatDate = (v?: string) => (v ? String(v).split("T")[0] : "-----");
+const formatDate = (v?: string) => {
+  if (!v) return "-----";
+  // try native Date first
+  const d = new Date(v);
+  if (!Number.isNaN(d.getTime())) {
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    const yyyy = d.getFullYear();
+    return `${mm}/${dd}/${yyyy}`; // MM/DD/YYYY
+  }
+  // fallback for "YYYY-MM-DD" like strings
+  const iso = String(v).split("T")[0];
+  const parts = iso.split("-");
+  if (parts.length === 3) {
+    const [y, m, day] = parts;
+    const mm = String(Number(m)).padStart(2, "0");
+    const dd = String(Number(day)).padStart(2, "0");
+    return `${mm}/${dd}/${y}`;
+  }
+  return String(v);
+};
 
 const ClaimedRewards: React.FC = () => {
   const { data, loading, error, refresh } = useClaimedReward();
@@ -59,7 +78,7 @@ const ClaimedRewards: React.FC = () => {
     {
       key: "Created_at",
       label: "Date Generated",
-      render: (v: any) => (v ? String(v).split("T")[0] : ""),
+      render: (v: any) => formatDate(v),
     },
     {
       key: "Redeemed_at",

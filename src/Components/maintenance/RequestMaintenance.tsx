@@ -4,6 +4,7 @@ import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMainten
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 import CancelConfirmModal from "./CancelConfirmModal";
+import { useAppSelector } from '../../store/hooks';
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
@@ -11,6 +12,7 @@ interface RequestMaintenanceProps {
 
 export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenForm }) => {
   const { tickets, loading, error, refetch } = useRequestMaintenance();
+  const { user: reduxUser } = useAppSelector(state => state.auth);
 
   const [selectedTicketForDelete, setSelectedTicketForDelete] = useState<MaintenanceTicket | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -104,9 +106,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
     try {
       setIsDeleting(true);
 
-      const user = localStorage.getItem("user");
-      const userData = user ? JSON.parse(user) : {};
-      const actorId = userData.Account_id ?? userData.account_id;
+      const actorId = reduxUser?.Account_id ?? reduxUser?.account_id;
       if (!actorId) throw new Error("actor_account_id not found");
 
       await maintenanceService.deleteTicket(requestId, actorId, trimmed);

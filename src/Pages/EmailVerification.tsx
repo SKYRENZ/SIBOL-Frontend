@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { verifyEmail, resendVerification, clearError, clearSuccess } from '../store/slices/authSlice';
+import { verifyEmail, resendVerification, clearError, clearSuccess, setUser } from '../store/slices/authSlice';
 import AuthLayout from '../Components/verification/AuthLayout';
 import LoadingSpinner from '../Components/verification/LoadingSpinner';
 import StatusCard from '../Components/verification/StatusCard';
@@ -70,7 +70,7 @@ const EmailVerification: React.FC = () => {
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
-        localStorage.setItem('user', JSON.stringify(parsed));
+        dispatch(setUser(parsed)); // populate Redux instead of localStorage
       } catch (e) {
         console.warn('Failed to parse SSO user', e);
       }

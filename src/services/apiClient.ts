@@ -42,7 +42,10 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401) {
-      window.location.replace('/login');
+      // Don’t force a redirect here — let callers handle auth state.
+      console.warn('API returned 401 Unauthorized', error);
+      // Optional: emit an event so UI can react if desired
+      window.dispatchEvent(new CustomEvent('api:unauthorized', { detail: error }));
     }
 
     return Promise.reject(error);

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { getQueuePosition, clearError } from '../store/slices/authSlice';
+import { getQueuePosition, clearError, setUser, verifyToken } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 
 const AdminPending: React.FC = () => {
@@ -59,15 +59,18 @@ const AdminPending: React.FC = () => {
     if (user) {
       try {
         const parsed = JSON.parse(decodeURIComponent(user));
-        localStorage.setItem('user', JSON.stringify(parsed));
+        dispatch(setUser(parsed)); // populate Redux, don't persist to localStorage
       } catch (e) {
         console.warn('Failed to parse SSO user', e);
       }
     }
 
     if (token) {
-      window.history.replaceState({}, '', location.pathname);
-      navigate('/dashboard', { replace: true });
+      // token likely set httpOnly cookie on backend — verify to populate Redux
+      dispatch(verifyToken()).finally(() => {
+        window.history.replaceState({}, '', location.pathname);
+        navigate('/dashboard', { replace: true });
+      });
     } else if (auth === 'fail') {
       navigate('/login', { replace: true });
     }

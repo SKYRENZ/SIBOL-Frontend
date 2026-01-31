@@ -1,6 +1,8 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './Components/common/ProtectedRoute';
+import { useAppDispatch } from './store/hooks';
+import { verifyToken } from './store/slices/authSlice';
 
 // Lazy load page components
 const Landingpage = lazy(() => import('./Pages/Landingpage.tsx'));
@@ -20,6 +22,16 @@ const ProfilePage = lazy(() => import('./Pages/Profile.tsx'));
 const ChatSupport = lazy(() => import('./Pages/FAQ.tsx'));
 
 function App() {
+
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    // Attempt to populate Redux from httpOnly cookie on app start
+    dispatch(verifyToken()).catch(() => {
+      // ignore - verifyToken sets auth state; do not force redirect here
+    });
+  }, [dispatch]);
+
   return (
     <Routes>
       {/* Public Routes */}

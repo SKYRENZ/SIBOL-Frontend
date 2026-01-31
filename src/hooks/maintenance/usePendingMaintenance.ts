@@ -28,6 +28,9 @@ export function usePendingMaintenance() {
 
   useEffect(() => {
     fetchTickets();
+    const onRefresh = () => fetchTickets();
+    window.addEventListener('maintenance:refresh', onRefresh);
+    return () => window.removeEventListener('maintenance:refresh', onRefresh);
   }, [fetchTickets]);
 
   return { tickets, loading, error, refetch: fetchTickets };

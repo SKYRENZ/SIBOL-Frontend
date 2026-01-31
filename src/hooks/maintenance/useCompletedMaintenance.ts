@@ -11,9 +11,12 @@ export function useCompletedMaintenance() {
     setLoading(true);
     setError(null);
     try {
+      console.debug('fetching completed tickets...');
       const data = await maintenanceService.listTickets({ status: "Completed" });
       setTickets(data);
+      console.debug('completed tickets received', data?.length);
     } catch (err: any) {
+      console.error('useCompletedMaintenance fetch error', err);
       setError(err.message || "Failed to load completed maintenance");
     } finally {
       setLoading(false);
@@ -22,6 +25,9 @@ export function useCompletedMaintenance() {
 
   useEffect(() => {
     fetch();
+    const onRefresh = () => fetch();
+    window.addEventListener('maintenance:refresh', onRefresh);
+    return () => window.removeEventListener('maintenance:refresh', onRefresh);
   }, [fetch]);
 
   return { tickets, loading, error, refetch: fetch };
