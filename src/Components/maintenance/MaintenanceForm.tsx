@@ -115,9 +115,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
     <div className="space-y-4 rounded-lg p-4 bg-[#355842]/5 border border-[#355842]/30 ring-1 ring-[#355842]/10">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-[#2E523A]">Accept & Assign</p>
-        <span className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-[#355842]/20 text-[#2E523A]">
-          Editable
-        </span>
       </div>
 
       <div className="border-t border-[#355842]/20 pt-3">
@@ -132,7 +129,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
       </div>
 
       <FormField
-        label="Priority (Editable)"
+        label={
+          <span className="flex items-center gap-2">
+            <span>Priority</span>
+            <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
+          </span>
+        }
         name="priority"
         type="select"
         value={formData.priority}
@@ -141,7 +143,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
       />
 
       <DatePicker
-        label="Due Date (Editable)"
+        label={
+          <span className="flex items-center gap-2">
+            <span>Date Picker</span>
+            <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
+          </span>
+        }
         name="dueDate"
         value={formData.dueDate}
         onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -477,8 +484,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
                             }
                           }}
                           placeholder="e.g., Broken conveyor belt"
-                          className={`w-full px-3 py-2 rounded-md focus:outline-none ${
-                            formErrors.title ? 'border-red-500 ring-1 ring-red-200' : 'border border-gray-300 focus:ring-2 focus:ring-[#355842]'
+                          className={`w-full box-border px-3 py-2 rounded-md focus:outline-none ${
+                            formErrors.title
+                              ? 'border-red-500 ring-1 ring-red-200'
+                              : 'border border-gray-300 focus:border-[#355842] focus:ring-2 focus:ring-[#355842] focus:ring-inset'
                           }`}
                         />
                         {formErrors.title && <p className="mt-1 text-xs text-red-600">{formErrors.title}</p>}
@@ -503,8 +512,10 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
                           }}
                           placeholder="Describe the issue in detail..."
                           rows={4}
-                          className={`w-full px-3 py-2 rounded-md focus:outline-none ${
-                            formErrors.issue ? 'border-red-500 ring-1 ring-red-200' : 'border border-gray-300 focus:ring-2 focus:ring-[#355842]'
+                          className={`w-full box-border px-3 py-2 rounded-md focus:outline-none ${
+                            formErrors.issue
+                              ? 'border-red-500 ring-1 ring-red-200'
+                              : 'border border-gray-300 focus:border-[#355842] focus:ring-2 focus:ring-[#355842] focus:ring-inset'
                           }`}
                         />
                         {formErrors.issue && <p className="mt-1 text-xs text-red-600">{formErrors.issue}</p>}
