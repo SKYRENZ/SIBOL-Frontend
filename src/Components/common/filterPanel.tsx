@@ -9,9 +9,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/Components/ui/popover
 import { Separator } from "@/Components/ui/separator";
 
 type FilterPanelProps = {
-  types?: string[]; 
-
-  
+  types?: string[];
+  excludeOptions?: Record<string, string[]>; // ✅ add
+  includeOptions?: Record<string, string[]>; // ✅ add
   onFilterChange?: (filters: string[]) => void;
   className?: string;
 };
@@ -24,6 +24,8 @@ const prettify = (key: string) =>
 
 const FilterPanel: React.FC<FilterPanelProps> = ({
   types,
+  excludeOptions,
+  includeOptions, // ✅ add
   onFilterChange,
   className = "",
 }) => {
@@ -34,12 +36,30 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   const orderedCategories = useMemo(() => {
     const keys = types ?? Object.keys(filters);
     return keys
-      .map((key) => ({
-        key,
-        options: (filters[key] ?? []).map((item) => item.name),
-      }))
+      .map((key) => {
+        const exclusions = (excludeOptions?.[key] ?? []).map((v) => v.toLowerCase());
+        const inclusions = (includeOptions?.[key] ?? []).map((v) => v.toLowerCase());
+
+        let options = (filters[key] ?? []).map((item) => item.name);
+
+        if (inclusions.length > 0) {
+          options = options.filter((name) => inclusions.includes(String(name).toLowerCase()));
+        }
+
+        options = options.filter((name) => !exclusions.includes(String(name).toLowerCase()));
+
+        return { key, options };
+      })
       .filter(({ options }) => options.length > 0);
-  }, [filters, types]);
+  }, [filters, types, excludeOptions, includeOptions]);
+
+  const optionToCategory = useMemo(() => {
+    const map = new Map<string, string>();
+    orderedCategories.forEach(({ key, options }) => {
+      options.forEach((opt) => map.set(opt, key));
+    });
+    return map;
+  }, [orderedCategories]);
 
   const handleRemoveFilter = (filter: string) => {
     const newFilters = selectedFilters.filter((f) => f !== filter);
@@ -48,9 +68,18 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   };
 
   const handleCheckboxChange = (option: string) => {
-    const newFilters = selectedFilters.includes(option)
-      ? selectedFilters.filter((f) => f !== option)
-      : [...selectedFilters, option];
+    const category = optionToCategory.get(option);
+    const isSelected = selectedFilters.includes(option);
+
+    let newFilters = selectedFilters.filter((f) => f !== option);
+
+    if (!isSelected) {
+      if (category) {
+        // ✅ keep only one per category
+        newFilters = newFilters.filter((f) => optionToCategory.get(f) !== category);
+      }
+      newFilters = [...newFilters, option];
+    }
 
     setSelectedFilters(newFilters);
     onFilterChange?.(newFilters);

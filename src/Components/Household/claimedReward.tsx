@@ -30,6 +30,7 @@ const formatDate = (v?: string) => {
 const ClaimedRewards: React.FC = () => {
   const { data, loading, error, refresh } = useClaimedReward();
   const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
 
   // view modal state
   const [selectedRowForView, setSelectedRowForView] = useState<any | null>(null);
@@ -38,24 +39,33 @@ const ClaimedRewards: React.FC = () => {
   const [isMarking, setIsMarking] = useState(false);
 
   const filteredData = useMemo(() => {
-    if (!searchTerm.trim()) return data;
-    const q = searchTerm.toLowerCase();
-    return data.filter((item) =>
-      [
-        item.Fullname,
-        item.Item,
-        item.Status,
-        item.Redemption_code,
-        String(item.Total_points ?? ""),
-        String(item.Redeemed_at ?? item.Created_at ?? ""),
-        item.Email,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [data, searchTerm]);
+    const q = searchTerm.trim().toLowerCase();
+
+    return data.filter((item) => {
+      const matchesSearch = !q
+        ? true
+        : [
+            item.Fullname,
+            item.Item,
+            item.Status,
+            item.Redemption_code,
+            String(item.Total_points ?? ""),
+            String(item.Redeemed_at ?? item.Created_at ?? ""),
+            item.Email,
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase()
+            .includes(q);
+
+      const matchesStatus =
+        selectedFilters.length === 0
+          ? true
+          : selectedFilters.some((f) => item.Status === f);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [data, searchTerm, selectedFilters]);
 
   const columns = [
     { key: "Fullname", label: "Name" },
@@ -114,7 +124,10 @@ const ClaimedRewards: React.FC = () => {
           className="max-w-[100vh] flex-grow"
         />
         <div className="ml-4">
-          <FilterPanel />
+          <FilterPanel
+            types={["rewardStatuses"]}
+            onFilterChange={setSelectedFilters}
+          />
         </div>
       </div>
 
