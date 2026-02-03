@@ -33,7 +33,7 @@ interface TableProps<T> {
   initialPageSize?: number;
   fixedPagination?: boolean;
   pagination?: TablePaginationConfig;
-  filterTypes?: string[];
+  filterTypes?: string[]; // <-- make optional
   rowKey?: string;
   customToolbar?: React.ReactNode;
 }
@@ -53,7 +53,7 @@ const Table = <T extends Record<string, any>>({
   initialPageSize = 5,
   fixedPagination = true,
   pagination,
-  filterTypes = [],
+  filterTypes, // <-- remove default []
   rowKey = "id",
   customToolbar,
 }: TableProps<T>) => {
@@ -61,6 +61,8 @@ const Table = <T extends Record<string, any>>({
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [internalPage, setInternalPage] = useState(1);
   const [internalPageSize, setInternalPageSize] = useState(initialPageSize);
+
+  const showFilter = Array.isArray(filterTypes) && filterTypes.length > 0;
 
   const isControlled = Boolean(pagination);
   const currentPage = isControlled ? pagination!.currentPage : internalPage;
@@ -129,10 +131,12 @@ const Table = <T extends Record<string, any>>({
                 <SearchBar value={search} onChange={setSearch} />
               </div>
               <div className="w-full lg:w-auto">
-                <FilterPanel
-                  types={filterTypes.length ? filterTypes : undefined}
-                  onFilterChange={handleFilterChange}
-                />
+                {showFilter && (
+                  <FilterPanel
+                    types={filterTypes}
+                    onFilterChange={handleFilterChange}
+                  />
+                )}
               </div>
             </div>
             {customToolbar && <div className="flex-shrink-0">{customToolbar}</div>}
