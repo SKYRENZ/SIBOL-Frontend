@@ -17,6 +17,7 @@ const EmailVerification = lazy(() => import('./Pages/EmailVerification.tsx'));
 const AdminPending = lazy(() => import('./Pages/AdminPending.tsx'));
 const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
 const ProfilePage = lazy(() => import('./Pages/Profile.tsx'));
+const ChatSupport = lazy(() => import('./Pages/ChatSupport.tsx'));
 
 
 function App() {
@@ -30,7 +31,8 @@ function App() {
       <Route path="/email-verification" element={<EmailVerification />} />
       <Route path="/pending-approval" element={<AdminPending />} />
       <Route path="/auth/callback" element={<SSOCallback />} />
-
+      <Route path="/chat-support" element={<ChatSupport />} />
+      
       {/* Protected Routes for any authenticated user */}
       <Route element={<ProtectedRoute />}>
         <Route path="/dashboard" element={<Dashboard />} />
