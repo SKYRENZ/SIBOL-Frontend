@@ -1,9 +1,9 @@
 import React, { useState } from "react";
 import Header from "../Components/Header";
-import MascotPanel from "../Components/FAQ/MascotPanel";
-import FAQItem from "../Components/FAQ/FAQItem";
-import ChatPanel from "../Components/FAQ/ChatPanel";
-import ChatHistory from "../Components/FAQ/ChatHistory";
+import MascotPanel from "../Components/ChatSupport/MascotPanel";
+import FAQItem from "../Components/ChatSupport/FAQItem";
+import ChatPanel from "../Components/ChatSupport/ChatPanel";
+import ChatHistory from "../Components/ChatSupport/ChatHistory";
 
 
 const user = { firstName: "Laurenz", lastName: "Listangco" };

@@ -8,9 +8,15 @@ import { useAppSelector } from '../../store/hooks';
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
+  searchTerm: string;
+  selectedFilters: string[];
 }
 
-export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenForm }) => {
+export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
+  onOpenForm,
+  searchTerm,
+  selectedFilters,
+}) => {
   const { tickets, loading, error, refetch } = useRequestMaintenance();
   const { user: reduxUser } = useAppSelector(state => state.auth);
 
@@ -60,7 +66,6 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
           const requestId = row.Request_Id ?? row.request_id;
           const status = row.Status ?? "";
 
-          // ✅ Treat Cancelled like Requested for actions
           const canAcceptOrAssign = status === "Requested" || status === "Cancelled";
           const canDelete = status === "Requested" || status === "Cancelled";
 
@@ -119,20 +124,43 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({ onOpenFo
     }
   };
 
+  const filteredTickets = useMemo(() => {
+    let temp = [...tickets];
+
+    if (searchTerm.trim()) {
+      const lower = searchTerm.toLowerCase();
+      temp = temp.filter((row) =>
+        Object.values(row).some((val) =>
+          String(val ?? "").toLowerCase().includes(lower)
+        )
+      );
+    }
+
+    if (selectedFilters.length > 0) {
+      temp = temp.filter((row) =>
+        selectedFilters.every((filter) =>
+          Object.values(row).some((val) => String(val) === filter)
+        )
+      );
+    }
+
+    return temp;
+  }, [tickets, searchTerm, selectedFilters]);
+
   return (
     <div>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Table
         columns={columns}
-        data={tickets}
+        data={filteredTickets}
         emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
       />
 
       <CancelConfirmModal
         isOpen={!!selectedTicketForDelete}
         onClose={() => setSelectedTicketForDelete(null)}
-        onConfirm={handleConfirmDelete}   // ✅ now receives (reason?: string)
+        onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
         mode="delete"
       />

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getMyProfile, updateMyProfile } from "../../services/profile/profileService";
 import { getUser } from "../../services/authService";
+import PasswordModal from "./PasswordModal"; 
 
 type UiProfile = {
   firstName: string;
@@ -111,6 +112,7 @@ const ProfileInformation: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -251,7 +253,7 @@ const ProfileInformation: React.FC = () => {
 
           <button
             onClick={handlePhotoClick}
-            className="mt-2 rounded-full border border-[#2E523A] px-4 py-1 text-xs font-medium text-[#2E523A] hover:bg-[#2E523A] hover:text-white transition"
+             className="mt-2 rounded-full border border-[#2E523A] bg-transparent px-4 py-1 text-xs font-medium text-[#2E523A] hover:bg-[#2E523A]/10 transition"
           >
             Upload New Photo
           </button>
@@ -345,6 +347,27 @@ const ProfileInformation: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* ================= Change Password ================= */}
+      <div className="flex justify-end">
+        <button
+          onClick={() => setShowPasswordModal(true)}
+          className="rounded-full border border-[#2E523A] bg-transparent px-6 py-2 text-sm font-medium text-[#2E523A] hover:bg-[#2E523A]/10 transition"
+        >
+          Change Password
+        </button>
+      </div>
+
+      {/* ================= Password Modal ================= */}
+      {showPasswordModal && (
+        <PasswordModal
+          onClose={() => {
+            setShowPasswordModal(false);
+            setToastMsg("Password updated");
+            setTimeout(() => setToastMsg(null), 2500);
+          }}
+        />
+      )}
     </div>
   );
 };
