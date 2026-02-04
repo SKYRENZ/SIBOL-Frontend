@@ -18,6 +18,7 @@ const AdminPending = lazy(() => import('./Pages/AdminPending.tsx'));
 const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
 const ProfilePage = lazy(() => import('./Pages/Profile.tsx'));
 const ChatSupport = lazy(() => import('./Pages/ChatSupport.tsx'));
+const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 
 
 function App() {
@@ -27,7 +28,7 @@ function App() {
       <Route path="/" element={<Landingpage />} />
       <Route path="/login" element={<SignIN />} />
       <Route path="/signup" element={<SignUp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} /> {/* ✅ NEW */}
+      <Route path="/forgot-password" element={<ForgotPassword />} /> 
       <Route path="/email-verification" element={<EmailVerification />} />
       <Route path="/pending-approval" element={<AdminPending />} />
       <Route path="/auth/callback" element={<SSOCallback />} />
@@ -40,6 +41,7 @@ function App() {
         <Route path="/household" element={<Household />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
 
       {/* Admin Only Routes */}

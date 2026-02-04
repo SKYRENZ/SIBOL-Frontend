@@ -18,6 +18,7 @@ const allLinks = [
 const Header: React.FC = () => {
   const [modules, setModules] = useState<any>({ list: [], has: () => false });
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState<Array<{id: number}>>([]);
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
@@ -38,11 +39,16 @@ const Header: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const normalized = await fetchAllowedModules();
+        const [normalized, notificationsResponse] = await Promise.all([
+          fetchAllowedModules(),
+          // TODO: Replace with actual API call
+          Promise.resolve({ data: [] })
+        ]);
         if (!mounted) return;
         setModules(normalized);
+        setNotifications(notificationsResponse.data);
       } catch (err) {
-        console.error('modules/allowed error:', err);
+        console.error('Error loading data:', err);
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
@@ -136,19 +142,34 @@ const Header: React.FC = () => {
           {/* RIGHT ICONS */}
           <div className="nav-icons">
             {/* Notifications */}
-            <svg
-              className="icon"
-              width="20"
-              height="20"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
+            <NavLink
+              to="/notifications"
+              title="Notifications"
+              aria-label="Notifications"
+              className={({ isActive }) =>
+                `icon-btn ${isActive ? "active-icon" : ""}`
+              }
+              style={{ pointerEvents: isFirstLogin ? 'none' : 'auto' }}
             >
-              <path
-                d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2Zm6-6v-5a6 6 0 0 0-5-5.92V4a1 1 0 1 0-2 0v1.08A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2Z"
-                fill="currentColor"
-              />
-            </svg>
+              <svg
+                className="icon"
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 0 0 2 2Zm6-6v-5a6 6 0 0 0-5-5.92V4a1 1 0 1 0-2 0v1.08A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2Z"
+                  fill="currentColor"
+                />
+              </svg>
+              {notifications.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
+                  {notifications.length}
+                </span>
+              )}
+            </NavLink>
 
             {/* ✅ PROFILE ICON → /profile */}
             <NavLink
