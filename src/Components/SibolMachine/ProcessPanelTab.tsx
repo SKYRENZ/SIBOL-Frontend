@@ -62,8 +62,8 @@ const ProcessPanelTab: React.FC = () => {
 
       </header>
 
-      <main className="relative z-10 mt-6 flex justify-center">
-        <div className="relative w-full max-w-[1080px]">
+      <main className="relative z-10 mt-6 flex justify-center overflow-visible">
+        <div className="relative w-full max-w-[1200px] overflow-visible">
           <div className="pointer-events-none absolute inset-y-6 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#e8f5e963] via-transparent to-[#e8f5e963] blur-3xl" aria-hidden />
           {stages.map((stage, index) => {
             const position = (index - activeIndex + stages.length) % stages.length;
@@ -71,9 +71,9 @@ const ProcessPanelTab: React.FC = () => {
             const isRight = position === 1;
             const isLeft = position === stages.length - 1;
 
-            const translateX = isActive ? "0px" : isRight ? "min(24vw, 230px)" : isLeft ? "max(-24vw, -230px)" : "0px";
+            const translateX = isActive ? "0px" : isRight ? "min(28vw, 300px)" : isLeft ? "max(-28vw, -300px)" : "0px";
             const translateY = isActive ? "0px" : "28px";
-            const scale = isActive ? 0.9 : 0.8;
+            const scale = isActive ? 1.0 : 0.85;
             const opacity = isActive ? 1 : isRight || isLeft ? 0.6 : 0;
             const filter = isActive ? "none" : isRight || isLeft ? "blur(8px) saturate(85%)" : "blur(12px)";
             const zIndex = isActive ? 30 : isRight || isLeft ? 20 : 10;
@@ -95,8 +95,8 @@ const ProcessPanelTab: React.FC = () => {
                   <StagePopupTemplate
                     {...stage}
                     className={cn(
-                      "max-w-[760px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)]",
-                      !isActive && "max-w-[700px] border-white/60 bg-white/85 backdrop-blur-md"
+                      "w-[1100px] max-w-[1100px] min-h-[650px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible",
+                      !isActive && "w-[1000px] max-w-[1000px] min-h-[600px] border-white/60 bg-white/85 backdrop-blur-md"
                     )}
                   />
                   {isActive && (
@@ -113,7 +113,7 @@ const ProcessPanelTab: React.FC = () => {
               </div>
             );
           })}
-          <div className="relative h-[600px]" aria-hidden />
+          <div className="relative h-[750px]" aria-hidden />
         </div>
       </main>
 

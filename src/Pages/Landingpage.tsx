@@ -218,11 +218,11 @@ const Landingpage: React.FC = () => {
             Our SIBOL Project will help your community grow with innovation. Your trash can be energy that flows through your community.
           </p>
 
-          <div className="relative max-w-[1100px] mx-auto px-2 sm:px-4 md:px-6">
+          <div className="relative max-w-[1400px] mx-auto px-2 sm:px-4 md:px-6">
             {/* Carousel Container - Images 40% bigger */}
             <div className="relative h-[294px] sm:h-[343px] md:h-[392px] lg:h-[441px] flex items-center justify-center">
               {/* Previous card (left) - partially visible */}
-              <div className="absolute left-0 sm:left-2 md:left-4 lg:left-8 top-1/2 -translate-y-1/2 w-[176px] sm:w-[216px] md:w-[274px] lg:w-[314px] h-[196px] sm:h-[235px] md:h-[274px] lg:h-[314px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
+              <div className="absolute left-0 sm:left-2 md:left-4 lg:left-8 top-1/2 -translate-y-1/2 w-[300px] sm:w-[400px] md:w-[500px] lg:w-[600px] h-[210px] sm:h-[280px] md:h-[350px] lg:h-[400px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
                 <img
                   src={carouselSlides[(currentSlide - 1 + carouselSlides.length) % carouselSlides.length].src}
                   alt="Previous"
@@ -230,8 +230,8 @@ const Landingpage: React.FC = () => {
                 />
               </div>
 
-              {/* Main/Center card with text overlay - 40% bigger */}
-              <div className="relative w-[274px] sm:w-[372px] md:w-[470px] lg:w-[568px] h-[235px] sm:h-[294px] md:h-[353px] lg:h-[392px] rounded-[28px] sm:rounded-[35px] md:rounded-[43px] overflow-hidden shadow-2xl z-20 transition-all duration-500">
+              {/* Main/Center card with text overlay - 30% wider */}
+              <div className="relative w-[400px] sm:w-[600px] md:w-[800px] lg:w-[1000px] h-[250px] sm:h-[320px] md:h-[400px] lg:h-[450px] rounded-[28px] sm:rounded-[35px] md:rounded-[43px] overflow-hidden shadow-2xl z-20 transition-all duration-500">
                 <img
                   src={carouselSlides[currentSlide].src}
                   alt={carouselSlides[currentSlide].alt}
@@ -278,7 +278,7 @@ const Landingpage: React.FC = () => {
               </div>
 
               {/* Next card (right) - partially visible */}
-              <div className="absolute right-0 sm:right-2 md:right-4 lg:right-8 top-1/2 -translate-y-1/2 w-[176px] sm:w-[216px] md:w-[274px] lg:w-[314px] h-[196px] sm:h-[235px] md:h-[274px] lg:h-[314px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
+              <div className="absolute right-0 sm:right-2 md:right-4 lg:right-8 top-1/2 -translate-y-1/2 w-[300px] sm:w-[400px] md:w-[500px] lg:w-[600px] h-[210px] sm:h-[280px] md:h-[350px] lg:h-[400px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
                 <img
                   src={carouselSlides[(currentSlide + 1) % carouselSlides.length].src}
                   alt="Next"
