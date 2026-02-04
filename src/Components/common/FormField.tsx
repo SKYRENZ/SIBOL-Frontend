@@ -1,7 +1,7 @@
 import React from 'react';
 
 interface FormFieldProps {
-  label: string;
+  label: React.ReactNode;
   name: string;
   type: 'text' | 'email' | 'password' | 'date' | 'select' | 'textarea';
   value: string;

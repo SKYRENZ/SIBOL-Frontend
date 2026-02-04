@@ -246,6 +246,13 @@ const MaintenancePage: React.FC = () => {
                 </button>
               )}
 
+              {/* Swap: show FilterPanel before the trash button */}
+              <FilterPanel
+                types={getFilterTypesByTab(activeTab)}
+                onFilterChange={setSelectedFilters}
+                className="w-full sm:w-auto"
+              />
+
               {/* ✅ NEW: trash icon beside filter button (Request Maintenance tab only) */}
               {activeTab === "Request Maintenance" && (
                 <button
@@ -278,7 +285,7 @@ const MaintenancePage: React.FC = () => {
             </div>
           </div>
 
-          <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
+          <div className="overflow-x-auto">
             {renderActiveTab()}
           </div>
         </div>

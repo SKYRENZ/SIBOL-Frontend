@@ -148,7 +148,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
   }, [tickets, searchTerm, selectedFilters]);
 
   return (
-    <div className="space-y-4 p-4">
+    <div>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Table
