@@ -4,6 +4,7 @@ import { fetchAllowedModules } from "../services/moduleService";
 import "../tailwind.css";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout as logoutAction } from "../store/slices/authSlice";
+import ConfirmationModal from "./common/ConfirmationModal";
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -264,73 +265,20 @@ const Header: React.FC = () => {
       </nav>
 
       {/* LOGOUT CONFIRMATION MODAL */}
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="relative bg-white w-[340px] p-6 rounded-2xl shadow-xl">
+    {/* ---------------- LOGOUT CONFIRMATION MODAL ---------------- */}
+<ConfirmationModal
+  isOpen={showLogoutConfirm}
+  onClose={() => setShowLogoutConfirm(false)}
+  onConfirm={async () => handleLogout()}
+  title="Confirm Logout"
+  description="Are you sure you want to log out?"
+  confirmText="Logout"
+  cancelText="Cancel"
+  variant="danger"
+>
+  
+</ConfirmationModal>
 
-            {/* Mascot */}
-            <div className="flex justify-center -mt-14 mb-3">
-              <div
-                className="
-                  bg-white
-                  rounded-full
-                  p-2
-                  border-2
-                  border-green-500
-                  shadow-md
-                "
-              >
-                <img
-                  src={new URL("../assets/images/lili.png", import.meta.url).href}
-                  alt="Lili mascot"
-                  className="w-20 h-20 object-contain"
-                />
-              </div>
-            </div>
-
-            {/* Content */}
-            <h3 className="text-lg font-semibold text-center mb-2">
-              Confirm Logout
-            </h3>
-
-            <p className="text-sm text-gray-600 text-center mb-6">
-              Are you sure you want to log out?
-            </p>
-
-            {/* Actions */}
-            <div className="flex justify-center gap-3">
-              <button
-                onClick={() => setShowLogoutConfirm(false)}
-                className="
-                  px-5 py-2
-                  text-sm
-                  rounded-full
-                  border
-                  hover:bg-gray-50
-                  transition
-                "
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleLogout}
-                className="
-                  px-5 py-2
-                  text-sm
-                  rounded-full
-                  bg-red-600
-                  text-white
-                  hover:bg-red-700
-                  transition
-                "
-              >
-                Logout
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 };
