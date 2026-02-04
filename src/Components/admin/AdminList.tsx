@@ -1,5 +1,6 @@
 import React from 'react';
 import { Account } from '../../types/adminTypes';
+import Table from '../common/Table';
 
 type AdminListProps = {
   accounts: Account[];
@@ -22,85 +23,71 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles =
     return r?.Roles ?? String(roleId);
   };
 
+  const getUsername = (row: any) => row.Username ?? row.username ?? '-';
+  const getAccountId = (row: any) => row.Account_id ?? row.AccountId ?? getUsername(row);
+  const getBarangayId = (row: any) => row.Barangay_id ?? row.brg_id ?? row.brgId ?? null;
+  const getRoleId = (row: any) => row.Roles ?? row.role_id ?? row.roleId ?? null;
+  const isActive = (row: any) => row.IsActive === 1;
+
+  const columns: any[] = [
+    {
+      key: 'username',
+      label: 'Username',
+      render: (_v: any, row: any) => (
+        <span className="text-sibol-green">{getUsername(row)}</span>
+      ),
+    },
+    {
+      key: 'barangay',
+      label: 'Barangay',
+      render: (_v: any, row: any) => (
+        <span className="text-sibol-green">{findBarangayName(getBarangayId(row))}</span>
+      ),
+    },
+    {
+      key: 'role',
+      label: 'Role',
+      render: (_v: any, row: any) => (
+        <span className="text-sibol-green">{findRoleName(getRoleId(row))}</span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_v: any, row: any) => (
+        <div className="flex gap-3 items-center justify-start">
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(row); }}
+            className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36] disabled:opacity-50"
+            aria-label="Edit user"
+          >
+            Edit
+          </button>
+
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleActive(row); }}
+            className={isActive(row)
+              ? "px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
+              : "px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+            }
+            aria-label={isActive(row) ? "Disable user" : "Enable user"}
+          >
+            {isActive(row) ? 'Disable' : 'Enable'}
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <div className="w-full max-w-full bg-white rounded-md shadow-sm border border-green-50">
-      <div className="overflow-x-auto">
-        <table className="w-full table-fixed text-sm">
-          <thead className="text-sibol-green" style={{ backgroundColor: 'rgba(175,200,173,0.61)' }}>
-            <tr>
-              <th className="w-1/4 text-left px-4 py-2 font-medium">Username</th>
-              <th className="w-1/4 text-left px-4 py-2 font-medium">Barangay</th>
-              <th className="w-1/4 text-left px-4 py-2 font-medium">Role</th>
-              <th className="w-1/4 text-right px-4 py-2 pr-10 font-medium">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {accounts.map((acct) => {
-              const a = acct as any;
-              const username = a.Username ?? a.username ?? '-';
-              const accountId = a.Account_id ?? a.AccountId ?? username;
-              const barangayId = a.Barangay_id ?? a.brg_id ?? a.brgId ?? null;
-              const roleId = a.Roles ?? a.role_id ?? a.roleId ?? null;
-
-              return (
-                <tr key={accountId} style={{ backgroundColor: 'rgba(136,171,142,0.02)' }}>
-                  <td className="px-4 py-1.5 text-sibol-green align-middle">{username}</td>
-
-                  <td className="px-4 py-1.5 text-sibol-green align-middle">
-                    {findBarangayName(barangayId)}
-                  </td>
-
-                  <td className="px-4 py-1.5 text-sibol-green align-middle">
-                    {findRoleName(roleId)}
-                  </td>
-
-                  <td className="px-4 py-1.5 text-right align-middle pr-10">
-                    <div className="flex gap-3 items-center">
-                      <button
-                        onClick={() => onEdit(acct)}
-                        className="flex flex-col items-center text-sibol-green hover:text-sibol-green/90 focus:outline-none bg-transparent border border-transparent appearance-none"
-                        aria-label="Edit user"
-                      >
-                        <svg className="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          <path d="M3 21v-3.75L17.81 2.44a2.5 2.5 0 0 1 3.54 3.54L9 21H3z" />
-                          <path d="M14 7l3 3" />
-                        </svg>
-                        <span className="text-xs">Edit</span>
-                      </button>
-
-                      <button
-                        onClick={() => onToggleActive(acct)}
-                        className={`flex flex-col items-center ${acct.IsActive === 1 ? 'text-rose-600 hover:text-rose-700' : 'text-green-600 hover:text-green-700'} focus:outline-none bg-transparent border border-transparent appearance-none`}
-                        aria-label={acct.IsActive === 1 ? "Disable user" : "Enable user"}
-                      >
-                        <svg className="w-5 h-5 mb-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                          {acct.IsActive === 1 ? (
-                            // Disable icon: circle with X
-                            <>
-                              <circle cx="12" cy="12" r="9" />
-                              <path d="M15 9L9 15M9 9l6 6" />
-                            </>
-                          ) : (
-                            // Enable icon: circle with checkmark
-                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          )}
-                        </svg>
-                        <span className="text-xs">{acct.IsActive === 1 ? 'Disable' : 'Enable'}</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-
-            {accounts.length === 0 && (
-              <tr><td colSpan={4} className="p-4 text-center">No accounts</td></tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Table
+      columns={columns}
+      data={accounts}
+      rowKey="Account_id"
+      enablePagination={false}
+      emptyMessage="No accounts"
+      className="w-full"
+    />
   );
 };
 
