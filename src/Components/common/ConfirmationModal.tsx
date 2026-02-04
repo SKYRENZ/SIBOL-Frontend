@@ -38,7 +38,10 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  const styles: Record<Variant, { iconWrap: string; icon: string; confirmBtn: string; confirmHover: string }> = {
+  const styles: Record<
+    Variant,
+    { iconWrap: string; icon: string; confirmBtn: string; confirmHover: string }
+  > = {
     success: {
       iconWrap: 'bg-green-100',
       icon: 'text-green-600',
@@ -94,8 +97,22 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4">
-        <div className={`flex items-center justify-center w-12 h-12 mx-auto rounded-full mb-4 ${iconWrap}`}>
+      <div className="bg-white rounded-2xl p-6 max-w-sm w-full mx-4 relative">
+        {/* Mascot */}
+        <div className="flex justify-center -mt-14 mb-3">
+          <div className="bg-white rounded-full p-2 border-2 border-green-500 shadow-md">
+            <img
+              src={new URL('/images/lili.png', import.meta.url).href}
+              alt="Lili mascot"
+              className="w-20 h-20 object-contain"
+            />
+          </div>
+        </div>
+
+        {/* Icon */}
+        <div
+          className={`flex items-center justify-center w-12 h-12 mx-auto rounded-full mb-4 ${iconWrap}`}
+        >
           <Icon />
         </div>
 
