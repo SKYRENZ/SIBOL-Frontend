@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { fetchJson } from '../../services/apiClient';
 
 export interface AdditiveRow {
   id: number;
@@ -17,11 +18,7 @@ export const fetchAdditives = createAsyncThunk<AdditiveRow[], number | void>(
   'additives/fetch',
   async (machine_id) => {
     const url = machine_id ? `/api/additives?machine_id=${machine_id}` : '/api/additives';
-    const res = await fetch(url, { credentials: 'include' });
-    if (!res.ok) {
-      throw new Error(`Failed to fetch additives (${res.status})`);
-    }
-    return (await res.json()) as AdditiveRow[];
+    return fetchJson<AdditiveRow[]>(url);
   }
 );
 
