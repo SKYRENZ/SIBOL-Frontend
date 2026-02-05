@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin } from 'lucide-react';
+import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin, Facebook } from 'lucide-react';
 import { isAuthenticated } from '../services/authService';
 
 const Landingpage: React.FC = () => {
@@ -24,6 +24,7 @@ const Landingpage: React.FC = () => {
   const Photo5 = new URL('../assets/images/photo5.png', import.meta.url).href;
   const Photo7 = new URL('../assets/images/photo7.png', import.meta.url).href;
   const SibolLogoBulb = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href;
+  const TrashBG = new URL('../assets/images/TRASHBG.png', import.meta.url).href;
 
   // Redirect authenticated users to dashboard
   useEffect(() => {
@@ -99,19 +100,6 @@ const Landingpage: React.FC = () => {
     navigate('/login');
   };
 
-  const handleGetStarted = () => {
-    navigate('/signup');
-  };
-
-  const handleLearnMore = () => {
-    const element = document.getElementById('about-section');
-    element?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const toggleFAQ = (index: number) => {
-    setOpenFAQ(openFAQ === index ? null : index);
-  };
-
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
       ...formData,
@@ -147,7 +135,7 @@ const Landingpage: React.FC = () => {
   return (
     <div className="min-h-screen bg-white dark:bg-white">
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 bg-white dark:bg-white backdrop-blur-sm z-50 shadow-md border-b border-gray-100 dark:border-gray-100">
+      <header className="fixed top-0 left-0 right-0 bg-white z-50 shadow-md border-b border-gray-100">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-5 lg:px-[15px] py-2.5 sm:py-3.5 md:py-4 lg:py-5 flex items-center justify-between">
           <div className="flex items-center gap-2 sm:gap-3 lg:gap-3.5">
             <img 
@@ -158,7 +146,7 @@ const Landingpage: React.FC = () => {
           </div>
           <button
             onClick={handleSignIn}
-            className="px-3.5 sm:px-4 md:px-5 lg:px-7 py-1.5 sm:py-2 md:py-2.5 lg:py-3 bg-[#2D5F2E] dark:bg-[#2D5F2E] text-white dark:text-white rounded-lg hover:bg-[#234A23] dark:hover:bg-[#234A23] transition-colors duration-200 font-semibold text-xs sm:text-sm md:text-base lg:text-lg shadow-md"
+            className="px-6 sm:px-7 md:px-8 lg:px-10 py-2 sm:py-2.5 md:py-3 lg:py-3 bg-[#2D5F2E] text-white rounded-3xl hover:bg-[#234A23] transition-colors duration-200 font-semibold text-sm sm:text-base md:text-lg shadow-md"
           >
             Sign In
           </button>
@@ -166,24 +154,24 @@ const Landingpage: React.FC = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="pt-24 sm:pt-26 md:pt-29 lg:pt-32 pb-12 sm:pb-16 md:pb-20 lg:pb-24 px-4 sm:px-6 md:px-8 lg:px-12 relative overflow-hidden min-h-screen flex items-center">
-        <div className="absolute inset-0 z-0">
+      <section className="pt-24 sm:pt-26 md:pt-29 lg:pt-32 pb-12 sm:pb-16 md:pb-20 lg:pb-24 px-4 sm:px-6 md:px-8 lg:px-12 relative overflow-hidden min-h-screen flex items-center bg-white">
+        <div className="absolute right-0 bottom-0 top-auto h-[80%] md:h-[90%] w-auto z-0">
           <img 
-            src={LandingBG}
-            alt="Background" 
-            className="w-full h-full object-cover"
+            src={TrashBG}
+            alt="Food Waste" 
+            className="h-full w-auto object-cover object-bottom"
           />
         </div>
         
         {/* Content */}
         <div className="max-w-7xl mx-auto relative z-10 w-full">
-          <div className="max-w-full sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] space-y-6 sm:space-y-7 md:space-y-8">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[80px] font-bold text-gray-900 dark:text-gray-900 leading-tight">
+          <div className="max-w-full sm:max-w-[600px] md:max-w-[700px] lg:max-w-[800px] space-y-6 sm:space-y-7 md:space-y-8 relative z-10">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-[80px] font-bold text-gray-900 leading-tight">
               Make your food waste
               <br />
-              <span className="text-[#2D5F2E] dark:text-[#2D5F2E]">powerful.</span>
+              <span className="text-[#2D5F2E]">powerful.</span>
             </h1>
-            <p className="text-gray-600 dark:text-gray-600 text-base sm:text-lg md:text-xl lg:text-2xl leading-relaxed max-w-[650px]">
+            <p className="text-gray-600 text-base sm:text-lg md:text-xl lg:text-2xl leading-relaxed max-w-[650px]">
               Transform your food waste into renewable energy. Join SIBOL's innovative 
               waste-to-energy program and contribute to a sustainable future while earning rewards.
             </p>
@@ -218,11 +206,11 @@ const Landingpage: React.FC = () => {
             Our SIBOL Project will help your community grow with innovation. Your trash can be energy that flows through your community.
           </p>
 
-          <div className="relative max-w-[1100px] mx-auto px-2 sm:px-4 md:px-6">
+          <div className="relative max-w-[1400px] mx-auto px-2 sm:px-4 md:px-6">
             {/* Carousel Container - Images 40% bigger */}
             <div className="relative h-[294px] sm:h-[343px] md:h-[392px] lg:h-[441px] flex items-center justify-center">
               {/* Previous card (left) - partially visible */}
-              <div className="absolute left-0 sm:left-2 md:left-4 lg:left-8 top-1/2 -translate-y-1/2 w-[176px] sm:w-[216px] md:w-[274px] lg:w-[314px] h-[196px] sm:h-[235px] md:h-[274px] lg:h-[314px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
+              <div className="absolute left-0 sm:left-2 md:left-4 lg:left-8 top-1/2 -translate-y-1/2 w-[300px] sm:w-[400px] md:w-[500px] lg:w-[600px] h-[210px] sm:h-[280px] md:h-[350px] lg:h-[400px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
                 <img
                   src={carouselSlides[(currentSlide - 1 + carouselSlides.length) % carouselSlides.length].src}
                   alt="Previous"
@@ -230,8 +218,8 @@ const Landingpage: React.FC = () => {
                 />
               </div>
 
-              {/* Main/Center card with text overlay - 40% bigger */}
-              <div className="relative w-[274px] sm:w-[372px] md:w-[470px] lg:w-[568px] h-[235px] sm:h-[294px] md:h-[353px] lg:h-[392px] rounded-[28px] sm:rounded-[35px] md:rounded-[43px] overflow-hidden shadow-2xl z-20 transition-all duration-500">
+              {/* Main/Center card with text overlay - 30% wider */}
+              <div className="relative w-[400px] sm:w-[600px] md:w-[800px] lg:w-[1000px] h-[250px] sm:h-[320px] md:h-[400px] lg:h-[450px] rounded-[28px] sm:rounded-[35px] md:rounded-[43px] overflow-hidden shadow-2xl z-20 transition-all duration-500">
                 <img
                   src={carouselSlides[currentSlide].src}
                   alt={carouselSlides[currentSlide].alt}
@@ -278,7 +266,7 @@ const Landingpage: React.FC = () => {
               </div>
 
               {/* Next card (right) - partially visible */}
-              <div className="absolute right-0 sm:right-2 md:right-4 lg:right-8 top-1/2 -translate-y-1/2 w-[176px] sm:w-[216px] md:w-[274px] lg:w-[314px] h-[196px] sm:h-[235px] md:h-[274px] lg:h-[314px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
+              <div className="absolute right-0 sm:right-2 md:right-4 lg:right-8 top-1/2 -translate-y-1/2 w-[300px] sm:w-[400px] md:w-[500px] lg:w-[600px] h-[210px] sm:h-[280px] md:h-[350px] lg:h-[400px] rounded-[24px] sm:rounded-[31px] overflow-hidden shadow-xl opacity-50 scale-90 z-0 transition-all duration-500">
                 <img
                   src={carouselSlides[(currentSlide + 1) % carouselSlides.length].src}
                   alt="Next"
@@ -488,6 +476,18 @@ const Landingpage: React.FC = () => {
             <div className="space-y-4 sm:space-y-5 md:space-y-6 lg:space-y-[22.8px] mt-6 sm:mt-7 md:mt-8 lg:mt-[30.4px]">
               <div className="flex items-start gap-[15.2px]">
                 <div className="w-[38px] h-[38px] bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-[19px] h-[19px]" />
+                </div>
+                <div>
+                  <div className="font-medium mb-[3.8px] text-[15.2px]">Location</div>
+                  <div className="text-white/90 text-[14.25px]">
+                    University of Caloocan City, Biglang Awa St, Sangandaan, Caloocan, Metro Manila, Philippines
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-[15.2px]">
+                <div className="w-[38px] h-[38px] bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
                   <Mail className="w-[19px] h-[19px]" />
                 </div>
                 <div>
@@ -509,37 +509,18 @@ const Landingpage: React.FC = () => {
                   </a>
                 </div>
               </div>
-
-              <div className="flex items-start gap-[15.2px]">
-                <div className="w-[38px] h-[38px] bg-white/20 rounded-full flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-[19px] h-[19px]" />
-                </div>
-                <div>
-                  <div className="font-medium mb-[3.8px] text-[15.2px]">Location</div>
-                  <div className="text-white/90 text-[14.25px]">
-                    Camarines Norte, Philippines
-                  </div>
-                </div>
-              </div>
             </div>
 
             {/* Social Links */}
             <div className="flex gap-[15.2px] mt-[30.4px]">
-              <a
-                href="#"
+              <a 
+                href="https://www.facebook.com/profile.php?id=61586997429108" 
+                target="_blank" 
+                rel="noopener noreferrer"
                 className="w-[38px] h-[38px] bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors duration-200"
+                aria-label="Facebook"
               >
-                <svg className="w-[19px] h-[19px]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-              </a>
-              <a
-                href="#"
-                className="w-[38px] h-[38px] bg-white/20 rounded-full flex items-center justify-center hover:bg-white/30 transition-colors duration-200"
-              >
-                <svg className="w-[19px] h-[19px]" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M23.953 4.57a10 10 0 01-2.825.775 4.958 4.958 0 002.163-2.723c-.951.555-2.005.959-3.127 1.184a4.92 4.92 0 00-8.384 4.482C7.69 8.095 4.067 6.13 1.64 3.162a4.822 4.822 0 00-.666 2.475c0 1.71.87 3.213 2.188 4.096a4.904 4.904 0 01-2.228-.616v.06a4.923 4.923 0 003.946 4.827 4.996 4.996 0 01-2.212.085 4.936 4.936 0 004.604 3.417 9.867 9.867 0 01-6.102 2.105c-.39 0-.779-.023-1.17-.067a13.995 13.995 0 007.557 2.209c9.053 0 13.998-7.496 13.998-13.985 0-.21 0-.42-.015-.63A9.935 9.935 0 0024 4.59z"/>
-                </svg>
+                <Facebook className="h-5 w-5" />
               </a>
             </div>
           </div>

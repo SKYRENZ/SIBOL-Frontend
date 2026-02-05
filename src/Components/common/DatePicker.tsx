@@ -60,7 +60,7 @@ interface DatePickerProps {
   value?: string;
   onChange?: (e: { target: { name: string; value: string } }) => void;
   name?: string;
-  label?: string;
+  label?: React.ReactNode;
   placeholder?: string;
   required?: boolean;
   className?: string;

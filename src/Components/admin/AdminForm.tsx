@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Account } from '../../types/Types';
+import FormModal from '../common/FormModal';
+import CustomScrollbar from '../common/CustomScrollbar';
 
 type Role = { Roles_id: number; Roles: string };
 type ModuleItem = { Module_id: number; Module_name: string; Path?: string };
@@ -14,6 +16,8 @@ type AdminFormProps = {
   roles?: Role[];
   modules?: ModuleItem[];
   barangays?: Barangay[];
+  // show the form inside the shared FormModal
+  isOpen?: boolean;
 };
 
 type AdminPayload = Partial<Account> & {
@@ -36,6 +40,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
   roles = [],
   modules = [],
   barangays = [],
+  isOpen = true,
 }) => {
   const inferredMode = modeProp ?? (initialData && initialData.Account_id ? 'edit' : 'create');
   const isCreate = inferredMode === 'create';
@@ -122,165 +127,173 @@ const AdminForm: React.FC<AdminFormProps> = ({
   };
 
   const barangayName =
-    (initialData.Barangay_id && barangays.find((b) => b.Barangay_id === initialData.Barangay_id)?.Barangay_Name) ??
-    '';
+    (initialData.Barangay_id && barangays.find((b) => b.Barangay_id === initialData.Barangay_id)?.Barangay_Name) ?? '';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {/* For create mode: editable fields (all except username) */}
-      {isCreate ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">First Name</label>
-              <input
-                value={firstName}
-                onChange={(e) => setFirstName(e.target.value)}
-                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
-                placeholder="First name"
-              />
-            </div>
+    <FormModal
+      isOpen={isOpen}
+      onClose={onCancel}
+      title={isCreate ? 'Create Admin' : 'Edit Admin'}
+    >
+      {/* constrain form height so modal inner scroll works; add right padding so content doesn't butt against the scrollbar */}
+      <CustomScrollbar maxHeight="max-h-[calc(100vh-220px)]" className="pr-6 px-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* For create mode: editable fields (all except username) */}
+          {isCreate ? (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">First Name</label>
+                  <input
+                    value={firstName}
+                    onChange={(e) => setFirstName(e.target.value)}
+                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    placeholder="First name"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Last Name</label>
-              <input
-                value={lastName}
-                onChange={(e) => setLastName(e.target.value)}
-                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
-                placeholder="Last name"
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Last Name</label>
+                  <input
+                    value={lastName}
+                    onChange={(e) => setLastName(e.target.value)}
+                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    placeholder="Last name"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Barangay</label>
-              <select
-                value={barangayId}
-                onChange={(e) => setBarangayId(e.target.value === '' ? '' : Number(e.target.value))}
-                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
-              >
-                <option value="">Select barangay</option>
-                {barangays.map((b) => (
-                  <option key={b.Barangay_id} value={b.Barangay_id}>
-                    {b.Barangay_Name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Barangay</label>
+                  <select
+                    value={barangayId}
+                    onChange={(e) => setBarangayId(e.target.value === '' ? '' : Number(e.target.value))}
+                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                  >
+                    <option value="">Select barangay</option>
+                    {barangays.map((b) => (
+                      <option key={b.Barangay_id} value={b.Barangay_id}>
+                        {b.Barangay_Name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <input
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
-                placeholder="email@example.com"
-              />
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <input
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    placeholder="email@example.com"
+                  />
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Username (auto)</label>
-              <div className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green">{generatedUsername}</div>
-            </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username (auto)</label>
+                  <div className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green">{generatedUsername}</div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Password</label>
-              <input
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Leave blank to auto-generate"
-                className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
-              />
-            </div>
-          </div>
-        </>
-      ) : (
-        /* Edit / view mode: display-only fields */
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">First Name</label>
-              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-                {initialData.FirstName ?? '-'}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Password</label>
+                  <input
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Leave blank to auto-generate"
+                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                  />
+                </div>
               </div>
-            </div>
+            </>
+          ) : (
+            /* Edit / view mode: display-only fields */
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">First Name</label>
+                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
+                    {initialData.FirstName ?? '-'}
+                  </div>
+                </div>
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Last Name</label>
-              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-                {initialData.LastName ?? '-'}
+                <div>
+                  <label className="block text-sm font-medium mb-1">Last Name</label>
+                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
+                    {initialData.LastName ?? '-'}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Barangay</label>
+                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{barangayName || '-'}</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{initialData.Email ?? '-'}</div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Username</label>
+                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
+                    {initialData.Username ?? '-'}
+                  </div>
+                </div>
               </div>
-            </div>
+            </>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium mb-1">Barangay</label>
-              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{barangayName || '-'}</div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Email</label>
-              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{initialData.Email ?? '-'}</div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium mb-1">Username</label>
-              <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-                {initialData.Username ?? '-'}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {/* Editable: Role */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Role</label>
-        <select
-          value={roleId}
-          onChange={(e) => setRoleId(Number(e.target.value))}
-          className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
-        >
-          {roles.map((r) => (
-            <option
-              key={r.Roles_id}
-              value={r.Roles_id}
-              // browsers limit <option> styling; set inline to help where supported
-              style={{ background: 'transparent', color: 'inherit' }}
+          {/* Editable: Role */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Role</label>
+            <select
+              value={roleId}
+              onChange={(e) => setRoleId(Number(e.target.value))}
+              className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
             >
-              {r.Roles}
-            </option>
-          ))}
-        </select>
-      </div>
+              {roles.map((r) => (
+                <option
+                  key={r.Roles_id}
+                  value={r.Roles_id}
+                  // browsers limit <option> styling; set inline to help where supported
+                  style={{ background: 'transparent', color: 'inherit' }}
+                >
+                  {r.Roles}
+                </option>
+              ))}
+            </select>
+          </div>
 
-      {/* Editable: Access checkboxes */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Access</label>
-        <div className="space-y-2 max-h-48 overflow-auto border rounded px-3 py-2 bg-white">
-          {modules.length === 0 && <div className="text-sm text-gray-500">No modules available</div>}
-          {modules.map((mod) => (
-            <label key={mod.Module_id} className="flex items-center">
-              <input
-                type="checkbox"
-                checked={!!access[mod.Module_name]}
-                onChange={() => toggleAccess(mod.Module_name)}
-                className="mr-2"
-              />
-              <span className="select-none">{mod.Module_name}</span>
-            </label>
-          ))}
-        </div>
-      </div>
+          {/* Editable: Access checkboxes */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Access</label>
+            <div className="space-y-2 max-h-48 overflow-auto border rounded px-3 py-2 bg-white">
+              {modules.length === 0 && <div className="text-sm text-gray-500">No modules available</div>}
+              {modules.map((mod) => (
+                <label key={mod.Module_id} className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={!!access[mod.Module_name]}
+                    onChange={() => toggleAccess(mod.Module_name)}
+                    className="mr-2"
+                  />
+                  <span className="select-none">{mod.Module_name}</span>
+                </label>
+              ))}
+            </div>
+          </div>
 
-      {/* Buttons */}
-      <div className="flex gap-2">
-        <button type="submit" className="btn btn-primary">
-          {isCreate ? 'Create' : 'Update'}
-        </button>
-        <button type="button" onClick={onCancel} className="btn btn-outline">
-          Cancel
-        </button>
-      </div>
-    </form>
+          {/* Buttons */}
+          <div className="flex gap-2">
+            <button type="submit" className="btn btn-primary">
+              {isCreate ? 'Create' : 'Update'}
+            </button>
+            <button type="button" onClick={onCancel} className="btn btn-outline">
+              Cancel
+            </button>
+          </div>
+        </form>
+      </CustomScrollbar>
+    </FormModal>
   );
 };
 

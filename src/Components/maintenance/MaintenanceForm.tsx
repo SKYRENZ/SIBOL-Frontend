@@ -1,44 +1,17 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useEffect } from 'react';
 import FormModal from '../common/FormModal';
 import FormField from '../common/FormField';
 import DatePicker from '../common/DatePicker';
-import * as maintenanceService from '../../services/maintenanceService';
-import * as userService from '../../services/userService';
-import type { MaintenanceAttachment, MaintenanceRemark, MaintenanceEvent } from '../../types/maintenance';
 import CustomScrollbar from '../common/CustomScrollbar';
 
-// ✅ Import new separated components
 import AttachmentsList from './attachments/AttachmentsList';
 import AttachmentsViewer from './attachments/AttachmentsViewer';
 import AttachmentsUpload from './attachments/AttachmentsUpload';
-import RemarksForm from './remarks/RemarksForm'; // ✅ keep
+import RemarksForm from './remarks/RemarksForm';
 import MaintenanceEventLog from "./eventLog/MaintenanceEventLog";
-import { useAppSelector } from '../../store/hooks';
-import { getUserRole } from '../../utils/roleUtils';
-import { Maximize2 } from "lucide-react"; // ✅ add
-import RemarksMaxModal from "./remarks/RemarksMaxModal"; // ✅ add
-
-// ✅ helper: robust account id extractor (supports multiple possible field names)
-const getAccountIdFromUser = (u: any): number | null => {
-  if (!u) return null;
-  const candidates = [
-    u.Account_id,
-    u.account_id,
-    u.AccountId,
-    u.accountId,
-    u.id,
-    u.ID,
-  ];
-  for (const v of candidates) {
-    if (v == null) continue;
-    if (typeof v === 'number' && Number.isFinite(v)) return v;
-    if (typeof v === 'string') {
-      const n = Number(v.trim());
-      if (Number.isFinite(n)) return n;
-    }
-  }
-  return null;
-};
+import { Maximize2 } from "lucide-react";
+import RemarksMaxModal from "./remarks/RemarksMaxModal"; 
+import useMaintenanceForm from '../../hooks/maintenance/useMaintenanceForm';
 
 interface MaintenanceFormProps {
   isOpen: boolean;
@@ -53,8 +26,6 @@ interface MaintenanceFormProps {
 }
 
 const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
-  const reduxUser = useAppSelector((state) => state.auth.user); // <- add selector
-
   const {
     isOpen,
     onClose,
@@ -62,324 +33,63 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
     mode = "create",
     initialData,
     submitError,
-    readOnly = false, // ✅ NEW
+    readOnly = false,
   } = props;
 
-  const [formData, setFormData] = useState({
-    title: '',
-    issue: '',
-    priority: '',
-    dueDate: '',
-    files: [] as File[],
-    staffAccountId: '',
-    assignedTo: '',
-    remarks: '',
+  const {
+    formData,
+    setFormData,
+    formError,
+    formErrors,
+    setFormErrors,
+    assignedOptions,
+    priorityOptions,
+    attachments,
+    selectedAttachment,
+    setSelectedAttachment,
+    showAttachmentModal,
+    setShowAttachmentModal,
+    remarks,
+    loadingRemarks,
+    currentUserId,
+    events,
+    loadingEvents,
+    remarksMaxOpen,
+    setRemarksMaxOpen,
+    isSubmitting,
+    remarksEndRef,
+    getPriorityTextClass,
+    handleFileChange,
+    removeFile,
+    handleRemarkSubmit,
+    handleSubmit,
+    isDisabled,
+    handleClose,
+    handleDownloadAttachment,
+    noOpChange,
+    isCreateMode,
+    isAssignMode,
+    isPendingMode,
+    isCompletedMode,
+    isDetailsMode,
+    isViewMode,
+    modalHeightClass,
+    ticketStatus,
+    cancelReasonText,
+    deletionReasonText,
+    isDeletedTicket,
+    cancelRequestedByDisplay,
+    cancelledByDisplay,
+    showOperatorReasonBox,
+    operatorDisplayName,
+  } = useMaintenanceForm({
+    isOpen,
+    initialData,
+    mode,
+    onSubmit,
+    onClose,
+    readOnly,
   });
-
-  const [formError, setFormError] = useState<string | null>(null);
-  const [assignedOptions, setAssignedOptions] = useState<{ value: string; label: string }[]>([]);
-  const [priorityOptions, setPriorityOptions] = useState<{ value: string; label: string }[]>([]);
-  const [attachments, setAttachments] = useState<MaintenanceAttachment[]>([]);
-  const [selectedAttachment, setSelectedAttachment] = useState<MaintenanceAttachment | null>(null);
-  const [showAttachmentModal, setShowAttachmentModal] = useState(false);
-  const [remarks, setRemarks] = useState<MaintenanceRemark[]>([]);
-  const [loadingRemarks, setLoadingRemarks] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<number | null>(null);
-  const [events, setEvents] = useState<MaintenanceEvent[]>([]);
-  const [loadingEvents, setLoadingEvents] = useState(false);
-  const [remarksMaxOpen, setRemarksMaxOpen] = useState(false); // ✅ add
-
-  // ✅ NEW: anchor to scroll to bottom of remarks
-  const remarksEndRef = useRef<HTMLDivElement | null>(null);
-
-  const getPriorityTextClass = (priority?: string | null) => {
-  const p = (priority || "").toString().trim().toLowerCase();
-  if (p === "mild") return "text-blue-600";
-  if (p === "urgent") return "text-orange-600";
-  if (p === "critical") return "text-red-600";
-  return "text-gray-700";
-  };
-
-  useEffect(() => {
-    if (isOpen) {
-      const accountId = getAccountIdFromUser(reduxUser);
-      if (accountId) {
-        setCurrentUserId(accountId);
-        if (mode === 'assign') (window as any).__currentStaffId = accountId;
-      } else {
-        setCurrentUserId(null);
-      }
-
-      // Fetch priorities
-      maintenanceService.getPriorities()
-        .then((priorities) => {
-          const options = priorities.map((p) => ({
-            value: p.Priority,
-            label: p.Priority,
-          }));
-          setPriorityOptions(options);
-        })
-        .catch((error) => {
-          console.error('Error fetching priorities:', error);
-          setPriorityOptions([
-            { value: 'Critical', label: 'Critical' },
-            { value: 'Urgent', label: 'Urgent' },
-            { value: 'Mild', label: 'Mild' },
-          ]);
-        });
-
-      // Set initial form data
-      if (initialData) {
-        setFormData({
-          title: initialData.Title || '',
-          issue: initialData.Details || '',
-          priority: initialData.Priority || '',
-          dueDate: initialData.Due_date ? new Date(initialData.Due_date).toISOString().split('T')[0] : '',
-          files: [],
-          staffAccountId: initialData.CreatedByName || 'Unknown',
-          assignedTo: initialData.Assigned_to ? String(initialData.Assigned_to) : '',
-          remarks: '',
-        });
-      } else {
-        setFormData({
-          title: '',
-          issue: '',
-          priority: '',
-          dueDate: '',
-          files: [],
-          staffAccountId: formData.staffAccountId,
-          assignedTo: '',
-          remarks: '',
-        });
-      }
-
-      // Fetch operators for assign mode
-      if (mode === 'assign') {
-        userService.getOperators()
-          .then((operators) => {
-            const options = operators
-              .filter(op => op.value && op.label)
-              .map((operator) => ({
-                value: String(operator.value),
-                label: operator.label,
-              }));
-            setAssignedOptions(options);
-          })
-          .catch((error) => {
-            console.error('Error fetching operators:', error);
-            setFormError('Failed to load operators');
-          });
-      }
-
-      // Fetch attachments
-      const requestId = initialData?.Request_Id || initialData?.request_id;
-      if (requestId) {
-        maintenanceService.getTicketAttachments(requestId)
-          .then((data) => setAttachments(data || []))
-          .catch((error) => {
-            console.error('Error fetching attachments:', error);
-            setAttachments([]);
-          });
-      } else {
-        setAttachments([]);
-      }
-
-      // ✅ Fetch events instead of just remarks
-      if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
-        setLoadingEvents(true);
-        maintenanceService.getTicketEvents(requestId)
-          .then((data) => setEvents(data || []))
-          .catch((error) => {
-            console.error('Error fetching events:', error);
-            setEvents([]);
-          })
-          .finally(() => setLoadingEvents(false));
-      } else {
-        setEvents([]);
-      }
-
-      // Fetch remarks for pending/completed/assign (view remarks too)
-      if (requestId && (mode === 'pending' || mode === 'completed' || mode === 'assign')) {
-        setLoadingRemarks(true);
-        maintenanceService.getTicketRemarks(requestId)
-          .then((data) => setRemarks(data || []))
-          .catch((error) => {
-            console.error('Error fetching remarks:', error);
-            setRemarks([]);
-          })
-          .finally(() => setLoadingRemarks(false));
-      } else {
-        setRemarks([]);
-      }
-    }
-  }, [isOpen, initialData, mode, reduxUser]);
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files);
-      setFormData(prev => ({
-        ...prev,
-        files: [...prev.files, ...newFiles]
-      }));
-    }
-  };
-
-  const removeFile = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      files: prev.files.filter((_, i) => i !== index)
-    }));
-  };
-
-  // ✅ New handler for remarks submission (used by Pending view only)
-  const handleRemarkSubmit = async (remarkText: string, files: File[]) => {
-    try {
-      const requestId = initialData?.Request_Id || initialData?.request_id || (initialData?.requestId ?? null);
-      if (!requestId) throw new Error('Request ID not found');
-      const userId = currentUserId ?? getAccountIdFromUser(reduxUser);
-      if (!userId) throw new Error('User ID not found (not signed in)');
-
-      // ✅ Get user role using utility function
-      const userRole = getUserRole(reduxUser); // <- pass reduxUser
-
-      // Add remark if there's text
-      if (remarkText.trim()) {
-        await maintenanceService.addRemark(
-          requestId,
-          remarkText,
-          userId,
-          userRole  // ✅ Now passing the actual role!
-        );
-      }
-
-      // Upload files if any
-      if (files.length > 0) {
-        await Promise.all(
-          files.map((file: File) =>
-            maintenanceService.uploadAttachment(requestId, userId, file)
-          )
-        );
-      }
-
-      // Refresh data
-      const [updatedRemarks, updatedAttachments, updatedEvents] = await Promise.all([
-        maintenanceService.getTicketRemarks(requestId),
-        maintenanceService.getTicketAttachments(requestId),
-        maintenanceService.getTicketEvents(requestId),
-      ]);
-
-      setRemarks(updatedRemarks);
-      setAttachments(updatedAttachments || []);
-      setEvents(updatedEvents);
-    } catch (error: any) {
-      console.error('Failed to add remark:', error);
-      throw error;
-    }
-  };
-
-  // ✅ guard submit when readOnly
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (readOnly) return;
-    onSubmit(formData);
-  };
-
-  // ✅ use this when passing to inputs/buttons
-  const isDisabled = readOnly;
-
-  const handleClose = () => {
-    setFormError(null);
-    setFormData({
-      title: '',
-      issue: '',
-      priority: '',
-      dueDate: '',
-      files: [],
-      staffAccountId: '',
-      assignedTo: '',
-      remarks: '',
-    });
-    onClose();
-  };
-
-  const handleDownloadAttachment = async () => {
-    if (selectedAttachment?.File_path) {
-      try {
-        const response = await fetch(selectedAttachment.File_path);
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = selectedAttachment.File_name || 'download';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-      } catch (error) {
-        console.error('Download failed:', error);
-        window.open(selectedAttachment.File_path, '_blank');
-      }
-    }
-  };
-
-  const noOpChange = () => {};
-  const isCreateMode = mode === 'create';
-  const isAssignMode = mode === 'assign';
-  const isPendingMode = mode === 'pending';
-  const isCompletedMode = mode === 'completed';
-
-  // ✅ FIX: define these (they are used later in JSX)
-  const isDetailsMode = isPendingMode || isCompletedMode || isAssignMode;
-
-  // ✅ “view-only” modes (no submit button)
-  const isViewMode = isPendingMode || isCompletedMode;
-
-  // ✅ modal height used in wrapper div
-  const modalHeightClass = isDetailsMode
-    ? 'h-[72vh] max-h-[72vh]'
-    : 'h-[60vh] max-h-[60vh]';
-
-  // ✅ NEW: helpful derived values
-  const ticketStatus = (initialData?.Status ?? '').toString().trim();
-  const cancelReasonText =
-    typeof initialData?.Cancel_reason === 'string' ? initialData.Cancel_reason.trim() : '';
-
-  // ✅ NEW: deletion reason (support both field names)
-  const deletionReasonText =
-    typeof initialData?.Deleted_reason === 'string'
-      ? initialData.Deleted_reason.trim()
-      : typeof initialData?.Delete_reason === 'string'
-        ? initialData.Delete_reason.trim()
-        : '';
-
-  // ✅ NEW: detect deleted ticket view
-  const isDeletedTicket =
-    !!initialData &&
-    (
-      initialData?.IsDeleted === 1 ||
-      initialData?.IsDeleted === true ||
-      ticketStatus.toLowerCase() === 'deleted'
-    );
-
-  // ✅ NEW: cancel actor display (Name + Role)
-  const cancelRequestedByName = (initialData?.CancelRequestedByName ?? '').trim();
-  const cancelRequestedByRole = (initialData?.CancelRequestedByRole ?? '').trim();
-  const cancelledByName = (initialData?.CancelledByName ?? '').trim();
-  const cancelledByRole = (initialData?.CancelledByRole ?? '').trim();
-
-  const cancelRequestedByDisplay = cancelRequestedByName
-    ? `${cancelRequestedByName}${cancelRequestedByRole ? ` (${cancelRequestedByRole})` : ''}`
-    : 'Unknown';
-
-  const cancelledByDisplay = cancelledByName
-    ? `${cancelledByName}${cancelledByRole ? ` (${cancelledByRole})` : ''}`
-    : 'Unknown';
-
-  // ✅ keep your reason box logic
-  const showOperatorReasonBox =
-    !!cancelReasonText && (ticketStatus === 'Cancel Requested' || ticketStatus === 'Cancelled');
-
-  const operatorDisplayName = (initialData?.AssignedOperatorName || 'Operator').trim();
 
   // ✅ CHANGED: remove the old “bookmark at the top” source (we now put it in the logs)
   const remarksBookmarkText = null;
@@ -405,9 +115,6 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
     <div className="space-y-4 rounded-lg p-4 bg-[#355842]/5 border border-[#355842]/30 ring-1 ring-[#355842]/10">
       <div className="flex items-center justify-between">
         <p className="text-sm font-semibold text-[#2E523A]">Accept & Assign</p>
-        <span className="text-[11px] px-2 py-0.5 rounded-full bg-white border border-[#355842]/20 text-[#2E523A]">
-          Editable
-        </span>
       </div>
 
       <div className="border-t border-[#355842]/20 pt-3">
@@ -422,7 +129,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
       </div>
 
       <FormField
-        label="Priority (Editable)"
+        label={
+          <span className="flex items-center gap-2">
+            <span>Priority</span>
+            <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
+          </span>
+        }
         name="priority"
         type="select"
         value={formData.priority}
@@ -431,7 +143,12 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
       />
 
       <DatePicker
-        label="Due Date (Editable)"
+        label={
+          <span className="flex items-center gap-2">
+            <span>Date Picker</span>
+            <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
+          </span>
+        }
         name="dueDate"
         value={formData.dueDate}
         onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
@@ -748,48 +465,117 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
                 <div className="pb-4">
                   {isCreateMode ? (
                     <div className="space-y-4">
-                      <FormField
-                        label="Title *"
-                        name="title"
-                        type="text"
-                        value={formData.title}
-                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                        placeholder="e.g., Broken conveyor belt"
-                        required
-                      />
-
+                      {/* Title */}
                       <div className="space-y-1">
                         <label className="block text-sm font-medium text-gray-700">
-                          Issue Description *
+                          <span>Title</span>
+                          {!formData.title && <span className="ml-1 text-red-600">*</span>}
+                        </label>
+                        <input
+                          name="title"
+                          type="text"
+                          value={formData.title}
+                          onChange={(e) => {
+                            setFormData({ ...formData, title: e.target.value });
+                            if (formErrors.title) {
+                              const newErrors = { ...formErrors };
+                              delete (newErrors as any).title;
+                              setFormErrors(newErrors);
+                            }
+                          }}
+                          placeholder="e.g., Broken conveyor belt"
+                          className={`w-full box-border px-3 py-2 rounded-md focus:outline-none ${
+                            formErrors.title
+                              ? 'border-red-500 ring-1 ring-red-200'
+                              : 'border border-gray-300 focus:border-[#355842] focus:ring-2 focus:ring-[#355842] focus:ring-inset'
+                          }`}
+                        />
+                        {formErrors.title && <p className="mt-1 text-xs text-red-600">{formErrors.title}</p>}
+                      </div>
+      
+                      {/* Issue Description */}
+                      <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">
+                          <span>Issue Description</span>
+                          {!formData.issue && <span className="ml-1 text-red-600">*</span>}
                         </label>
                         <textarea
                           name="issue"
                           value={formData.issue}
-                          onChange={(e) => setFormData({ ...formData, issue: e.target.value })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, issue: e.target.value });
+                            if (formErrors.issue) {
+                              const newErrors = { ...formErrors };
+                              delete (newErrors as any).issue;
+                              setFormErrors(newErrors);
+                            }
+                          }}
                           placeholder="Describe the issue in detail..."
-                          required
                           rows={4}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#355842] focus:border-transparent"
+                          className={`w-full box-border px-3 py-2 rounded-md focus:outline-none ${
+                            formErrors.issue
+                              ? 'border-red-500 ring-1 ring-red-200'
+                              : 'border border-gray-300 focus:border-[#355842] focus:ring-2 focus:ring-[#355842] focus:ring-inset'
+                          }`}
                         />
+                        {formErrors.issue && <p className="mt-1 text-xs text-red-600">{formErrors.issue}</p>}
                       </div>
-
-                      <FormField
-                        label="Priority"
-                        name="priority"
-                        type="select"
-                        value={formData.priority}
-                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-                        options={priorityOptions}
-                      />
-
-                      <DatePicker
-                        label="Due Date"
-                        name="dueDate"  
-                        value={formData.dueDate}
-                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                        required
-                      />
-
+      
+                      {/* Priority */}
+                      <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">
+                          <span>Priority</span>
+                          {!formData.priority && <span className="ml-1 text-red-600">*</span>}
+                        </label>
+                        <select
+                          name="priority"
+                          value={formData.priority}
+                          onChange={(e) => {
+                            setFormData({ ...formData, priority: e.target.value });
+                            if (formErrors.priority) {
+                              const newErrors = { ...formErrors };
+                              delete (newErrors as any).priority;
+                              setFormErrors(newErrors);
+                            }
+                          }}
+                          className={`w-full px-3 py-2 rounded-md focus:outline-none ${
+                            formErrors.priority ? 'border-red-500 ring-1 ring-red-200' : 'border border-gray-300 focus:ring-2 focus:ring-[#355842]'
+                          }`}
+                        >
+                          <option value="">Select priority</option>
+                          {priorityOptions.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                        {formErrors.priority && <p className="mt-1 text-xs text-red-600">{formErrors.priority}</p>}
+                      </div>
+      
+                      {/* Due Date (use DatePicker) */}
+                      <div className="space-y-1">
+                        <label className="block text-sm font-medium text-gray-700">
+                          <span>Due Date</span>
+                          {!formData.dueDate && <span className="ml-1 text-red-600">*</span>}
+                        </label>
+                        <div className={formErrors.dueDate ? 'ring-1 ring-red-200 rounded-md' : ''}>
+                          <DatePicker
+                            label=""
+                            name="dueDate"
+                            value={formData.dueDate}
+                            onChange={(e: any) => {
+                              // DatePicker may pass event or value; handle both
+                              const val = typeof e === 'string' ? e : e?.target?.value;
+                              setFormData({ ...formData, dueDate: val });
+                              if (formErrors.dueDate) {
+                                const newErrors = { ...formErrors };
+                                delete (newErrors as any).dueDate;
+                                setFormErrors(newErrors);
+                              }
+                            }}
+                          />
+                        </div>
+                        {formErrors.dueDate && <p className="mt-1 text-xs text-red-600">{formErrors.dueDate}</p>}
+                      </div>
+      
                       <AttachmentsUpload
                         files={formData.files}
                         onChange={handleFileChange}
@@ -807,22 +593,24 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
           {/* ✅ hide footer submit when readOnly */}
           {!readOnly && (
             <div className="flex justify-center gap-3 pt-4 border-t mt-6 flex-shrink-0">
-              <button
-                type="button"
-                onClick={handleClose}
-                className="px-6 py-2 text-sm text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
-              >
-                {isViewMode ? "Close" : "Cancel"}
-              </button>
-
               {/* ✅ show submit for create + assign */}
               {!isViewMode && (
                 <button
                   type="submit"
-                  className="px-6 py-2 text-sm text-white rounded-md hover:opacity-90"
-                  style={{ backgroundColor: '#355842' }}
+                  disabled={isDisabled}
+                  className={`px-6 py-2 text-sm text-white rounded-md ${isDisabled ? 'opacity-60 cursor-not-allowed' : 'hover:opacity-90'}`}
+                  style={{ backgroundColor: '#355842', display: 'inline-flex', alignItems: 'center', gap: 8 }}
                 >
-                  {isCreateMode ? "Submit Request" : isAssignMode ? "Accept & Assign" : "Submit"}
+                  {isSubmitting && (
+                    <svg className="animate-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                      <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.6)" strokeWidth="4" />
+                      <path d="M22 12a10 10 0 00-10-10" stroke="white" strokeWidth="4" strokeLinecap="round" />
+                    </svg>
+                  )}
+                  <span>
+                    {isSubmitting ? (isCreateMode ? 'Submitting...' : isAssignMode ? 'Assigning...' : 'Submitting...') :
+                     (isCreateMode ? 'Submit Request' : isAssignMode ? 'Accept & Assign' : 'Submit')}
+                  </span>
                 </button>
               )}
             </div>

@@ -11,16 +11,21 @@ import { useAppSelector } from '../../store/hooks';
 
 interface PendingMaintenanceProps {
   onOpenForm: (mode: 'pending', ticket: MaintenanceTicket) => void;
+  searchTerm: string;
+  selectedFilters: string[];
 }
 
-export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenForm }) => {
+export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
+  onOpenForm,
+  searchTerm,
+  selectedFilters,
+}) => {
   const { tickets, loading, error, refetch } = usePendingMaintenance();
-    const { user: reduxUser } = useAppSelector(state => state.auth);
+  const { user: reduxUser } = useAppSelector(state => state.auth);
 
   const [selectedTicketForCompletion, setSelectedTicketForCompletion] = useState<MaintenanceTicket | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ cancel state
   const [selectedTicketForCancel, setSelectedTicketForCancel] = useState<MaintenanceTicket | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
@@ -54,7 +59,6 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
               View Details
             </button>
 
-            {/* ✅ If "completed" stage (For Verification), show Complete only */}
             {row.Status === "For Verification" ? (
               <button
                 onClick={() => setSelectedTicketForCompletion(row)}
@@ -63,7 +67,6 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
                 Complete
               </button>
             ) : (
-              /* ✅ Otherwise, Cancel is default (On-going, Cancel Requested) */
               <button
                 onClick={() => setSelectedTicketForCancel(row)}
                 className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700"
@@ -77,6 +80,29 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
     ],
     [onOpenForm]
   );
+
+  const filteredTickets = useMemo(() => {
+    let temp = [...tickets];
+
+    if (searchTerm.trim()) {
+      const lower = searchTerm.toLowerCase();
+      temp = temp.filter((row) =>
+        Object.values(row).some((val) =>
+          String(val ?? "").toLowerCase().includes(lower)
+        )
+      );
+    }
+
+    if (selectedFilters.length > 0) {
+      temp = temp.filter((row) =>
+        selectedFilters.every((filter) =>
+          Object.values(row).some((val) => String(val) === filter)
+        )
+      );
+    }
+
+    return temp;
+  }, [tickets, searchTerm, selectedFilters]);
 
   const handleCompleteRequest = async () => {
     if (!selectedTicketForCompletion) return;
@@ -114,7 +140,6 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
       const actorId = reduxUser?.Account_id ?? reduxUser?.account_id;
       if (!actorId) throw new Error("actor_account_id not found");
 
-      // ✅ Staff/Admin cancels immediately (no reason required)
       await maintenanceService.cancelTicket(requestId, actorId);
 
       setSelectedTicketForCancel(null);
@@ -127,12 +152,12 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({ onOpenFo
   };
 
   return (
-    <div className="space-y-3 p-4">
+    <div>
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <Table
         columns={columns}
-        data={tickets}
+        data={filteredTickets}
         emptyMessage={loading ? "Loading..." : "No pending maintenance found"}
       />
 
