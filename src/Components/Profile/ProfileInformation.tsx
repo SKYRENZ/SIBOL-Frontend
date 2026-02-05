@@ -1,8 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getMyProfile, updateMyProfile } from "../../services/profile/profileService";
 import { getUser } from "../../services/authService";
-import PasswordModal from "./PasswordModal"; 
+import PasswordModal from "./PasswordModal";
+import { Pencil } from "lucide-react";
 
+// =============================
+// TYPES
+// =============================
 type UiProfile = {
   firstName: string;
   middleInitial: string;
@@ -28,7 +32,7 @@ const emptyProfile: UiProfile = {
   email: "",
   phone: "",
   position: "",
-  suffix: "-",
+  suffix: "../../assets/images/lili.png",
   avatar: "",
   address: {
     fullAddress: "",
@@ -37,6 +41,9 @@ const emptyProfile: UiProfile = {
   },
 };
 
+// =============================
+// HELPERS
+// =============================
 function roleLabel(roleId?: number | null) {
   if (roleId === 1) return "Admin";
   if (roleId === 2) return "Barangay Staff";
@@ -46,99 +53,54 @@ function roleLabel(roleId?: number | null) {
 
 function normalizeProfile(apiProfile: any): UiProfile {
   const localUser = getUser();
-  const rolesNum =
-    Number(localUser?.Roles ?? localUser?.roleId ?? localUser?.role ?? NaN);
-
-  // Try common backend fields; fall back to blanks.
-  const firstName = apiProfile?.FirstName ?? apiProfile?.firstName ?? "";
-  const lastName = apiProfile?.LastName ?? apiProfile?.lastName ?? "";
-  const email = apiProfile?.Email ?? apiProfile?.email ?? "";
-  const phoneVal =
-    apiProfile?.Contact ?? apiProfile?.contact ?? apiProfile?.Phone ?? apiProfile?.phone ?? "";
-  const phone = phoneVal == null ? "" : String(phoneVal);
-
-  // Address fields are not guaranteed by your backend; map if present.
-  const fullAddress =
-    apiProfile?.FullAddress ??
-    apiProfile?.fullAddress ??
-    apiProfile?.Address ??
-    apiProfile?.address ??
-    "";
-
-  const areaAssigned =
-    apiProfile?.AreaAssigned ??
-    apiProfile?.areaAssigned ??
-    apiProfile?.Area_Name ??
-    apiProfile?.areaName ??
-    "";
-
-  const barangay =
-    apiProfile?.Barangay ??
-    apiProfile?.barangay ??
-    apiProfile?.Barangay_Name ??
-    apiProfile?.barangayName ??
-    "";
-
-  const roleText = roleLabel(Number.isFinite(rolesNum) ? rolesNum : null);
-
-  const barangayName =
-    apiProfile?.Barangay_Name ?? apiProfile?.barangayName ?? "";
+  const rolesNum = Number(localUser?.Roles ?? localUser?.roleId ?? NaN);
+  const barangayName = apiProfile?.Barangay_Name ?? apiProfile?.barangayName ?? "-";
 
   return {
     ...emptyProfile,
-    firstName,
-    lastName,
-    email,
-    phone,
-    role: roleText,
-    position: roleText, // ✅ position comes from role
+    firstName: apiProfile?.FirstName ?? apiProfile?.firstName ?? "",
+    lastName: apiProfile?.LastName ?? apiProfile?.lastName ?? "",
+    email: apiProfile?.Email ?? apiProfile?.email ?? "",
+    phone: String(apiProfile?.Contact ?? apiProfile?.contact ?? ""),
+    role: roleLabel(Number.isFinite(rolesNum) ? rolesNum : null),
+    position: roleLabel(Number.isFinite(rolesNum) ? rolesNum : null),
     address: {
-      fullAddress: barangayName || "-", // ✅ address comes from Barangay_id -> Barangay_Name
+      fullAddress: barangayName,
       areaAssigned: apiProfile?.Area_Name ?? apiProfile?.areaName ?? "-",
-      barangay: barangayName || "-",
+      barangay: barangayName,
     },
   };
 }
 
+// =============================
+// MAIN COMPONENT
+// =============================
 const ProfileInformation: React.FC = () => {
   const [profile, setProfile] = useState<UiProfile>(emptyProfile);
   const [formData, setFormData] = useState<UiProfile>(emptyProfile);
-
-  const [isEditingPersonal, setIsEditingPersonal] = useState(false);
-  const [isEditingAddress, setIsEditingAddress] = useState(false);
-
+  const [editingPersonal, setEditingPersonal] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // =============================
+  // LOAD PROFILE
+  // =============================
   useEffect(() => {
-    let cancelled = false;
-
     (async () => {
-      setLoading(true);
-      setError(null);
       try {
-        const apiProfile = await getMyProfile(); // ✅ GET /api/profile/me (cookie auth)
+        const apiProfile = await getMyProfile();
         const normalized = normalizeProfile(apiProfile);
-        if (cancelled) return;
         setProfile(normalized);
         setFormData(normalized);
-      } catch (e: any) {
-        if (cancelled) return;
-        setError(e?.message ?? "Failed to load profile");
       } finally {
-        if (!cancelled) setLoading(false);
+        setLoading(false);
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   // =============================
@@ -147,27 +109,17 @@ const ProfileInformation: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
-    setSuccessMsg(null);
-    setError(null);
-
     if (name.startsWith("address.")) {
-      const field = name.split(".")[1] as keyof UiProfile["address"];
-      setFormData(prev => ({
-        ...prev,
-        address: { ...prev.address, [field]: value },
-      }));
+      const key = name.split(".")[1] as keyof UiProfile["address"];
+      setFormData(p => ({ ...p, address: { ...p.address, [key]: value } }));
     } else {
-      setFormData(prev => ({ ...prev, [name]: value } as UiProfile));
+      setFormData(p => ({ ...p, [name]: value } as UiProfile));
     }
   };
 
   const handleSave = async () => {
     setSaving(true);
-    setError(null);
-    setSuccessMsg(null);
-
     try {
-      // Only send fields your backend supports (ProfileUpdatePayload)
       const resp = await updateMyProfile({
         firstName: formData.firstName,
         lastName: formData.lastName,
@@ -175,26 +127,15 @@ const ProfileInformation: React.FC = () => {
         contact: formData.phone,
       });
 
-      const updatedApiProfile = resp?.data ?? resp;
-      const normalized = normalizeProfile(updatedApiProfile);
-
+      const normalized = normalizeProfile(resp?.data ?? resp);
       setProfile(normalized);
       setFormData(normalized);
 
-      setIsEditingPersonal(false);
-      setIsEditingAddress(false);
+      setEditingPersonal(false);
+      setEditingAddress(false);
 
-      setSuccessMsg("Profile updated.");
-
-      setToastMsg("Profile updated");
-      setTimeout(() => setToastMsg(null), 2500);
-    } catch (e: any) {
-      // fetchJson attaches status + payload
-      if (e?.status === 429 && e?.payload?.retryAt) {
-        setError(`You can update profile again after: ${String(e.payload.retryAt)}`);
-      } else {
-        setError(e?.message ?? "Update failed");
-      }
+      setToast("Profile updated");
+      setTimeout(() => setToast(null), 2500);
     } finally {
       setSaving(false);
     }
@@ -202,137 +143,104 @@ const ProfileInformation: React.FC = () => {
 
   const handleCancel = () => {
     setFormData(profile);
-    setIsEditingPersonal(false);
-    setIsEditingAddress(false);
-    setError(null);
-    setSuccessMsg(null);
-  };
-
-  // =============================
-  // PHOTO UPLOAD (local preview only)
-  // =============================
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click();
+    setEditingPersonal(false);
+    setEditingAddress(false);
   };
 
   const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!["image/png", "image/jpeg"].includes(file.type)) {
-      alert("Only PNG and JPEG images are allowed.");
-      return;
-    }
-
     const imageUrl = URL.createObjectURL(file);
-    setProfile(prev => ({ ...prev, avatar: imageUrl }));
-    setFormData(prev => ({ ...prev, avatar: imageUrl }));
+    setProfile(p => ({ ...p, avatar: imageUrl }));
+    setFormData(p => ({ ...p, avatar: imageUrl }));
   };
 
+  // =============================
+  // RENDER
+  // =============================
   return (
-    <div className="space-y-8">
-      {/* ================= Profile Header ================= */}
-      <div className="rounded-xl bg-white p-6 shadow flex items-center gap-6">
-        <div className="h-20 w-20 rounded-full overflow-hidden bg-[#f5eddc] flex items-center justify-center">
-          {profile.avatar ? (
-            <img
-              src={profile.avatar}
-              alt="Avatar"
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <span className="text-3xl">🐻</span>
-          )}
-        </div>
-
-        <div className="flex-1">
-          <h2 className="text-xl font-bold text-[#1c3c2d]">
-            {loading ? "Loading..." : `${profile.firstName} ${profile.middleInitial ? profile.middleInitial + "." : ""} ${profile.lastName}`.trim()}
-          </h2>
-          <p className="text-sm text-gray-600">{profile.role}</p>
-
+    <div className="grid gap-8 lg:grid-cols-[320px_1fr]">
+      {/* LEFT SIDEBAR */}
+      <div className="rounded-2xl bg-[#cdddc9] p-6 flex flex-col items-center text-center relative">
+        <div className="relative">
+          <div className="h-40 w-40 rounded-full bg-[#e9f1e6] flex items-center justify-center overflow-hidden">
+            {profile.avatar ? (
+              <img src={profile.avatar} className="h-full w-full object-cover" />
+            ) : (
+              <img src="../../assets/images/lili.png" className="h-full w-full object-cover" />
+            )}
+          </div>
           <button
-            onClick={handlePhotoClick}
-             className="mt-2 rounded-full border border-[#2E523A] bg-transparent px-4 py-1 text-xs font-medium text-[#2E523A] hover:bg-[#2E523A]/10 transition"
+            onClick={() => fileInputRef.current?.click()}
+            className="absolute bottom-2 right-2 rounded-full bg-white p-2 shadow"
           >
-            Upload New Photo
+            <Pencil size={16} />
           </button>
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/png, image/jpeg"
-            onChange={handlePhotoChange}
-            hidden
-          />
+          <input ref={fileInputRef} type="file" hidden onChange={handlePhotoChange} />
         </div>
+
+        <h2 className="mt-4 font-semibold text-[#1c3c2d]">
+          {loading ? "Loading..." : `${profile.firstName} ${profile.lastName}`}
+        </h2>
+        <p className="text-sm text-gray-600">{profile.role}</p>
+
+        <button
+          onClick={() => setShowPasswordModal(true)}
+          className="mt-6 w-full rounded-xl bg-[#6b8f71] py-2 text-sm text-white"
+        >
+          Change Password
+        </button>
       </div>
 
-      {/* ================= Personal Information ================= */}
-      <div className="rounded-xl bg-white p-6 shadow">
-        <Header
+      {/* RIGHT CONTENT */}
+      <div className="rounded-2xl bg-white p-6 shadow space-y-8">
+        {/* PERSONAL INFO */}
+        <SectionHeader
           title="Personal Information"
-          isEditing={isEditingPersonal}
-          onEdit={() => {
-            setIsEditingPersonal(true);
-            setSuccessMsg(null);
-            setError(null);
-          }}
+          editing={editingPersonal}
+          onEdit={() => setEditingPersonal(true)}
           onSave={handleSave}
           onCancel={handleCancel}
-          disabled={loading || saving}
+          disabled={saving}
         />
 
-        {error && <p className="mb-3 text-sm text-red-600">{error}</p>}
-        {successMsg && <p className="mb-3 text-sm text-green-700">{successMsg}</p>}
-        {toastMsg && (
-          <div className="fixed right-6 top-6 z-50 rounded-lg bg-[#2E523A] px-4 py-2 text-sm text-white shadow">
-            {toastMsg}
-          </div>
-        )}
-
-        <div className="grid gap-6 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          {isEditingPersonal ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          {editingPersonal ? (
             <>
               <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} />
               <Input label="Middle Initial" name="middleInitial" value={formData.middleInitial} onChange={handleChange} />
               <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} />
-              <Input label="Suffix" name="suffix" value={formData.suffix} onChange={handleChange} />
-              <Input label="Email Address" name="email" value={formData.email} onChange={handleChange} />
-              <Input label="Phone Number" name="phone" value={formData.phone} onChange={handleChange} />
+              <Input label="Email" name="email" value={formData.email} onChange={handleChange} />
+              <Input label="Phone" name="phone" value={formData.phone} onChange={handleChange} />
               <Input label="Position" name="position" value={formData.position} onChange={handleChange} />
             </>
           ) : (
             <>
-              <Info label="First Name" value={profile.firstName || "-"} />
+              <Info label="First Name" value={profile.firstName} />
               <Info label="Middle Initial" value={profile.middleInitial || "-"} />
-              <Info label="Last Name" value={profile.lastName || "-"} />
-              <Info label="Suffix" value={profile.suffix || "-"} />
-              <Info label="Email Address" value={profile.email || "-"} />
-              <Info label="Phone Number" value={profile.phone || "-"} />
-              <Info label="Position" value={profile.position || "-"} />
+              <Info label="Last Name" value={profile.lastName} />
+              <Info label="Email" value={profile.email} />
+              <Info label="Phone" value={profile.phone} />
+              <Info label="Position" value={profile.position} />
             </>
           )}
         </div>
-      </div>
 
-      {/* ================= Address ================= */}
-      <div className="rounded-xl bg-white p-6 shadow">
-        <Header
+        <hr />
+
+        {/* ADDRESS */}
+        <SectionHeader
           title="Address"
-          isEditing={isEditingAddress}
-          onEdit={() => {
-            setIsEditingAddress(true);
-            setSuccessMsg(null);
-            setError(null);
-          }}
+          editing={editingAddress}
+          onEdit={() => setEditingAddress(true)}
           onSave={handleSave}
           onCancel={handleCancel}
-          disabled={loading || saving}
+          disabled={saving}
         />
 
-        <div className="grid gap-6 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          {isEditingAddress ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 text-sm">
+          {editingAddress ? (
             <>
               <Input label="Full Address" name="address.fullAddress" value={formData.address.fullAddress} onChange={handleChange} />
               <Input label="Area Assigned" name="address.areaAssigned" value={formData.address.areaAssigned} onChange={handleChange} />
@@ -340,68 +248,44 @@ const ProfileInformation: React.FC = () => {
             </>
           ) : (
             <>
-              <Info label="Full Address" value={profile.address.fullAddress || "-"} />
-              <Info label="Area Assigned" value={profile.address.areaAssigned || "-"} />
-              <Info label="Barangay" value={profile.address.barangay || "-"} />
+              <Info label="Full Address" value={profile.address.fullAddress} />
+              <Info label="Area Assigned" value={profile.address.areaAssigned} />
+              <Info label="Barangay" value={profile.address.barangay} />
             </>
           )}
         </div>
       </div>
 
-      {/* ================= Change Password ================= */}
-      <div className="flex justify-end">
-        <button
-          onClick={() => setShowPasswordModal(true)}
-          className="rounded-full border border-[#2E523A] bg-transparent px-6 py-2 text-sm font-medium text-[#2E523A] hover:bg-[#2E523A]/10 transition"
-        >
-          Change Password
-        </button>
-      </div>
-
-      {/* ================= Password Modal ================= */}
-      {showPasswordModal && (
-        <PasswordModal
-          onClose={() => {
-            setShowPasswordModal(false);
-            setToastMsg("Password updated");
-            setTimeout(() => setToastMsg(null), 2500);
-          }}
-        />
+      {toast && (
+        <div className="fixed top-6 right-6 rounded-lg bg-[#2E523A] px-4 py-2 text-sm text-white shadow">
+          {toast}
+        </div>
       )}
+
+      {showPasswordModal && <PasswordModal onClose={() => setShowPasswordModal(false)} />}
     </div>
   );
 };
 
 // =============================
-// REUSABLE COMPONENTS
+// REUSABLES
 // =============================
-const Header = ({
-  title,
-  isEditing,
-  onEdit,
-  onSave,
-  onCancel,
-  disabled,
-}: {
-  title: string;
-  isEditing: boolean;
-  onEdit: () => void;
-  onSave: () => void;
-  onCancel: () => void;
-  disabled?: boolean;
-}) => (
-  <div className="mb-4 flex items-center justify-between">
+const SectionHeader = ({ title, editing, onEdit, onSave, onCancel, disabled }: any) => (
+  <div className="flex items-center justify-between">
     <h3 className="font-semibold text-[#1c3c2d]">{title}</h3>
-    {!isEditing ? (
-      <button
-        onClick={onEdit}
-        disabled={disabled}
-        className="rounded-full bg-[#6b8f71] px-4 py-1 text-xs text-white disabled:opacity-60"
-      >
-        Edit
+    {!editing ? (
+      <button onClick={onEdit} className="text-[#2E523A]">
+        <Pencil size={16} />
       </button>
     ) : (
-      <ActionButtons onSave={onSave} onCancel={onCancel} disabled={disabled} />
+      <div className="flex gap-2">
+        <button onClick={onSave} disabled={disabled} className="rounded-full bg-[#2E523A] px-3 py-1 text-xs text-white">
+          Save
+        </button>
+        <button onClick={onCancel} className="rounded-full bg-gray-300 px-3 py-1 text-xs">
+          Cancel
+        </button>
+      </div>
     )}
   </div>
 );
@@ -409,57 +293,28 @@ const Header = ({
 const Info = ({ label, value }: { label: string; value: string }) => (
   <div>
     <p className="text-xs text-gray-500">{label}</p>
-    <p className="font-medium text-[#1c3c2d]">{value}</p>
+    <p className="font-medium text-[#1c3c2d]">{value || "-"}</p>
   </div>
 );
 
-const Input = ({
-  label,
-  name,
-  value,
-  onChange,
-}: {
-  label: string;
-  name: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}) => (
-  <div>
-    <p className="text-xs text-gray-500">{label}</p>
+const Input = ({ label, name, value, onChange }: any) => (
+  <div className="relative w-full mt-4">
+    {/* Floating label */}
+    <label
+      htmlFor={name}
+      className="absolute -top-3 left-3 bg-white px-1 text-[#2E523A] text-sm font-semibold z-10"
+    >
+      {label}
+    </label>
     <input
+      id={name}
       name={name}
       value={value}
       onChange={onChange}
-      className="mt-1 w-full rounded-md border px-3 py-2 text-sm focus:ring-2 focus:ring-[#6b8f71]"
+      className="w-full rounded-[10px] border-2 border-[#6C8770] bg-[rgba(255,255,255,0.79)] px-4 pt-4 pb-3 text-[#2E523A] focus:outline-none focus:ring-2 focus:ring-[#6b8f71]"
     />
   </div>
 );
 
-const ActionButtons = ({
-  onSave,
-  onCancel,
-  disabled,
-}: {
-  onSave: () => void;
-  onCancel: () => void;
-  disabled?: boolean;
-}) => (
-  <div className="flex gap-2">
-    <button
-      onClick={onSave}
-      disabled={disabled}
-      className="rounded-full bg-[#2E523A] px-4 py-1 text-xs text-white disabled:opacity-60"
-    >
-      Save
-    </button>
-    <button
-      onClick={onCancel}
-      disabled={disabled}
-      className="rounded-full bg-gray-300 px-4 py-1 text-xs disabled:opacity-60"
-    >
-      Cancel
-    </button>
-  </div>
-);
 
 export default ProfileInformation;

@@ -315,7 +315,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           zoom={13}
           style={{ height: "100%", width: "100%" }}
           className="z-0"
-          whenReady={(mapInstance: any) => { mapRef.current = mapInstance; }}
+          ref={mapRef as any}
         >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
