@@ -23,7 +23,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const { isFirstLogin, user } = useAppSelector((state) => state.auth); // <- use Redux
+  const { isFirstLogin, user, isAuthenticated, hasCheckedAuth, isCheckingAuth } = useAppSelector((state) => state.auth); // <- use Redux
 
   async function handleLogout() {
     try {
@@ -36,13 +36,14 @@ const Header: React.FC = () => {
   }
 
   useEffect(() => {
+    if (!hasCheckedAuth || isCheckingAuth || !isAuthenticated || !user) return;
+
     let mounted = true;
     (async () => {
       try {
         const [normalized, notificationsResponse] = await Promise.all([
           fetchAllowedModules(),
-          // TODO: Replace with actual API call
-          Promise.resolve({ data: [] })
+          Promise.resolve({ data: [] }),
         ]);
         if (!mounted) return;
         setModules(normalized);
@@ -52,8 +53,9 @@ const Header: React.FC = () => {
         setModules({ list: [], get: () => undefined, has: () => false });
       }
     })();
+
     return () => { mounted = false; };
-  }, []);
+  }, [hasCheckedAuth, isCheckingAuth, isAuthenticated, user]);
 
   useEffect(() => {
     setMenuOpen(false);

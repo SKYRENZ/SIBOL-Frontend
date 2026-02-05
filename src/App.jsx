@@ -1,6 +1,8 @@
-import React, { lazy, Suspense } from 'react';
+import React, { lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './Components/common/ProtectedRoute';
+import { useAppDispatch } from './store/hooks';
+import { verifyToken } from './store/slices/authSlice';
 
 // Lazy load page components
 const Landingpage = lazy(() => import('./Pages/Landingpage.tsx'));
@@ -22,6 +24,12 @@ const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 
 
 function App() {
+  const dispatch = useAppDispatch();
+
+  useEffect(() => {
+    dispatch(verifyToken());
+  }, [dispatch]);
+
   return (
     <Routes>
       {/* Public Routes */}

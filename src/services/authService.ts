@@ -15,18 +15,14 @@ export type AuthResponse = {
   [key: string]: any; 
 };
 
-// ✅ ADD: typed register response (matches backend registerUser + attachment additions)
+// ✅ ADD THIS (fixes: Cannot find name 'RegisterResponse')
 export type RegisterResponse = {
   success: boolean;
   message?: string;
-  pendingId?: number;
   username?: string;
   email?: string;
-  isSSO?: boolean;
-  emailVerified?: boolean;
-  note?: string;
-  attachmentUrl?: string;
-  attachmentPublicId?: string;
+  user?: User;
+  [key: string]: any;
 };
 
 let cachedUser: User | null = null; // <-- in-memory cache
@@ -43,25 +39,38 @@ export async function login(username: string, password: string): Promise<AuthRes
   return data;
 }
 
-// ✅ CHANGE: return typed response
 export async function register(payload: any): Promise<RegisterResponse> {
   const res = await api.post('/api/auth/register', payload);
   return res.data as RegisterResponse;
 }
 
+function looksLikeUser(x: any): x is User {
+  return !!x && typeof x === 'object' && (Number.isFinite(Number(x.Account_id)) || Number.isFinite(Number(x.id)));
+}
+
 export async function verifyToken(): Promise<User | null> {
   try {
+    // ✅ remove Cache-Control header (it triggers CORS preflight)
     const response = await api.get('/api/auth/verify');
-    const data = response.data as { valid?: boolean; user?: User } | undefined;
-    
-    if (data?.user) {
-      cachedUser = data.user; // populate in-memory cache from server (httpOnly cookie)
-      return data.user;
+
+    const data: any = response.data;
+
+    const candidate =
+      data?.user ??
+      data?.account ??
+      data?.me ??
+      data?.data?.user ??
+      data?.data ??
+      data;
+
+    if (looksLikeUser(candidate)) {
+      cachedUser = candidate;
+      return candidate;
     }
-    
+
     cachedUser = null;
     return null;
-  } catch (error) {
+  } catch {
     cachedUser = null;
     return null;
   }
@@ -71,6 +80,7 @@ export function logout(): void {
   localStorage.removeItem('user');
   sessionStorage.clear();
   
+  cachedUser = null; // ✅ ensure in-memory auth resets too
   api.post('/api/auth/logout').catch(() => {
     // Silent fail - non-critical
   });

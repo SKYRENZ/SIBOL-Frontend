@@ -15,16 +15,24 @@ interface User {
 interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
-  isLoading: boolean;
+
+  isLoading: boolean; // keep for login/register/etc
+  isCheckingAuth: boolean; // ✅ new: only for cookie verify on app start
+  hasCheckedAuth: boolean; // ✅ new: prevents guard redirect before verify completes
+
   error: string | null;
   isFirstLogin: boolean;
-  successMessage: string | null; // ✅ ADD: For success notifications
+  successMessage: string | null;
 }
 
 const initialState: AuthState = {
-  user: null,                      // <-- no localStorage bootstrap
-  isAuthenticated: false,          // <-- default false; will be set by verify/login
+  user: null,
+  isAuthenticated: false,
+
   isLoading: false,
+  isCheckingAuth: false,
+  hasCheckedAuth: false,
+
   error: null,
   isFirstLogin: false,
   successMessage: null,
@@ -295,28 +303,42 @@ const authSlice = createSlice({
     });
     builder.addCase(login.fulfilled, (state, action) => {
       state.isLoading = false;
-      state.user = action.payload.user || null;
-      state.isAuthenticated = true;
-      state.isFirstLogin = action.payload.user?.IsFirstLogin === 1;
-      state.error = null;
+
+      const user = action.payload.user || null;
+
+      state.user = user;
+      state.isAuthenticated = !!user; // ✅ was always true
+      state.isFirstLogin = user ? user.IsFirstLogin === 1 : false;
+
+      // ✅ after a successful login response, treat auth as checked
+      state.hasCheckedAuth = true;
+      state.isCheckingAuth = false;
+
+      state.error = user ? null : 'Login succeeded but no user returned';
     });
     builder.addCase(login.rejected, (state, action) => {
       state.isLoading = false;
+      state.isAuthenticated = false; // ✅ be explicit
+      state.user = null;
       state.error = action.payload as string;
     });
 
     // Verify Token
     builder.addCase(verifyToken.pending, (state) => {
-      state.isLoading = true;
+      state.isCheckingAuth = true;
     });
     builder.addCase(verifyToken.fulfilled, (state, action) => {
-      state.isLoading = false;
+      state.isCheckingAuth = false;
+      state.hasCheckedAuth = true;
+
       state.user = action.payload.user || null;
       state.isAuthenticated = true;
       state.isFirstLogin = action.payload.user?.IsFirstLogin === 1;
     });
     builder.addCase(verifyToken.rejected, (state) => {
-      state.isLoading = false;
+      state.isCheckingAuth = false;
+      state.hasCheckedAuth = true;
+
       state.isAuthenticated = false;
       state.user = null;
     });
