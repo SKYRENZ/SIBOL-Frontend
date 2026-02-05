@@ -28,7 +28,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const { isFirstLogin, user } = useAppSelector((state) => state.auth);
+  const { isFirstLogin, user, isAuthenticated, hasCheckedAuth, isCheckingAuth } = useAppSelector((state) => state.auth); // <- use Redux
 
   const handleLogout = () => {
     dispatch(logoutAction());
@@ -38,6 +38,8 @@ const Header: React.FC = () => {
   /* ---------------- effects ---------------- */
 
   useEffect(() => {
+    if (!hasCheckedAuth || isCheckingAuth || !isAuthenticated || !user) return;
+
     let mounted = true;
     (async () => {
       try {
@@ -53,10 +55,9 @@ const Header: React.FC = () => {
         setModules({ list: [], has: () => false });
       }
     })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+
+    return () => { mounted = false; };
+  }, [hasCheckedAuth, isCheckingAuth, isAuthenticated, user]);
 
   useEffect(() => {
     setMenuOpen(false);
