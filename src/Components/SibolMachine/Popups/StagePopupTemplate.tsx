@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "../../../lib/utils";
-import { Power, Check, ChevronDown } from "lucide-react";
+import { Power, Check, ChevronDown, Info } from "lucide-react";
+import LearnMoreModal from "./LearnMoreModal";
 
 type SensorMetric = {
   id: string;
@@ -72,6 +73,8 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   stageAccent,
   toggleDisplay = "0",
 }) => {
+  const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
+
   return (
     <div
       className={cn(
@@ -79,6 +82,12 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         className
       )}
     >
+      <LearnMoreModal
+        isOpen={isLearnMoreOpen}
+        onClose={() => setIsLearnMoreOpen(false)}
+        stageName={stageName}
+        stageNumber={stageNumber}
+      />
       <div className="pointer-events-none absolute inset-0 -z-10 rounded-[28px] bg-[radial-gradient(circle_at_top_left,rgba(212,230,216,0.45),transparent_60%)]" />
 
       <div className="flex items-center justify-between">
@@ -125,13 +134,27 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       </div>
 
       <footer className="mt-10 flex flex-col items-center gap-4">
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-[#AEC9B4] bg-white px-6 py-2 text-sm font-semibold text-[#1F3527] shadow-[0_8px_18px_-12px_rgba(46,82,58,0.35)]"
-        >
-          {selectedMachine}
-          <ChevronDown className="h-4 w-4 text-[#2E523A]" />
-        </button>
+        <div className="flex flex-col items-center gap-4 w-full">
+          <button
+            type="button"
+            className="inline-flex items-center gap-2 rounded-full border border-[#AEC9B4] bg-white px-6 py-2 text-sm font-semibold text-[#1F3527] shadow-[0_8px_18px_-12px_rgba(46,82,58,0.35)]"
+          >
+            {selectedMachine}
+            <ChevronDown className="h-4 w-4 text-[#2E523A]" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setIsLearnMoreOpen(true)}
+            className="group flex items-center gap-2 text-sm font-medium text-[#2E523A] hover:text-[#1F3527] transition-colors"
+          >
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E4F2E9] text-[#2E523A] group-hover:bg-[#D4E8DB] transition-colors">
+              <Info size={12} strokeWidth={2.5} />
+            </span>
+            Learn More
+          </button>
+        </div>
+        
         <p className="max-w-3xl text-center text-sm leading-relaxed text-[#405B4D]">{narration}</p>
       </footer>
     </div>
