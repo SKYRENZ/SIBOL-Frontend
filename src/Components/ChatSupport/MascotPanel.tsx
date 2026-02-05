@@ -55,17 +55,17 @@ const MascotPanel: React.FC<MascotPanelProps> = ({ user, onHelpClick }) => {
         </p>
 
         {/* MASCOT */}
-        <div className="bg-white rounded-full p-4 sm:p-5 shadow-md mb-6 sm:mb-10">
+        <div className="bg-transparent rounded-full p-4 sm:p-5 mb-6 sm:mb-10">
           <img
             src={new URL("../../assets/images/lili.svg", import.meta.url).href}
             alt="Lili mascot"
-            className="w-24 h-24 sm:w-32 sm:h-32"
+            className="w-32 h-32 sm:w-40 sm:h-40"
           />
         </div>
 
         {/* CTA BUTTON */}
         <button
-          className="bg-[#a8c3ad] text-white text-sm sm:text-base px-6 sm:px-7 py-2 rounded-full shadow-md hover:shadow-lg hover:bg-[#98b89e] transition"
+          className="bg-[#2E523A] text-white text-sm sm:text-base px-6 sm:px-7 py-2 rounded-full shadow-md hover:shadow-lg hover:bg-[#244630] transition"
           onClick={onHelpClick}
         >
           How may I help?
