@@ -219,6 +219,47 @@ input:-webkit-autofill:active {
     from { opacity: 0; transform: translateY(-6px); }
     to { opacity: 1; transform: translateY(0); }
   }
+
+  /* typing indicator jump */
+  @keyframes sibol-jump {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+  }
+
+  /* Cloud animations - Left to right */
+  @keyframes cloudLeftToRight {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(clamp(300px, 50vw, 600px)); }
+  }
+
+  /* Cloud animations - Right to left */
+  @keyframes cloudRightToLeft {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(clamp(-300px, -50vw, -600px)); }
+  }
+
+  .typing-dot { width: 9px; height: 8px; border-radius: 9999px; display: inline-block; margin-right: 8px; }
+
+  .typing-dot.-green { background-color: #AFC8AD; animation: sibol-jump 800ms ease-in-out infinite; }
+  .typing-dot.-grey { background-color: #DED9D9; animation: sibol-jump 800ms ease-in-out infinite; }
+
+  /* Cloud animation utilities */
+  .animate-cloudSlow {
+    animation: cloudLeftToRight 8s ease-in-out infinite;
+  }
+
+  .animate-cloudReverse {
+    animation: cloudRightToLeft 9s ease-in-out infinite;
+  }
+
+  .animate-cloudSlowBottom {
+    animation: cloudLeftToRight 9s ease-in-out infinite;
+  }
+
+  .animate-cloudReverseBottom {
+    animation: cloudRightToLeft 8s ease-in-out infinite;
+  }
 }
 
 /* Date Picker Green Theme - Add to your tailwind.css */
