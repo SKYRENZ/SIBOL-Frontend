@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { cn } from "../../../lib/utils";
-import { Power, Check, ChevronDown } from "lucide-react";
+import { Power, Check, ChevronDown, Info } from "lucide-react";
+import LearnMoreModal from "./LearnMoreModal";
 
 type SensorMetric = {
   id: string;
@@ -55,6 +56,8 @@ export interface StagePopupData {
 
 interface StagePopupTemplateProps extends StagePopupData {
   className?: string;
+  onMachinePickerOpen?: () => void;
+  onAdditivesHistoryOpen?: () => void;
 }
 
 const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
@@ -71,7 +74,11 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   stageImage,
   stageAccent,
   toggleDisplay = "0",
+  onMachinePickerOpen,
+  onAdditivesHistoryOpen,
 }) => {
+  const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
+
   return (
     <div
       className={cn(
@@ -79,6 +86,12 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         className
       )}
     >
+      <LearnMoreModal
+        isOpen={isLearnMoreOpen}
+        onClose={() => setIsLearnMoreOpen(false)}
+        stageName={stageName}
+        stageNumber={stageNumber}
+      />
       <div className="pointer-events-none absolute inset-0 -z-10 rounded-[28px] bg-[radial-gradient(circle_at_top_left,rgba(212,230,216,0.45),transparent_60%)]" />
 
       <div className="flex items-center justify-between">
@@ -112,7 +125,13 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
             </div>
           </div>
 
-          {supportCard && <SupportCardContent card={supportCard} accent={stageAccent} />}
+          {supportCard && (
+            <SupportCardContent
+              card={supportCard}
+              accent={stageAccent}
+              onAdditivesHistoryOpen={onAdditivesHistoryOpen}
+            />
+          )}
         </aside>
 
         <div className="flex items-center justify-center">
@@ -125,13 +144,33 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       </div>
 
       <footer className="mt-10 flex flex-col items-center gap-4">
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 rounded-full border border-[#AEC9B4] bg-white px-6 py-2 text-sm font-semibold text-[#1F3527] shadow-[0_8px_18px_-12px_rgba(46,82,58,0.35)]"
-        >
-          {selectedMachine}
-          <ChevronDown className="h-4 w-4 text-[#2E523A]" />
-        </button>
+        <div className="flex flex-col items-center gap-4 w-full">
+          <button
+            type="button"
+            onClick={onMachinePickerOpen}
+            disabled={!onMachinePickerOpen}
+            aria-haspopup="dialog"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-full border border-[#AEC9B4] bg-white px-6 py-2 text-sm font-semibold text-[#1F3527] shadow-[0_8px_18px_-12px_rgba(46,82,58,0.35)]",
+              !onMachinePickerOpen && "cursor-default opacity-80"
+            )}
+          >
+            {selectedMachine}
+            <ChevronDown className="h-4 w-4 text-[#2E523A]" />
+          </button>
+          
+          <button
+            type="button"
+            onClick={() => setIsLearnMoreOpen(true)}
+            className="group flex items-center gap-2 text-sm font-medium text-[#2E523A] hover:text-[#1F3527] transition-colors"
+          >
+            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E4F2E9] text-[#2E523A] group-hover:bg-[#D4E8DB] transition-colors">
+              <Info size={12} strokeWidth={2.5} />
+            </span>
+            Learn More
+          </button>
+        </div>
+        
         <p className="max-w-3xl text-center text-sm leading-relaxed text-[#405B4D]">{narration}</p>
       </footer>
     </div>
@@ -160,11 +199,26 @@ const StageToggle: React.FC<{ accent: string; display: string }> = ({ accent, di
   </div>
 );
 
-const SupportCardContent: React.FC<{ card: SupportCard; accent: string }> = ({ card, accent }) => {
+const SupportCardContent: React.FC<{
+  card: SupportCard;
+  accent: string;
+  onAdditivesHistoryOpen?: () => void;
+}> = ({ card, accent, onAdditivesHistoryOpen }) => {
   if (card.type === "additives") {
     return (
       <div className="rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[208px]">
-        <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
+          {onAdditivesHistoryOpen && (
+            <button
+              type="button"
+              onClick={onAdditivesHistoryOpen}
+              className="text-xs font-semibold text-[#2E523A] hover:text-[#1F3527]"
+            >
+              View history
+            </button>
+          )}
+        </div>
         <div className="mt-4 space-y-3">
           {card.items.map((item) => (
             <div key={item.name} className="flex items-center justify-between gap-3">

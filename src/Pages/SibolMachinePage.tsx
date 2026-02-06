@@ -6,7 +6,6 @@ import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
-import AdditivesTab from '../Components/SibolMachine/AdditivesTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
 import Analytics from '../Components/SibolMachine/Analytics';
 import ProcessPanelTab from '../Components/SibolMachine/ProcessPanelTab';
@@ -55,7 +54,6 @@ const SibolMachinePage: React.FC = () => {
   const tabsConfig = [
     { id: 'Machines', label: 'Machines' },
     { id: 'Process Panel', label: 'Process Panel' },
-    { id: 'Chemical Additives', label: 'Additives' },
     { id: 'Waste Container', label: 'Waste Container' },
     { id: 'Analytics', label: 'Analytics' }
   ];
@@ -178,14 +176,6 @@ const SibolMachinePage: React.FC = () => {
         return (
           <WasteContainerTab
             filterTypes={['container-status', 'waste-type']}
-          />
-        );
-      case 'Chemical Additives':
-        return (
-          <AdditivesTab
-            filterTypes={['additive-stage', 'machine']}
-            searchTerm=""
-            onSearchChange={() => {}}
           />
         );
       case 'Analytics':
