@@ -7,6 +7,7 @@ import CancelConfirmModal from "./CancelConfirmModal";
 import DeletedRequestsModal from "./DeletedRequestsModal";
 import { useAppSelector } from '../../store/hooks';
 import { Trash2 } from "lucide-react";
+import SnackBar from "../common/SnackBar";
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
@@ -28,6 +29,17 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
   const [deletedTickets, setDeletedTickets] = useState<MaintenanceTicket[]>([]);
   const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [deletedError, setDeletedError] = useState<string | null>(null);
+
+  // ✅ SnackBar state
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ visible: false, message: '', type: 'info' });
+
+  const showSnack = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setSnack({ visible: true, message, type });
+  };
 
   const columns = useMemo(
     () => [
@@ -110,7 +122,7 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
 
     const trimmed = (reason ?? "").trim();
     if (!trimmed) {
-      alert("Reason is required.");
+      showSnack("Reason is required.", "error");
       return;
     }
 
@@ -123,8 +135,12 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
       await maintenanceService.deleteTicket(requestId, actorId, trimmed);
       setSelectedTicketForDelete(null);
       await refetch();
+      showSnack("Request deleted successfully.", "success");
     } catch (e: any) {
-      alert(e?.response?.data?.message || e?.message || "Failed to delete request");
+      showSnack(
+        e?.response?.data?.message || e?.message || "Failed to delete request",
+        "error"
+      );
     } finally {
       setIsDeleting(false);
     }
@@ -197,6 +213,13 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         data={deletedTickets}
         loading={loadingDeleted}
         error={deletedError}
+      />
+
+      <SnackBar
+        visible={snack.visible}
+        message={snack.message}
+        type={snack.type}
+        onDismiss={() => setSnack((s) => ({ ...s, visible: false }))}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { fetchConversion, updateConversion, fetchConversionAudit } from "../../s
 import Table from "../common/Table";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
+import SnackBar from "../common/SnackBar";
 
 type AuditEntry = {
   id: number;
@@ -135,7 +136,7 @@ const PointSystem = () => {
 
   const handleSave = () => {
     if (!Number.isFinite(pointsPerKg) || pointsPerKg <= 0) {
-      alert("Points must be a positive number");
+      showSnack("Points must be a positive number.", "error");
       return;
     }
     setIsConfirmOpen(true);
@@ -143,7 +144,7 @@ const PointSystem = () => {
 
   const confirmSave = async () => {
     if (remark.trim().length < 3) {
-      alert("Please provide a brief remark (at least 3 characters).");
+      showSnack("Please provide a brief remark (at least 3 characters).", "error");
       return;
     }
     try {
@@ -155,9 +156,10 @@ const PointSystem = () => {
       setRemark("");
       const rows = await fetchConversionAudit(50);
       setAuditEntries(rows);
+      showSnack("Conversion rate updated successfully.", "success");
     } catch (err) {
       console.error("updateConversion", err);
-      alert("Failed to save conversion");
+      showSnack("Failed to save conversion.", "error");
     } finally {
       setSaveInProgress(false);
     }
@@ -243,6 +245,17 @@ const PointSystem = () => {
       render: (_: any, row: AuditEntry) => <div className="max-w-md break-words text-gray-700">{row.remark}</div>,
     },
   ];
+
+  // ✅ SnackBar state
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ visible: false, message: '', type: 'info' });
+
+  const showSnack = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setSnack({ visible: true, message, type });
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -539,6 +552,13 @@ const PointSystem = () => {
           </div>
         </div>
       </FormModal>
+
+      <SnackBar
+        visible={snack.visible}
+        message={snack.message}
+        type={snack.type}
+        onDismiss={() => setSnack((s) => ({ ...s, visible: false }))}
+      />
     </div>
   );
 };

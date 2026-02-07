@@ -11,6 +11,7 @@ import Analytics from '../Components/SibolMachine/Analytics';
 import ProcessPanelTab from '../Components/SibolMachine/ProcessPanelTab';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
 import "../tailwind.css";
+import SnackBar from '../Components/common/SnackBar';
 
 // Custom Hooks
 import { useMachines } from '../hooks/sibolMachine/useMachines';
@@ -22,6 +23,17 @@ const SibolMachinePage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [headerHeight, setHeaderHeight] = useState<number>(0);
+
+  // ✅ SnackBar state (replaces alert)
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ visible: false, message: '', type: 'info' });
+
+  const showSnack = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setSnack({ visible: true, message, type });
+  };
 
   // Redux Hooks
   const {
@@ -123,31 +135,33 @@ const SibolMachinePage: React.FC = () => {
 
       if (result.success) {
         closeModal('edit');
-        alert('Machine updated successfully!');
+        showSnack('Machine updated successfully!', 'success');
       } else {
-        alert(`Failed to update machine: ${result.error}`);
+        showSnack(`Failed to update machine: ${result.error}`, 'error');
       }
     } else {
       const result = await addMachine(parseInt(formData.area));
 
       if (result.success) {
         closeModal('add');
-        alert('Machine created successfully!');
+        showSnack('Machine created successfully!', 'success');
       } else {
-        alert(`Failed to create machine: ${result.error}`);
+        showSnack(`Failed to create machine: ${result.error}`, 'error');
       }
     }
   };
 
-  // Handle Container Submit
-  const handleContainerSubmit = async (payload: any) => {
+  // Handle Container Submit (still uses your AddWasteContainerForm)
+  const handleContainerSubmit = async (
+    payload: CreateContainerRequest & { latitude?: number; longitude?: number }
+  ) => {
     const result = await addContainer(payload);
     if (result.success) {
       closeModal('add');
-      alert('Waste container created successfully!');
+      showSnack('Waste container created successfully!', 'success');
       return true;
     } else {
-      alert(`Failed to create container: ${result.error}`);
+      showSnack(`Failed to create container: ${result.error}`, 'error');
       return false;
     }
   };
@@ -179,7 +193,7 @@ const SibolMachinePage: React.FC = () => {
           />
         );
       case 'Analytics':
-        return <Analytics />; // ✅ Analytics tab rendering
+        return <Analytics />;
       case 'Process Panel':
         return <ProcessPanelTab />;
       default:
@@ -190,7 +204,7 @@ const SibolMachinePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
+
       <div className="w-full bg-white border-b">
         <div style={{ height: `calc(${headerHeight}px)` }} aria-hidden />
         <div
@@ -289,6 +303,13 @@ const SibolMachinePage: React.FC = () => {
           />
         </FormModal>
       )}
+
+      <SnackBar
+        visible={snack.visible}
+        message={snack.message}
+        type={snack.type}
+        onDismiss={() => setSnack((s) => ({ ...s, visible: false }))}
+      />
     </div>
   );
 };

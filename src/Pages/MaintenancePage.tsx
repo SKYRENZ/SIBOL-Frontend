@@ -8,11 +8,23 @@ import { CompletedMaintenance } from "../Components/maintenance/CompletedMainten
 import MaintenanceForm from "../Components/maintenance/MaintenanceForm";
 import * as maintenanceService from "../services/maintenanceService";
 import type { MaintenanceTicket } from "../types/maintenance";
+import SnackBar from "../Components/common/SnackBar";
 
 const MaintenancePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("Request Maintenance");
   const [createdByAccountId, setCreatedByAccountId] = useState<number | null>(null);
-  
+
+  // ✅ SnackBar state
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'success' | 'error' | 'info';
+  }>({ visible: false, message: '', type: 'info' });
+
+  const showSnack = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    setSnack({ visible: true, message, type });
+  };
+
   // State for the modal, lifted up to this parent component
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'assign' | 'pending' | 'completed'>('create');
@@ -23,7 +35,6 @@ const MaintenancePage: React.FC = () => {
   const reduxUser = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
-    // derive account id from redux user; do NOT default to 1 (avoid accidental wrong actor)
     const accountId = reduxUser?.Account_id ?? reduxUser?.account_id ?? null;
     setCreatedByAccountId(accountId);
   }, [reduxUser]);
@@ -51,7 +62,6 @@ const MaintenancePage: React.FC = () => {
 
       if (formMode === 'create') {
         if (!createdByAccountId) throw new Error('Creator account not available. Please sign in / reload.');
-        // Create ticket WITHOUT attachments first
         const ticket = await maintenanceService.createTicket({
           title: formData.title,
           details: formData.issue,
@@ -60,7 +70,6 @@ const MaintenancePage: React.FC = () => {
           due_date: formData.dueDate || null,
         });
 
-        // Then upload attachments if any
         if (formData.files && formData.files.length > 0) {
           const newRequestId = ticket.Request_Id || ticket.request_id;
           if (newRequestId) {
@@ -71,7 +80,6 @@ const MaintenancePage: React.FC = () => {
             );
           }
         }
-
       } else if (formMode === 'assign') {
         if (!requestId) throw new Error('Request ID not found');
 
@@ -80,7 +88,6 @@ const MaintenancePage: React.FC = () => {
 
         const assignToId = formData.assignedTo ? parseInt(formData.assignedTo, 10) : null;
 
-        // ✅ send edited priority + due date
         await maintenanceService.acceptAndAssign(
           requestId,
           staffId,
@@ -88,14 +95,10 @@ const MaintenancePage: React.FC = () => {
           formData.priority || null,
           formData.dueDate || null
         );
-
       } else if (formMode === 'pending') {
-        // ✅ FIX: Check if requestId exists before uploading attachments
         if (formData.files && formData.files.length > 0) {
-          if (!requestId) {
-            throw new Error('Request ID not found');
-          }
-          
+          if (!requestId) throw new Error('Request ID not found');
+
           await Promise.all(
             formData.files.map((file: File) =>
               maintenanceService.uploadAttachment(requestId, createdByAccountId!, file)
@@ -103,16 +106,14 @@ const MaintenancePage: React.FC = () => {
           );
         }
       }
-      
+
       handleCloseForm();
-      // avoid full reload (loses app state). emit refresh event so hooks re-fetch.
       window.dispatchEvent(new Event('maintenance:refresh'));
-      // close modal / UI already handled by handleCloseForm
     } catch (err: any) {
       console.error("Form submission error:", err);
       const errorMessage = err.response?.data?.message || err.message || "Failed to submit form";
       setSubmitError(errorMessage);
-      alert(`Error: ${errorMessage}`);
+      showSnack(`Error: ${errorMessage}`, 'error');
     }
   };
 
@@ -126,7 +127,6 @@ const MaintenancePage: React.FC = () => {
   );
 
   const handleOpenCompletedForm = (_mode: 'completed', ticket: MaintenanceTicket) => {
-    // ✅ open as completed, not pending
     handleOpenForm('completed', ticket);
   };
 
@@ -135,19 +135,9 @@ const MaintenancePage: React.FC = () => {
 
     switch (activeTab) {
       case "Pending Maintenance":
-        return (
-          <PendingMaintenance
-            onOpenForm={handleOpenForm}
-          />
-        );
-
+        return <PendingMaintenance onOpenForm={handleOpenForm} />;
       case "Complete Maintenance":
-        return (
-          <CompletedMaintenance
-            onOpenForm={handleOpenCompletedForm}
-          />
-        );
-
+        return <CompletedMaintenance onOpenForm={handleOpenCompletedForm} />;
       default:
         return (
           <RequestMaintenance
@@ -182,7 +172,6 @@ const MaintenancePage: React.FC = () => {
         </div>
       </main>
 
-      {/* Render the modal at the top level of the page */}
       <MaintenanceForm
         isOpen={isFormOpen}
         onClose={handleCloseForm}
@@ -190,6 +179,13 @@ const MaintenancePage: React.FC = () => {
         mode={formMode}
         initialData={selectedTicket}
         submitError={submitError}
+      />
+
+      <SnackBar
+        visible={snack.visible}
+        message={snack.message}
+        type={snack.type}
+        onDismiss={() => setSnack((s) => ({ ...s, visible: false }))}
       />
     </div>
   );
