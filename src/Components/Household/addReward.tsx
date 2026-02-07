@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, Gift, ImageIcon } from "lucide-react";
+import { ImageIcon } from "lucide-react";
 import { useCreateReward } from "../../hooks/household/useRewardHooks";
 import { updateReward, uploadRewardImage } from "../../services/rewardService"; // ✅ ADD
 import FormModal from "../common/FormModal";
@@ -39,6 +39,12 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     }
   };
 
+  const handleNumberInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
+  // Prevent typing 'e', '+', '-', and '.' for integer-only fields
+  if (['e', 'E', '+', '-', '.'].includes(e.key)) {
+    e.preventDefault();
+  }
+};
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -69,6 +75,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     setImagePreview(null);
     setSelectedFile(null);
   };
+
 
   const validateForm = (): boolean => {
     const newErrors = {
@@ -151,6 +158,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
     setSelectedFile(null);
     onClose();
   };
+  
 
   if (!isOpen) return null;
 
@@ -211,20 +219,20 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Points Cost
               </label>
-              <input
-                type="number"
-                name="Points_cost"
-                value={formData.Points_cost}
-                onChange={handleChange}
-                placeholder="e.g. 200 Points"
-                min="1"
-                className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
-                  errors.Points_cost
-                    ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
-                    : "border-gray-300 focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
-                } outline-none`}
-                disabled={loading}
-              />
+                <input
+                  type="number"
+                  name="Points_cost"
+                  value={formData.Points_cost}
+                  onChange={handleChange}
+                  onKeyDown={handleNumberInput}
+                  min="1"
+                  className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
+                    errors.Points_cost
+                      ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
+                      : "border-gray-300 focus:border-gray-400 focus:ring-2 focus:ring-gray-200"
+                  } outline-none`}
+                  disabled={loading}
+                />
               {errors.Points_cost && (
                 <p className="text-red-500 text-xs mt-1.5">{errors.Points_cost}</p>
               )}
@@ -240,6 +248,7 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
                 name="Quantity"
                 value={formData.Quantity}
                 onChange={handleChange}
+                onKeyDown={handleNumberInput}
                 placeholder="e.g. 50"
                 min="1"
                 className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
