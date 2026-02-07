@@ -4,24 +4,30 @@ import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMainten
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 import CancelConfirmModal from "./CancelConfirmModal";
+import DeletedRequestsModal from "./DeletedRequestsModal";
 import { useAppSelector } from '../../store/hooks';
+import { Trash2 } from "lucide-react";
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
-  searchTerm: string;
-  selectedFilters: string[];
+  onOpenCreateForm: () => void;
 }
 
 export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
   onOpenForm,
-  searchTerm,
-  selectedFilters,
+  onOpenCreateForm,
 }) => {
   const { tickets, loading, error, refetch } = useRequestMaintenance();
   const { user: reduxUser } = useAppSelector(state => state.auth);
 
   const [selectedTicketForDelete, setSelectedTicketForDelete] = useState<MaintenanceTicket | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // ✅ NEW: deleted requests modal state
+  const [isDeletedModalOpen, setIsDeletedModalOpen] = useState(false);
+  const [deletedTickets, setDeletedTickets] = useState<MaintenanceTicket[]>([]);
+  const [loadingDeleted, setLoadingDeleted] = useState(false);
+  const [deletedError, setDeletedError] = useState<string | null>(null);
 
   const columns = useMemo(
     () => [
@@ -124,28 +130,46 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
     }
   };
 
-  const filteredTickets = useMemo(() => {
-    let temp = [...tickets];
-
-    if (searchTerm.trim()) {
-      const lower = searchTerm.toLowerCase();
-      temp = temp.filter((row) =>
-        Object.values(row).some((val) =>
-          String(val ?? "").toLowerCase().includes(lower)
-        )
-      );
+  const openDeletedModal = async () => {
+    setIsDeletedModalOpen(true);
+    setLoadingDeleted(true);
+    setDeletedError(null);
+    try {
+      const rows = await maintenanceService.listDeletedTickets();
+      setDeletedTickets(Array.isArray(rows) ? rows : []);
+    } catch (err: any) {
+      setDeletedTickets([]);
+      setDeletedError(err?.response?.data?.message || err?.message || "Failed to load deleted requests");
+    } finally {
+      setLoadingDeleted(false);
     }
+  };
 
-    if (selectedFilters.length > 0) {
-      temp = temp.filter((row) =>
-        selectedFilters.every((filter) =>
-          Object.values(row).some((val) => String(val) === filter)
-        )
-      );
-    }
+  const closeDeletedModal = () => {
+    setIsDeletedModalOpen(false);
+  };
 
-    return temp;
-  }, [tickets, searchTerm, selectedFilters]);
+  // Custom toolbar with buttons
+  const customToolbar = (
+    <div className="flex gap-3">
+      <button
+        onClick={onOpenCreateForm}
+        className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap"
+      >
+        New Maintenance Request
+      </button>
+      
+      <button
+        type="button"
+        onClick={openDeletedModal}
+        className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition"
+        title="View deleted requests"
+        aria-label="View deleted requests"
+      >
+        <Trash2 size={18} className="text-gray-700" />
+      </button>
+    </div>
+  );
 
   return (
     <div>
@@ -153,8 +177,10 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
 
       <Table
         columns={columns}
-        data={filteredTickets}
+        data={tickets}
         emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
+        filterTypes={["maintenancePriorities"]}
+        customToolbar={customToolbar}
       />
 
       <CancelConfirmModal
@@ -163,6 +189,14 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         onConfirm={handleConfirmDelete}
         isLoading={isDeleting}
         mode="delete"
+      />
+
+      <DeletedRequestsModal
+        isOpen={isDeletedModalOpen}
+        onClose={closeDeletedModal}
+        data={deletedTickets}
+        loading={loadingDeleted}
+        error={deletedError}
       />
     </div>
   );

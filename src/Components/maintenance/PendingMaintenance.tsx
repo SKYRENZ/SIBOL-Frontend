@@ -11,14 +11,10 @@ import { useAppSelector } from '../../store/hooks';
 
 interface PendingMaintenanceProps {
   onOpenForm: (mode: 'pending', ticket: MaintenanceTicket) => void;
-  searchTerm: string;
-  selectedFilters: string[];
 }
 
 export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
   onOpenForm,
-  searchTerm,
-  selectedFilters,
 }) => {
   const { tickets, loading, error, refetch } = usePendingMaintenance();
   const { user: reduxUser } = useAppSelector(state => state.auth);
@@ -81,29 +77,6 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
     [onOpenForm]
   );
 
-  const filteredTickets = useMemo(() => {
-    let temp = [...tickets];
-
-    if (searchTerm.trim()) {
-      const lower = searchTerm.toLowerCase();
-      temp = temp.filter((row) =>
-        Object.values(row).some((val) =>
-          String(val ?? "").toLowerCase().includes(lower)
-        )
-      );
-    }
-
-    if (selectedFilters.length > 0) {
-      temp = temp.filter((row) =>
-        selectedFilters.every((filter) =>
-          Object.values(row).some((val) => String(val) === filter)
-        )
-      );
-    }
-
-    return temp;
-  }, [tickets, searchTerm, selectedFilters]);
-
   const handleCompleteRequest = async () => {
     if (!selectedTicketForCompletion) return;
 
@@ -157,8 +130,9 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
 
       <Table
         columns={columns}
-        data={filteredTickets}
+        data={tickets}
         emptyMessage={loading ? "Loading..." : "No pending maintenance found"}
+        filterTypes={["maintenancePriorities", "maintenanceStatuses"]}
       />
 
       <CompletionConfirmModal

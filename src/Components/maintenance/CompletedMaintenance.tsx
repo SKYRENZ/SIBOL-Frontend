@@ -4,15 +4,11 @@ import { useCompletedMaintenance } from "../../hooks/maintenance/useCompletedMai
 import type { MaintenanceTicket } from "../../types/maintenance";
 
 interface CompletedMaintenanceProps {
-  onOpenForm: (mode: "completed", ticket: MaintenanceTicket) => void; // ✅ Changed from "pending" to "completed"
-  searchTerm: string;
-  selectedFilters: string[];
+  onOpenForm: (mode: "completed", ticket: MaintenanceTicket) => void;
 }
 
 export const CompletedMaintenance: React.FC<CompletedMaintenanceProps> = ({
   onOpenForm,
-  searchTerm,
-  selectedFilters,
 }) => {
   const { tickets, loading, error } = useCompletedMaintenance();
 
@@ -41,7 +37,7 @@ export const CompletedMaintenance: React.FC<CompletedMaintenanceProps> = ({
         label: "Actions",
         render: (_: any, row: MaintenanceTicket) => (
           <button
-            onClick={() => onOpenForm("completed", row)} // ✅ Changed from "pending" to "completed"
+            onClick={() => onOpenForm("completed", row)}
             className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36]"
           >
             View Details
@@ -52,36 +48,14 @@ export const CompletedMaintenance: React.FC<CompletedMaintenanceProps> = ({
     [onOpenForm]
   );
 
-  const filteredTickets = useMemo(() => {
-    let temp = [...tickets];
-
-    if (searchTerm.trim()) {
-      const lower = searchTerm.toLowerCase();
-      temp = temp.filter((row) =>
-        Object.values(row).some((val) =>
-          String(val ?? "").toLowerCase().includes(lower)
-        )
-      );
-    }
-
-    if (selectedFilters.length > 0) {
-      temp = temp.filter((row) =>
-        selectedFilters.every((filter) =>
-          Object.values(row).some((val) => String(val) === filter)
-        )
-      );
-    }
-
-    return temp;
-  }, [tickets, searchTerm, selectedFilters]);
-
   return (
     <div>
       {error && <p className="text-sm text-red-600">{error}</p>}
       <Table
         columns={columns}
-        data={filteredTickets}
+        data={tickets}
         emptyMessage={loading ? "Loading..." : "No completed maintenance found"}
+        filterTypes={["maintenancePriorities"]}
       />
     </div>
   );
