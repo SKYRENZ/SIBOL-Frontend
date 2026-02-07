@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { getMyProfile, updateMyProfile } from "../../services/profile/profileService";
 import { getUser } from "../../services/authService";
-import PasswordModal from "./PasswordModal";
+import ChangeUsernameModal from "../verification/ChangeUsernameModal";
+import ChangePasswordModal from "../verification/ChangePasswordModal"; // ✅ use this instead of PasswordModal
 import { Pencil } from "lucide-react";
 
 // =============================
@@ -66,7 +67,7 @@ function normalizeProfile(apiProfile: any): UiProfile {
     position: roleLabel(Number.isFinite(rolesNum) ? rolesNum : null),
     address: {
       fullAddress: barangayName,
-     areaAssigned: apiProfile?.Area_Name ?? apiProfile?.areaName ?? "-",
+      areaAssigned: apiProfile?.Area_Name ?? apiProfile?.areaName ?? "-",
       barangay: barangayName,
     },
   };
@@ -83,6 +84,7 @@ const ProfileInformation: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showUsernameModal, setShowUsernameModal] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -186,10 +188,19 @@ const ProfileInformation: React.FC = () => {
         </h2>
         <p className="text-sm text-gray-600">{profile.role}</p>
 
+        {/* ✅ NEW: Change Username button (above Change Password) */}
+        <button
+          onClick={() => setShowUsernameModal(true)}
+          disabled={isEditing || saving}
+          className="mt-6 w-full rounded-xl bg-[#6b8f71] py-2 text-sm text-white disabled:opacity-50"
+        >
+          Change Username
+        </button>
+
         <button
           onClick={() => setShowPasswordModal(true)}
           disabled={isEditing || saving}
-          className="mt-6 w-full rounded-xl bg-[#6b8f71] py-2 text-sm text-white disabled:opacity-50"
+          className="mt-3 w-full rounded-xl bg-[#6b8f71] py-2 text-sm text-white disabled:opacity-50"
         >
           Change Password
         </button>
@@ -274,7 +285,23 @@ const ProfileInformation: React.FC = () => {
         </div>
       )}
 
-      {showPasswordModal && <PasswordModal onClose={() => setShowPasswordModal(false)} />}
+      <ChangePasswordModal
+        open={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+        onSuccess={() => {
+          setToast("Password updated");
+          setTimeout(() => setToast(null), 2500);
+        }}
+      />
+
+      <ChangeUsernameModal
+        open={showUsernameModal}
+        onClose={() => setShowUsernameModal(false)}
+        onSuccess={() => {
+          setToast("Username updated");
+          setTimeout(() => setToast(null), 2500);
+        }}
+      />
     </div>
   );
 };
