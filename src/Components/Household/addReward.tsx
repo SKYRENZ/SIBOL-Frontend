@@ -14,7 +14,22 @@ interface AddRewardModalProps {
 const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave }) => {
   const { createReward, loading, error } = useCreateReward();
 
+  // ✅ snackbar state FIRST (fix ordering)
+  const [snackKey, setSnackKey] = useState<number>(0);
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: "error" | "success" | "info";
+  }>({ visible: false, message: "", type: "info" });
+
+  const showSnack = (message: string, type: "error" | "success" | "info" = "info") => {
+    setSnackKey((k) => k + 1);
+    setSnack({ visible: true, message, type });
+  };
+  const dismissSnack = () => setSnack((prev) => ({ ...prev, visible: false }));
+
   const [formData, setFormData] = useState({
+    Account_id: "",
     Item: "",
     Description: "",
     Points_cost: "",
@@ -30,18 +45,51 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+  // ✅ digit-only helpers
+  const digitsOnly = (v: string, maxLen: number) => v.replace(/\D/g, "").slice(0, maxLen);
+
+  const blockNonDigitKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowed = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Escape",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+    ];
+    if (allowed.includes(e.key)) return;
+
+    // allow copy/paste/select all
+    if (e.ctrlKey || e.metaKey) return;
+
+    // allow digits only
+    if (!/^\d$/.test(e.key)) e.preventDefault();
   };
 
-  const handleNumberInput = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (['e', 'E', '+', '-', '.'].includes(e.key)) {
-      e.preventDefault();
-    }
+  const handlePointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = digitsOnly(e.target.value, 6); // ✅ max 6 digits
+    setFormData((prev) => ({ ...prev, Points_cost: cleaned }));
+    if (errors.Points_cost) setErrors((prev) => ({ ...prev, Points_cost: "" }));
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = digitsOnly(e.target.value, 4); // ✅ max 4 digits
+    setFormData((prev) => ({ ...prev, Quantity: cleaned }));
+    if (errors.Quantity) setErrors((prev) => ({ ...prev, Quantity: "" }));
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+
+    // route numeric fields to sanitizers
+    if (name === "Points_cost") return handlePointsChange(e as React.ChangeEvent<HTMLInputElement>);
+    if (name === "Quantity") return handleQuantityChange(e as React.ChangeEvent<HTMLInputElement>);
+
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    if ((errors as any)[name]) setErrors((prev) => ({ ...prev, [name]: "" as any }));
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,7 +169,8 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
         });
       }
 
-      setFormData({ Item: "", Description: "", Points_cost: "", Quantity: "" });
+      // ✅ include Account_id in reset
+      setFormData({ Account_id: "", Item: "", Description: "", Points_cost: "", Quantity: "" });
       setImagePreview(null);
       setSelectedFile(null);
 
@@ -134,25 +183,13 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
   };
 
   const handleClose = () => {
-    setFormData({ Item: "", Description: "", Points_cost: "", Quantity: "" });
+    // ✅ include Account_id in reset
+    setFormData({ Account_id: "", Item: "", Description: "", Points_cost: "", Quantity: "" });
     setErrors({ Item: "", Points_cost: "", Quantity: "" });
     setImagePreview(null);
     setSelectedFile(null);
     onClose();
   };
-
-  const showSnack = (message: string, type: "error" | "success" | "info" = "info") => {
-    setSnackKey((k) => k + 1);
-    setSnack({ visible: true, message, type });
-  };
-  const dismissSnack = () => setSnack((s) => ({ ...s, visible: false }));
-
-  const [snackKey, setSnackKey] = useState(0);
-  const [snack, setSnack] = useState<{
-    visible: boolean;
-    message: string;
-    type: "error" | "success" | "info";
-  }>({ visible: false, message: "", type: "info" });
 
   if (!isOpen) return null;
 
@@ -201,12 +238,15 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
                   Points Cost
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   name="Points_cost"
                   value={formData.Points_cost}
                   onChange={handleChange}
-                  onKeyDown={handleNumberInput}
-                  min="1"
+                  onKeyDown={blockNonDigitKey}
+                  maxLength={6} // ✅ 6 digits max
+                  placeholder="e.g. 200"
                   className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
                     errors.Points_cost
                       ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
@@ -216,18 +256,21 @@ const AddRewardModal: React.FC<AddRewardModalProps> = ({ isOpen, onClose, onSave
                 />
                 {errors.Points_cost && <p className="text-red-500 text-xs mt-1.5">{errors.Points_cost}</p>}
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Quantity
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   name="Quantity"
                   value={formData.Quantity}
                   onChange={handleChange}
-                  onKeyDown={handleNumberInput}
+                  onKeyDown={blockNonDigitKey}
+                  maxLength={4} // ✅ 4 digits max
                   placeholder="e.g. 50"
-                  min="1"
                   className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
                     errors.Quantity
                       ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"

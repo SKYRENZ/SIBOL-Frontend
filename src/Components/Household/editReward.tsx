@@ -44,6 +44,9 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
     Quantity: "",
   });
 
+  // ✅ add this helper (was missing)
+  const digitsOnly = (v: string, maxLen: number) => v.replace(/\D/g, "").slice(0, maxLen);
+
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
@@ -64,10 +67,41 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
+
+    if (name === "Points_cost") return handlePointsChange(e as React.ChangeEvent<HTMLInputElement>);
+    if (name === "Quantity") return handleQuantityChange(e as React.ChangeEvent<HTMLInputElement>);
+
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name as keyof typeof errors]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    if (errors[name as keyof typeof errors]) setErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const handlePointsChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = digitsOnly(e.target.value, 6); // ✅ max 6 digits
+    setFormData((prev) => ({ ...prev, Points_cost: cleaned }));
+    if (errors.Points_cost) setErrors((prev) => ({ ...prev, Points_cost: "" }));
+  };
+
+  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const cleaned = digitsOnly(e.target.value, 4); // ✅ max 4 digits
+    setFormData((prev) => ({ ...prev, Quantity: cleaned }));
+    if (errors.Quantity) setErrors((prev) => ({ ...prev, Quantity: "" }));
+  };
+
+  const blockNonDigitKey = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const allowed = [
+      "Backspace",
+      "Delete",
+      "Tab",
+      "Escape",
+      "Enter",
+      "ArrowLeft",
+      "ArrowRight",
+      "Home",
+      "End",
+    ];
+    if (allowed.includes(e.key)) return;
+    if (e.ctrlKey || e.metaKey) return;
+    if (!/^\d$/.test(e.key)) e.preventDefault();
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -220,12 +254,15 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
                   Points Cost
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   name="Points_cost"
                   value={formData.Points_cost}
                   onChange={handleChange}
-                  placeholder="e.g. 200 Points"
-                  min="1"
+                  onKeyDown={blockNonDigitKey}
+                  maxLength={6} // ✅ 6 digits max
+                  placeholder="e.g. 200"
                   className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
                     errors.Points_cost
                       ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
@@ -240,12 +277,15 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
                   Quantity
                 </label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   name="Quantity"
                   value={formData.Quantity}
                   onChange={handleChange}
+                  onKeyDown={blockNonDigitKey}
+                  maxLength={4} // ✅ 4 digits max
                   placeholder="e.g. 50"
-                  min="1"
                   className={`w-full px-4 py-3 border rounded-lg text-sm transition-colors ${
                     errors.Quantity
                       ? "border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200"
@@ -339,3 +379,4 @@ const EditRewardModal: React.FC<EditRewardModalProps> = ({ isOpen, onClose, onSa
 };
 
 export default EditRewardModal;
+
