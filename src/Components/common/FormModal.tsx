@@ -6,15 +6,16 @@ interface FormModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
-  width?: string; // optional override for max width
+  width?: string;
   children?: React.ReactNode;
   showCloseButton?: boolean;
-  // removed hasCancelButton — Cancel button handled by consumer if needed
 
-  // ✅ NEW (minimal): allow switching header color
   headerTone?: 'default' | 'danger';
+
+  // ✅ NEW: allow disabling backdrop click close (needed for first-login modals)
+  closeOnBackdrop?: boolean;
 }
- 
+
 const FormModal: React.FC<FormModalProps> = ({
   isOpen,
   onClose,
@@ -23,11 +24,9 @@ const FormModal: React.FC<FormModalProps> = ({
   children,
   showCloseButton = true,
   headerTone = 'default',
+  closeOnBackdrop = true, // ✅ default
 }) => {
   if (!isOpen) return null;
-
-  // always use showCloseButton (removed Cancel-button toggle)
-  const shouldShowCloseButton = showCloseButton;
 
   const headerBgClass =
     headerTone === 'danger'
@@ -39,7 +38,7 @@ const FormModal: React.FC<FormModalProps> = ({
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
+        onClick={closeOnBackdrop ? onClose : undefined} // ✅ changed
         aria-hidden="true"
       />
 
@@ -47,13 +46,10 @@ const FormModal: React.FC<FormModalProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        className={`
-          relative rounded-2xl shadow-2xl bg-white overflow-hidden
-          w-full
-        `}
+        className="relative rounded-2xl shadow-2xl bg-white overflow-hidden w-full"
         style={{
           width: width || undefined,
-          maxHeight: 'calc(100% - 40px)', // 20px margin top/bottom
+          maxHeight: 'calc(100% - 40px)',
         }}
       >
         {/* Header */}
@@ -62,7 +58,7 @@ const FormModal: React.FC<FormModalProps> = ({
             <h3 className="font-semibold text-lg">{title}</h3>
           </div>
 
-          {shouldShowCloseButton && (
+          {showCloseButton && (
             <button
               onClick={onClose}
               aria-label="Close"
@@ -75,10 +71,7 @@ const FormModal: React.FC<FormModalProps> = ({
         </div>
 
         {/* Content */}
-        <div
-          className="p-6 overflow-y-auto"
-          style={{ maxHeight: 'calc(100% - 64px)' }} // header height = 64px
-        >
+        <div className="p-6 overflow-y-auto" style={{ maxHeight: 'calc(100% - 64px)' }}>
           {children}
         </div>
       </div>
