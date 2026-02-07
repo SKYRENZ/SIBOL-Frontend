@@ -51,6 +51,8 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         return "text-green-700 border-green-600 bg-green-50/60";
       case "REJECTED":
         return "text-red-700 border-red-600 bg-red-50/60";
+      case "CONTAINER_ADDED":
+        return "text-emerald-700 border-emerald-600 bg-emerald-50/60";
       case "DELETED":
         return "text-gray-700 border-gray-500 bg-gray-50/60";
       default:
