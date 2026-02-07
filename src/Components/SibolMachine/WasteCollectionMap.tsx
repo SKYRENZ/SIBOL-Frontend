@@ -108,6 +108,11 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
   area,
   interactive = true,
 }) => {
+  const lat = Number(latitude);
+  const lon = Number(longitude);
+  const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
+  const fallbackCenter: [number, number] = [14.656, 120.982];
+  const mapCenter: [number, number] = hasCoords ? [lat, lon] : fallbackCenter;
   const [boundary176e, setBoundary176e] = useState<BoundaryGeoJSON | null>(null);
   const [boundaries, setBoundaries] = useState<Record<string, BoundaryGeoJSON>>({});
   const [packageFeatures, setPackageFeatures] = useState<BoundaryGeoJSON[]>([]);
@@ -181,7 +186,7 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
 
   return (
     <MapContainer
-      center={[latitude, longitude]}
+      center={mapCenter}
       zoom={16}
       style={{ height: '300px', width: '100%', borderRadius: '12px' }}
       className="z-0"
@@ -252,13 +257,15 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
           interactive
         />
       ) : null}
-      <Marker position={[latitude, longitude]} icon={wasteIcon}>
-        <Popup>
-          <div className="text-sm">
-            <p className="font-semibold">{area}</p>
-          </div>
-        </Popup>
-      </Marker>
+      {hasCoords ? (
+        <Marker position={[lat, lon]} icon={wasteIcon}>
+          <Popup>
+            <div className="text-sm">
+              <p className="font-semibold">{area}</p>
+            </div>
+          </Popup>
+        </Marker>
+      ) : null}
     </MapContainer>
   );
 };

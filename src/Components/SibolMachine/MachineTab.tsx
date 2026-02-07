@@ -55,7 +55,7 @@ const MachineTab: React.FC<MachineTabProps> = ({
       }
     },
     {
-      key: 'machine_id',
+      key: 'actions',
       label: 'Actions',
       render: (_: any, row: Machine) => (
         <button

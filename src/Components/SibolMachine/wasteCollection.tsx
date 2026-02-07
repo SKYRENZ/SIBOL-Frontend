@@ -112,6 +112,8 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
   const [boundaries, setBoundaries] = useState<Record<string, BoundaryGeoJSON>>({});
   const [boundaryLoading, setBoundaryLoading] = useState<boolean>(true);
   const [packageFeatures, setPackageFeatures] = useState<BoundaryGeoJSON[]>([]);
+  const [showContainersModal, setShowContainersModal] = useState(false);
+  const [pendingSelectId, setPendingSelectId] = useState<number | null>(null);
 
   // ✅ 1. Redux State & Actions (via custom hook)
   const {
@@ -124,6 +126,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
     selectContainer,
     addContainer,
     updateSearch,
+    refresh,
   } = useWasteContainer();
 
   // ✅ 2. UI State (local, reusable)
@@ -216,11 +219,51 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
     setPackageFeatures(organicFeatures);
   }, [boundary176e]);
 
+  useEffect(() => {
+    if (!pendingSelectId || containers.length === 0) return;
+    const created = containers.find((c) => c.container_id === pendingSelectId);
+    if (!created) return;
+
+    selectContainer(created);
+    setPendingSelectId(null);
+
+    const lat = Number(created.latitude);
+    const lon = Number(created.longitude);
+    const map = mapRef.current as any;
+    if (Number.isFinite(lat) && Number.isFinite(lon) && map) {
+      if (typeof map.flyTo === 'function') {
+        map.flyTo([lat, lon], 17, { duration: 0.8 });
+      } else if (typeof map.setView === 'function') {
+        map.setView([lat, lon], 17);
+      }
+    }
+  }, [pendingSelectId, containers, selectContainer]);
+
+  const handleGoToContainer = (container: WasteContainer) => {
+    selectContainer(container);
+    setShowContainersModal(false);
+
+    const lat = Number(container.latitude);
+    const lon = Number(container.longitude);
+    const map = mapRef.current as any;
+    if (Number.isFinite(lat) && Number.isFinite(lon) && map) {
+      if (typeof map.flyTo === 'function') {
+        map.flyTo([lat, lon], 17, { duration: 0.8 });
+      } else if (typeof map.setView === 'function') {
+        map.setView([lat, lon], 17);
+      }
+    }
+  };
+
   // Handle container creation
   const handleAddContainer = async (payload: any) => {
     const result = await addContainer(payload);
     if (result.success) {
       closeModal('add');
+      if (result.data?.container_id) {
+        setPendingSelectId(result.data.container_id);
+      }
+      refresh();
       alert('Container created successfully!');
       return true;
     } else {
@@ -419,12 +462,19 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           </div>
 
           <div className="p-4 bg-white flex-1 overflow-y-auto space-y-3">
-            <div className="flex items-center gap-3 p-2 rounded-lg">
+            <button
+              onClick={() => setShowContainersModal(true)}
+              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+              aria-label="View available containers"
+            >
               <div className="w-8 h-8 bg-[#e7f4ec] rounded-lg flex items-center justify-center shadow-sm">
                 <Trash2 size={18} className="text-[#235034]" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Active Container</span>
-            </div>
+              <div className="flex-1">
+                <span className="text-sm font-medium text-gray-700">Active Container</span>
+                <p className="text-xs text-gray-500">Tap to view all containers</p>
+              </div>
+            </button>
           </div>
 
           <div className="px-4 py-3 border-t border-gray-100 bg-white rounded-b-xl">
@@ -546,16 +596,18 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
             />
           ) : null}
 
-          {filteredData.map((item) => (
-            <Marker
-              key={item.container_id}
-              position={[item.latitude, item.longitude]}
-              icon={wasteIcon}
-              eventHandlers={{
-                click: () => selectContainer(item),
-              }}
-            />
-          ))}
+          {filteredData
+            .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
+            .map((item) => (
+              <Marker
+                key={item.container_id}
+                position={[Number(item.latitude), Number(item.longitude)]}
+                icon={wasteIcon}
+                eventHandlers={{
+                  click: () => selectContainer(item),
+                }}
+              />
+            ))}
         </MapContainer>
 
         {boundaryLoading && (
@@ -596,6 +648,55 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           onCancel={() => closeModal('add')}
           onSubmit={handleAddContainer}
         />
+      </FormModal>
+
+      {/* Containers List Modal */}
+      <FormModal
+        isOpen={showContainersModal}
+        onClose={() => setShowContainersModal(false)}
+        title="Available Containers"
+        width="640px"
+      >
+        <div className="space-y-3">
+          {containers.length === 0 ? (
+            <p className="text-sm text-gray-500">No containers available.</p>
+          ) : (
+            <div className="space-y-3">
+              {containers.map((container) => (
+                <div
+                  key={container.container_id}
+                  className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[#e7f4ec] flex items-center justify-center">
+                    <Trash2 size={18} className="text-[#235034]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">
+                      {container.container_name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {container.area_name}
+                    </p>
+                    {container.full_address && (
+                      <p className="text-xs text-gray-400 truncate">{container.full_address}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">
+                      {container.status}
+                    </span>
+                    <button
+                      onClick={() => handleGoToContainer(container)}
+                      className="text-xs font-semibold text-white bg-[#2E523A] hover:bg-[#24402b] px-3 py-1.5 rounded-md transition-colors"
+                    >
+                      View on map
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </FormModal>
 
       {/* Container Details Modal */}
