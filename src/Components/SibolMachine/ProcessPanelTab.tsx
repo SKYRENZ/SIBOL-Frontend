@@ -7,9 +7,10 @@ import { stage5Data } from "./Popups/Stage5Popup";
 import { cn } from "../../lib/utils";
 import { useMachines } from "../../hooks/sibolMachine/useMachines";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
-import { fetchAdditives } from "../../store/slices/additivesSlice";
+import { fetchAdditives, type AdditiveRow } from "../../store/slices/additivesSlice";
 import FormModal from "../common/FormModal";
 import type { Machine } from "../../services/machineService";
+import { getWasteInputsByMachineId, type WasteInputRow } from "../../services/wasteInputService";
 
 const formatDate = (date?: string) => {
   if (!date) return "N/A";
@@ -19,6 +20,19 @@ const formatDate = (date?: string) => {
     month: "long",
     day: "numeric",
     year: "numeric",
+  });
+};
+
+const formatDateTime = (date?: string | null) => {
+  if (!date) return "N/A";
+  const parsed = new Date(date);
+  if (Number.isNaN(parsed.getTime())) return String(date);
+  return parsed.toLocaleString("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
   });
 };
 
@@ -32,9 +46,77 @@ const getStageNumber = (stage?: string) => {
   return match ? Number(match[0]) : null;
 };
 
+const parseInputDate = (row: WasteInputRow) => {
+  const raw = row.Input_datetime ?? row.input_datetime ?? row.Created_at ?? row.created_at;
+  if (!raw) return null;
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const parseAdditiveDate = (row: AdditiveRow) => {
+  if (!row.date && !row.time) return null;
+  const parsed = new Date(`${row.date ?? ""}T${row.time ?? "00:00:00"}`);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const buildWasteInputCard = (row: WasteInputRow | null, selectedMachineLabel: string) => {
+  if (!row) {
+    return {
+      title: "Waste Input",
+      item: undefined,
+    };
+  }
+
+  const d = parseInputDate(row);
+  const dateLabel = d ? formatDate(d.toISOString()) : "Unknown date";
+  const weight = Number(row.Weight ?? row.weight ?? 0);
+  const operator = row.Username ?? row.username ?? (row.Account_id ?? row.account_id ? `Operator ${row.Account_id ?? row.account_id}` : undefined);
+
+  return {
+    title: "Waste Input",
+    item: {
+      date: `${dateLabel}${selectedMachineLabel ? ` • ${selectedMachineLabel}` : ""}`,
+      weight: `${formatValue(weight)} kg`,
+      operator,
+    },
+  };
+};
+
 const isMachineActive = (statusName?: string | null) => {
   const normalized = (statusName ?? "").toLowerCase().trim();
   return normalized === "active" || normalized === "available";
+};
+
+const getMachineActivity = (machine?: Machine | null) => {
+  if (!machine) return null;
+  const by =
+    machine.Updated_by_name ??
+    machine.updated_by_name ??
+    machine.Updated_by_username ??
+    machine.updated_by_username ??
+    machine.Updated_by ??
+    machine.updated_by ??
+    null;
+  const date =
+    machine.Updated_at ??
+    machine.updated_at ??
+    machine.Last_modified_at ??
+    machine.last_modified_at ??
+    machine.Modified_at ??
+    machine.modified_at ??
+    null;
+  const action =
+    machine.Last_action ??
+    machine.last_action ??
+    machine.Action ??
+    machine.action ??
+    null;
+
+  return {
+    by: by ? String(by) : null,
+    date: date ? String(date) : null,
+    action: action ? String(action) : null,
+  };
 };
 
 const ProcessPanelTab: React.FC = () => {
@@ -49,6 +131,11 @@ const ProcessPanelTab: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
   const [historyPage, setHistoryPage] = useState(1);
   const historyPageSize = 5;
+  const [wasteInputs, setWasteInputs] = useState<WasteInputRow[]>([]);
+  const [wasteLoading, setWasteLoading] = useState(false);
+  const [isWasteHistoryOpen, setIsWasteHistoryOpen] = useState(false);
+  const [wastePage, setWastePage] = useState(1);
+  const wastePageSize = 6;
 
   useEffect(() => {
     if (!selectedMachine && machines.length) {
@@ -64,6 +151,33 @@ const ProcessPanelTab: React.FC = () => {
     }, 5000);
     return () => clearInterval(id);
   }, [dispatch, selectedMachine?.machine_id]);
+
+  useEffect(() => {
+    let mounted = true;
+    const load = async () => {
+      if (!selectedMachine?.machine_id) {
+        setWasteInputs([]);
+        return;
+      }
+      setWasteLoading(true);
+      try {
+        const rows = await getWasteInputsByMachineId(selectedMachine.machine_id);
+        if (!mounted) return;
+        setWasteInputs(rows || []);
+        setWastePage(1);
+      } catch {
+        if (!mounted) return;
+        setWasteInputs([]);
+      } finally {
+        if (!mounted) return;
+        setWasteLoading(false);
+      }
+    };
+    load();
+    return () => {
+      mounted = false;
+    };
+  }, [selectedMachine?.machine_id]);
 
   const stage3Additives = useMemo(
     () =>
@@ -84,6 +198,16 @@ const ProcessPanelTab: React.FC = () => {
   const latestStage3Additives = useMemo(() => {
     return [...stage3Additives].sort((a, b) => getDateValue(b) - getDateValue(a));
   }, [stage3Additives]);
+
+  const latestAdditive = useMemo(() => {
+    if (!additives.length) return null;
+    const sorted = [...additives].sort((a, b) => {
+      const ad = parseAdditiveDate(a);
+      const bd = parseAdditiveDate(b);
+      return (bd?.getTime() ?? 0) - (ad?.getTime() ?? 0);
+    });
+    return sorted[0] ?? null;
+  }, [additives]);
 
   const stage3SupportCard = useMemo(() => {
     const items = latestStage3Additives.slice(0, 3).map((row) => ({
@@ -111,6 +235,44 @@ const ProcessPanelTab: React.FC = () => {
     };
   }, [latestStage3Additives, selectedMachine]);
 
+  const recentWasteInput = useMemo(() => {
+    if (!wasteInputs.length) return null;
+    const sorted = [...wasteInputs].sort((a, b) => {
+      const ad = parseInputDate(a);
+      const bd = parseInputDate(b);
+      return (bd?.getTime() ?? 0) - (ad?.getTime() ?? 0);
+    });
+    return sorted[0];
+  }, [wasteInputs]);
+
+  const latestActivity = useMemo(() => {
+    const additiveDate = latestAdditive ? parseAdditiveDate(latestAdditive) : null;
+    const wasteDate = recentWasteInput ? parseInputDate(recentWasteInput) : null;
+
+    if (additiveDate && (!wasteDate || additiveDate >= wasteDate)) {
+      return {
+        by: latestAdditive?.person_in_charge ?? "",
+        date: additiveDate,
+        action: "Updated additives",
+      };
+    }
+
+    if (wasteDate) {
+      return {
+        by:
+          recentWasteInput?.Username ??
+          recentWasteInput?.username ??
+          (recentWasteInput?.Account_id ?? recentWasteInput?.account_id
+            ? `Operator ${recentWasteInput?.Account_id ?? recentWasteInput?.account_id}`
+            : ""),
+        date: wasteDate,
+        action: "Logged waste input",
+      };
+    }
+
+    return null;
+  }, [latestAdditive, recentWasteInput]);
+
   const sortedStage3Additives = useMemo(() => {
     const rows = [...stage3Additives];
 
@@ -137,15 +299,72 @@ const ProcessPanelTab: React.FC = () => {
     return sortedStage3Additives.slice(start, start + historyPageSize);
   }, [sortedStage3Additives, historyPage]);
 
+  const totalWastePages = Math.max(1, Math.ceil(wasteInputs.length / wastePageSize));
+  const pagedWasteInputs = useMemo(() => {
+    const start = (wastePage - 1) * wastePageSize;
+    return wasteInputs.slice(start, start + wastePageSize);
+  }, [wasteInputs, wastePage]);
+
   const selectedMachineLabel = selectedMachine?.Name ?? "Select machine";
+  const activity = getMachineActivity(selectedMachine);
+  const activityBy = latestActivity?.by || activity?.by || stage3Data.operatorName;
+  const activityDate = latestActivity?.date
+    ? formatDateTime(latestActivity.date.toISOString())
+    : activity?.date
+      ? formatDateTime(activity.date)
+      : stage3Data.date;
+  const activityAction = latestActivity?.action || activity?.action || "Updated machine";
+  const machineActive = selectedMachine ? isMachineActive(selectedMachine.status_name) : undefined;
+  const machineStatusLabel = machineActive === undefined ? undefined : machineActive ? "Active" : "Inactive";
 
   const stages = useMemo(
     () => [
-      { ...stage3Data, supportCard: stage3SupportCard, selectedMachine: selectedMachineLabel },
-      { ...stage4Data, selectedMachine: selectedMachineLabel },
-      { ...stage5Data, selectedMachine: selectedMachineLabel },
+      {
+        ...stage3Data,
+        supportCard: stage3SupportCard,
+        selectedMachine: selectedMachineLabel,
+        activity: {
+          by: activityBy,
+          date: activityDate,
+          action: activityAction,
+        },
+        isActive: machineActive,
+        statusLabel: machineStatusLabel,
+        wasteInputCard: buildWasteInputCard(recentWasteInput, selectedMachineLabel),
+      },
+      {
+        ...stage4Data,
+        selectedMachine: selectedMachineLabel,
+        activity: {
+          by: activityBy,
+          date: activityDate,
+          action: activityAction,
+        },
+        isActive: machineActive,
+        statusLabel: machineStatusLabel,
+      },
+      {
+        ...stage5Data,
+        selectedMachine: selectedMachineLabel,
+        activity: {
+          by: activityBy,
+          date: activityDate,
+          action: activityAction,
+        },
+        isActive: machineActive,
+        statusLabel: machineStatusLabel,
+      },
     ],
-    [stage3SupportCard, selectedMachineLabel]
+    [
+      stage3SupportCard,
+      selectedMachineLabel,
+      recentWasteInput,
+      activityBy,
+      activityDate,
+      activityAction,
+      machineActive,
+      machineStatusLabel,
+    ]
   );
 
   const goPrev = () => {
@@ -232,6 +451,9 @@ const ProcessPanelTab: React.FC = () => {
                     onMachinePickerOpen={() => setIsMachinePickerOpen(true)}
                     onAdditivesHistoryOpen={
                       stage.id === "stage-3" ? () => setIsAdditivesHistoryOpen(true) : undefined
+                    }
+                    onWasteInputHistoryOpen={
+                      stage.id === "stage-3" ? () => setIsWasteHistoryOpen(true) : undefined
                     }
                     className={cn(
                       "w-[1100px] max-w-[1100px] min-h-[650px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible",
@@ -460,6 +682,67 @@ const ProcessPanelTab: React.FC = () => {
               type="button"
               onClick={() => setHistoryPage((p) => Math.min(totalPages, p + 1))}
               disabled={historyPage === totalPages}
+              className="rounded-full border px-3 py-1 disabled:opacity-50"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      </FormModal>
+
+      <FormModal
+        isOpen={isWasteHistoryOpen}
+        onClose={() => setIsWasteHistoryOpen(false)}
+        title={`Waste Input History${selectedMachine ? ` • ${selectedMachine.Name}` : ""}`}
+        width="920px"
+      >
+        {wasteLoading && (
+          <div className="py-4 text-center text-xs text-[#6B8976]">Loading waste inputs...</div>
+        )}
+        {!wasteLoading && pagedWasteInputs.length === 0 && (
+          <div className="py-12 text-center text-sm text-[#6B8976]">No waste inputs found.</div>
+        )}
+        {!wasteLoading && pagedWasteInputs.length > 0 && (
+          <table className="w-full text-left text-xs text-[#3F5D49]">
+            <thead className="text-[11px] uppercase tracking-wider text-[#6B8976]">
+              <tr className="border-b border-[#E4EFE7]">
+                <th className="py-2">Date</th>
+                <th className="py-2">Weight (kg)</th>
+                <th className="py-2">Operator</th>
+              </tr>
+            </thead>
+            <tbody>
+              {pagedWasteInputs.map((row) => {
+                const d = parseInputDate(row);
+                return (
+                  <tr key={row.Input_id ?? row.input_id ?? `${row.Machine_id}-${d?.toISOString()}`} className="border-b border-[#EEF4F0]">
+                    <td className="py-2 font-semibold text-[#1F3527]">{d ? formatDate(d.toISOString()) : "—"}</td>
+                    <td className="py-2">{formatValue(Number(row.Weight ?? row.weight ?? 0))}</td>
+                    <td className="py-2">{row.Username ?? row.username ?? row.Account_id ?? row.account_id ?? "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+
+        <div className="mt-4 flex items-center justify-between text-xs text-[#4B6757]">
+          <span>
+            Page {wastePage} of {totalWastePages}
+          </span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setWastePage((p) => Math.max(1, p - 1))}
+              disabled={wastePage === 1}
+              className="rounded-full border px-3 py-1 disabled:opacity-50"
+            >
+              Prev
+            </button>
+            <button
+              type="button"
+              onClick={() => setWastePage((p) => Math.min(totalWastePages, p + 1))}
+              disabled={wastePage === totalWastePages}
               className="rounded-full border px-3 py-1 disabled:opacity-50"
             >
               Next

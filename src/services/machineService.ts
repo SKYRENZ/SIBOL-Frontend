@@ -7,6 +7,22 @@ export interface Machine {
   Area_Name: string;
   status_id: number | null;
   status_name: string | null;
+  Updated_at?: string | null;
+  updated_at?: string | null;
+  Updated_by?: string | number | null;
+  updated_by?: string | number | null;
+  Updated_by_name?: string | null;
+  updated_by_name?: string | null;
+  Updated_by_username?: string | null;
+  updated_by_username?: string | null;
+  Last_modified_at?: string | null;
+  last_modified_at?: string | null;
+  Modified_at?: string | null;
+  modified_at?: string | null;
+  Last_action?: string | null;
+  last_action?: string | null;
+  Action?: string | null;
+  action?: string | null;
 }
 
 export interface MachineStatus {
