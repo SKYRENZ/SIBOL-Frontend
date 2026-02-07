@@ -117,7 +117,7 @@ const Table = <T extends Record<string, any>>({
   };
 
   const getRowKey = (row: T, index: number) =>
-    row[rowKey] !== undefined ? String(row[rowKey]) : `row-${index}`;
+    row[rowKey] !== undefined ? `${row[rowKey]}-${index}` : `row-${index}`;
 
   return (
     <div className={`w-full ${className}`}>

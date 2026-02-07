@@ -26,8 +26,8 @@ export const useWasteContainer = () => {
   // Handle container selection
   const selectContainer = (container: WasteContainer | null) => {
     dispatch(setSelectedContainer(container));
-    if (container) {
-      dispatch(fetchAreaLogs(container.area_id));
+    if (container && Number.isFinite(Number(container.area_id))) {
+      dispatch(fetchAreaLogs(Number(container.area_id)));
     } else {
       dispatch(clearLogs());
     }
@@ -38,10 +38,10 @@ export const useWasteContainer = () => {
     payload: CreateContainerRequest & { latitude?: number; longitude?: number }
   ) => {
     try {
-      await dispatch(createContainer(payload)).unwrap();
-      return { success: true, error: null };
+      const created = await dispatch(createContainer(payload)).unwrap();
+      return { success: true, data: created, error: null };
     } catch (error: any) {
-      return { success: false, error: error || 'Failed to create container' };
+      return { success: false, data: null, error: error || 'Failed to create container' };
     }
   };
 
