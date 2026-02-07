@@ -2,6 +2,73 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Leaflet tooltip styling for barangay overlays */
+.leaflet-tooltip.barangay-tooltip {
+  background: #2f7d32;
+  color: #f0fff4;
+  border: 1px solid #1b5e20;
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 18px rgba(27, 94, 32, 0.25);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.leaflet-tooltip.barangay-tooltip::before {
+  border-top-color: #1b5e20;
+}
+
+/* Leaflet tooltip styling for package overlays */
+.leaflet-tooltip.package-tooltip {
+  background: #9c6b4f;
+  color: #fff7ed;
+  border: 1px solid #7a523b;
+  border-radius: 10px;
+  padding: 6px 10px;
+  box-shadow: 0 6px 18px rgba(122, 82, 59, 0.25);
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+.leaflet-tooltip.package-tooltip::before {
+  border-top-color: #7a523b;
+}
+
+/* Static label for Barangay 176-E (auto hides on zoom) */
+.barangay-label {
+  background: transparent;
+  color: #1b7a2f;
+  border: none;
+  border-radius: 0;
+  padding: 0;
+  font-weight: 800;
+  font-size: 13px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.1;
+  box-shadow: none;
+  backdrop-filter: none;
+  position: relative;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.barangay-label__text {
+  position: relative;
+  z-index: 1;
+  text-shadow: 0 2px 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Prevent square focus outlines on SVG paths when clicked */
+.leaflet-interactive:focus,
+.leaflet-interactive:active {
+  outline: none;
+}
+
 /* ==========================================================
    ROOT VARIABLES & GLOBAL OVERRIDES
 ========================================================== */

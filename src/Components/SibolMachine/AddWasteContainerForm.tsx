@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { MapContainer, TileLayer, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMap, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import type { CreateContainerRequest } from '../../services/wasteContainerService';
+import { buildOrganicPackageFeatures, buildVoronoiPackageFeatures } from '../../utils/geo';
+import { BARANGAY_176_E_PACKAGE_LABELS } from './data/barangay176EPackages';
 
 interface AddWasteContainerFormProps {
   onSubmit: (payload: CreateContainerRequest & { latitude?: number; longitude?: number }) => Promise<boolean>;
@@ -13,6 +15,83 @@ interface AddWasteContainerFormProps {
 const DEFAULT_CENTER: [number, number] = [14.656, 120.982];
 // bias toward the Philippines to improve suggestion relevance/perf
 const PH_CENTER = { lat: 12.879721, lon: 121.774017 };
+const BARANGAY_176_E_QUERY = 'Barangay 176-E, Caloocan, Metro Manila, Philippines';
+const BARANGAY_176_QUERIES = [
+  { key: '176-e', label: 'Barangay 176-E', query: 'Barangay 176-E, Caloocan, Metro Manila, Philippines', style: { color: '#1B5E20', fillColor: '#A5D6A7' } },
+  { key: '176-a', label: 'Barangay 176-A', query: 'Barangay 176-A, Caloocan, Metro Manila, Philippines', style: { color: '#2E7D32', fillColor: '#B7E1B0' } },
+  { key: '176-b', label: 'Barangay 176-B', query: 'Barangay 176-B, Caloocan, Metro Manila, Philippines', style: { color: '#388E3C', fillColor: '#C8E6C9' } },
+  { key: '176-c', label: 'Barangay 176-C', query: 'Barangay 176-C, Caloocan, Metro Manila, Philippines', style: { color: '#43A047', fillColor: '#D1EFD0' } },
+  { key: '176-d', label: 'Barangay 176-D', query: 'Barangay 176-D, Caloocan, Metro Manila, Philippines', style: { color: '#4CAF50', fillColor: '#DDF5D8' } },
+  { key: '176-f', label: 'Barangay 176-F', query: 'Barangay 176-F, Caloocan, Metro Manila, Philippines', style: { color: '#5FBF5B', fillColor: '#E6F7E3' } },
+];
+
+type BoundaryGeoJSON = any;
+
+const baseBoundaryStyle = {
+  weight: 2,
+  opacity: 0.9,
+  fillOpacity: 0.25,
+};
+
+const packageBoundaryStyle = {
+  weight: 2,
+  opacity: 0.85,
+  fillOpacity: 0.25,
+  color: '#8D6E63',
+  fillColor: '#E8D2B4',
+};
+
+
+const MapAutoFit: React.FC<{ boundary: BoundaryGeoJSON | null }> = ({ boundary }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!boundary) return;
+    const layer = L.geoJSON(boundary as any);
+    const bounds = layer.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [16, 16] });
+      map.setMaxBounds(bounds.pad(0.05));
+    }
+  }, [boundary, map]);
+
+  return null;
+};
+
+function isPointInRing(point: [number, number], ring: number[][]) {
+  // point: [lon, lat]
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > point[1]) !== (yj > point[1])) &&
+      (point[0] < (xj - xi) * (point[1] - yi) / ((yj - yi) || 1e-12) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+function isPointInPolygon(point: [number, number], polygon: number[][][]) {
+  if (!polygon.length) return false;
+  const [outer, ...holes] = polygon;
+  if (!isPointInRing(point, outer)) return false;
+  for (const hole of holes) {
+    if (isPointInRing(point, hole)) return false;
+  }
+  return true;
+}
+
+function isPointInBoundary(point: [number, number], boundary: BoundaryGeoJSON | null) {
+  if (!boundary?.geometry) return false;
+  const geom = boundary.geometry;
+  if (geom.type === 'Polygon') {
+    return isPointInPolygon(point, geom.coordinates as number[][][]);
+  }
+  if (geom.type === 'MultiPolygon') {
+    return (geom.coordinates as number[][][][]).some((poly) => isPointInPolygon(point, poly));
+  }
+  return false;
+}
 
 const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit, onCancel, loading = false }) => {
   const [containerName, setContainerName] = useState('');
@@ -20,6 +99,10 @@ const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit,
   const [fullAddress, setFullAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [boundary, setBoundary] = useState<BoundaryGeoJSON | null>(null);
+  const [boundaries, setBoundaries] = useState<Record<string, BoundaryGeoJSON>>({});
+  const [lastValid, setLastValid] = useState<[number, number] | null>(null);
+  const [packageFeatures, setPackageFeatures] = useState<BoundaryGeoJSON[]>([]);
 
   // autocomplete state
   const [suggestions, setSuggestions] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
@@ -109,6 +192,15 @@ const fetchSuggestions = async (q: string) => {
       }));
     }
 
+    if (boundary?.geometry) {
+      items = items.filter((s) => {
+        const latNum = parseFloat(s.lat);
+        const lonNum = parseFloat(s.lon);
+        if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return false;
+        return isPointInBoundary([lonNum, latNum], boundary);
+      });
+    }
+
     setSuggestions(items);
     setSelectedIndex(-1);
   } catch (err) {
@@ -128,6 +220,77 @@ const fetchSuggestions = async (q: string) => {
     debounceRef.current = window.setTimeout(() => fetchSuggestions(fullAddress), 250);
     return () => { if (debounceRef.current) window.clearTimeout(debounceRef.current); };
   }, [fullAddress]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const fetchBoundary = async (query: string, attempt = 0) => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&limit=1&q=${encodeURIComponent(
+          query
+        )}`;
+        const res = await fetch(url, {
+          headers: {
+            'Accept-Language': 'en',
+          },
+        });
+        if (!res.ok) {
+          if (attempt < 2 && (res.status === 429 || res.status >= 500)) {
+            await sleep(400 + attempt * 300);
+            return fetchBoundary(query, attempt + 1);
+          }
+          return;
+        }
+        const data = await res.json();
+        return data?.features?.[0] ?? null;
+      } catch {
+        // Silent fail: fallback to unrestricted behavior
+      }
+    };
+
+    const run = async () => {
+      const focus = await fetchBoundary(BARANGAY_176_E_QUERY);
+      if (isMounted && focus?.geometry) {
+        setBoundary(focus);
+      }
+
+      const results: { key: string; feature: any | null }[] = [];
+      for (const b of BARANGAY_176_QUERIES) {
+        if (!isMounted) return;
+        const feature = await fetchBoundary(b.query);
+        results.push({ key: b.key, feature });
+        await sleep(250);
+      }
+      if (!isMounted) return;
+      const next: Record<string, BoundaryGeoJSON> = {};
+      results.forEach((r) => {
+        if (r.feature?.geometry) next[r.key] = r.feature;
+      });
+      setBoundaries(next);
+    };
+
+    run();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!boundary) {
+      setPackageFeatures([]);
+      return;
+    }
+    const voronoiFeatures = buildVoronoiPackageFeatures(boundary, BARANGAY_176_E_PACKAGE_LABELS);
+    if (voronoiFeatures.length) {
+      setPackageFeatures(voronoiFeatures);
+      return;
+    }
+    const organicFeatures = buildOrganicPackageFeatures(boundary, BARANGAY_176_E_PACKAGE_LABELS);
+    setPackageFeatures(organicFeatures);
+  }, [boundary]);
 
   // keyboard navigation for suggestions
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -155,15 +318,26 @@ const fetchSuggestions = async (q: string) => {
     setFullAddress('');
     setLat(null);
     setLon(null);
+    setLastValid(null);
     setSuggestions([]);
     setError(null);
     setMarkerKey(k => k + 1);
   };
 
   const handlePickSuggestion = (s: { display_name: string; lat: string; lon: string }) => {
+    const nextLat = parseFloat(s.lat);
+    const nextLon = parseFloat(s.lon);
+    if (boundary?.geometry && !isPointInBoundary([nextLon, nextLat], boundary)) {
+      setError('Selected location is outside Barangay 176. Please choose a location within the barangay.');
+      setShowSuggestions(false);
+      setSuggestions([]);
+      return;
+    }
+    setError(null);
     setFullAddress(s.display_name || `${s.lat}, ${s.lon}`);
-    setLat(parseFloat(s.lat));
-    setLon(parseFloat(s.lon));
+    setLat(nextLat);
+    setLon(nextLon);
+    setLastValid([nextLat, nextLon]);
     setShowSuggestions(false);
     setSuggestions([]);
     setMarkerKey(k => k + 1);
@@ -301,10 +475,66 @@ const fetchSuggestions = async (q: string) => {
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={false}
           >
+            <MapAutoFit boundary={boundary} />
             <TileLayer
               attribution='&copy; OpenStreetMap contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            {BARANGAY_176_QUERIES.map((b) => (
+              boundaries[b.key] ? (
+                <GeoJSON
+                  key={b.key}
+                  data={boundaries[b.key]}
+                  style={{ ...baseBoundaryStyle, ...b.style }}
+                  onEachFeature={(_, layer) => {
+                    const baseStyle = { ...baseBoundaryStyle, ...b.style };
+                    layer.setStyle(baseStyle);
+                    layer.bindTooltip(b.label, {
+                      sticky: true,
+                      className: 'barangay-tooltip',
+                      direction: 'center',
+                      opacity: 0.95,
+                    });
+                    layer.on({
+                      mouseover: () => layer.setStyle({ ...baseStyle, weight: 3, fillOpacity: 0.55 }),
+                      mouseout: () => layer.setStyle(baseStyle),
+                      click: (e: any) => {
+                        e?.originalEvent?.preventDefault?.();
+                        layer.setStyle({ ...baseStyle, weight: 4, fillOpacity: 0.6 });
+                        layer.openTooltip();
+                      },
+                    });
+                  }}
+                  interactive
+                />
+              ) : null
+            ))}
+            {packageFeatures.length ? (
+              <GeoJSON
+                data={{ type: 'FeatureCollection', features: packageFeatures }}
+                style={packageBoundaryStyle}
+                onEachFeature={(feature, layer) => {
+                  const label = feature?.properties?.label || 'Package';
+                  layer.setStyle(packageBoundaryStyle);
+                  layer.bindTooltip(label, {
+                    sticky: true,
+                    className: 'package-tooltip',
+                    direction: 'center',
+                    opacity: 0.95,
+                  });
+                  layer.on({
+                    mouseover: () => layer.setStyle({ ...packageBoundaryStyle, weight: 3, fillOpacity: 0.35 }),
+                    mouseout: () => layer.setStyle(packageBoundaryStyle),
+                    click: (e: any) => {
+                      e?.originalEvent?.preventDefault?.();
+                      layer.setStyle({ ...packageBoundaryStyle, weight: 4, fillOpacity: 0.4 });
+                      layer.openTooltip();
+                    },
+                  });
+                }}
+                interactive
+              />
+            ) : null}
             <Marker
               position={lat && lon ? [lat, lon] : DEFAULT_CENTER}
               icon={markerIcon as any}
@@ -313,8 +543,19 @@ const fetchSuggestions = async (q: string) => {
                 dragend: (ev: any) => {
                   const m = ev.target;
                   const p = m.getLatLng();
+                  if (boundary?.geometry && !isPointInBoundary([p.lng, p.lat], boundary)) {
+                    setError('Pinned location must be داخل Barangay 176.');
+                    if (lastValid) {
+                      setLat(lastValid[0]);
+                      setLon(lastValid[1]);
+                      setMarkerKey(k => k + 1);
+                    }
+                    return;
+                  }
+                  setError(null);
                   setLat(p.lat);
                   setLon(p.lng);
+                  setLastValid([p.lat, p.lng]);
                 }
               }}
             />
