@@ -14,10 +14,10 @@ import {
   ArcElement,
   Tooltip,
   Legend,
+  Filler
 } from "chart.js";
 import { Line, Doughnut } from "react-chartjs-2";
-import { Trash2, PawPrint, AlertTriangle } from "lucide-react";
-import FilterPanel from "../Components/common/filterPanel";
+import { Trash2, AlertTriangle, Server, Zap } from "lucide-react";
 import DASHTRASH from "../assets/images/DASHTRASH.png";
 
 ChartJS.register(
@@ -27,7 +27,8 @@ ChartJS.register(
   LineElement,
   ArcElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 );
 
 /* ---------------- MOCK DATA ---------------- */
@@ -63,7 +64,7 @@ const GasYieldCard = ({
         data: [data.percent, 100 - data.percent],
         backgroundColor: ["#2E7D32", "#E6F4EA"],
         borderWidth: 0,
-        cutout: "72%",
+        cutout: "75%",
         rotation: -90,
         circumference: 180,
       },
@@ -71,16 +72,16 @@ const GasYieldCard = ({
   };
 
   return (
-    <div className="rounded-2xl bg-green-200 p-4 h-full">
-      <p className="text-sm font-semibold text-gray-800">Gas Yield</p>
+    <div className="rounded-xl bg-green-200 p-3 h-[110px]">
+      <p className="text-xs font-semibold text-gray-800">Gas Yield</p>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mt-2 flex items-center justify-between">
         <div className="flex flex-col justify-center">
-          <p className="text-3xl font-bold leading-none text-gray-800">{data.percent}%</p>
-          <p className="mt-1 text-xs text-gray-600">vs last period</p>
+          <p className="text-2xl font-bold leading-none text-gray-800">{data.percent}%</p>
+          <p className="text-[10px] text-gray-600 mt-0.5">vs last period</p>
         </div>
 
-        <div className="relative h-24 w-24 flex items-center justify-center">
+        <div className="relative h-16 w-16 flex items-center justify-center">
           <Doughnut
             data={gaugeData}
             options={{
@@ -89,7 +90,7 @@ const GasYieldCard = ({
               plugins: { legend: { display: false }, tooltip: { enabled: false } },
             }}
           />
-          <div className="absolute bottom-3 text-xs font-semibold text-gray-700">{data.volume} m³</div>
+          <div className="absolute bottom-2 text-[9px] font-semibold text-gray-700">{data.volume} m³</div>
         </div>
       </div>
     </div>
@@ -105,16 +106,16 @@ const EnergyYieldCard = ({ value, trend }: { value: number; trend: number[] }) =
         borderColor: "#F59E0B",
         tension: 0.4,
         pointRadius: 0,
-        borderWidth: 2,
+        borderWidth: 1.5,
       },
     ],
   };
 
   return (
-    <div className="rounded-2xl bg-yellow-200 p-4 h-full">
-      <p className="text-sm font-semibold text-gray-800">Energy Yield</p>
-      <p className="text-2xl font-bold text-gray-800 mt-1">{value} kWh</p>
-      <div className="h-12 mt-2">
+    <div className="rounded-xl bg-yellow-200 p-3 h-[110px]">
+      <p className="text-xs font-semibold text-gray-800">Energy Yield</p>
+      <p className="text-xl font-bold text-gray-800 mt-1">{value} kWh</p>
+      <div className="h-8 mt-1">
         <Line
           data={sparkData}
           options={{
@@ -129,53 +130,48 @@ const EnergyYieldCard = ({ value, trend }: { value: number; trend: number[] }) =
 };
 
 const ProcessedWasteCard = ({ waste }: { waste: { food: number; manure: number } }) => (
-  <div className="rounded-2xl bg-orange-300 p-4 h-full">
-    <p className="text-sm font-semibold text-gray-800">Processed Waste</p>
-    <div className="mt-4 flex justify-around gap-6">
+  <div className="rounded-xl bg-orange-300 p-3 h-[110px]">
+    <p className="text-xs font-semibold text-gray-800">Processed Waste</p>
+    <div className="mt-2 flex justify-around gap-4">
       <div className="flex flex-col items-center">
-        <Trash2 size={36} className="mb-2 text-gray-800" />
-        <p className="font-bold text-lg text-gray-800">{waste.food} kg</p>
-        <p className="text-xs text-gray-700">Food Waste</p>
+        <Trash2 size={28} className="mb-1 text-gray-800" />
+        <p className="font-bold text-base text-gray-800">{waste.food} kg</p>
+        <p className="text-[10px] text-gray-700">Food Waste</p>
       </div>
 
       <div className="flex flex-col items-center">
-        <PawPrint size={36} className="mb-2 text-gray-800" />
-        <p className="font-bold text-lg text-gray-800">{waste.manure} L</p>
-        <p className="text-xs text-gray-700">Manure</p>
+        <PawPrint size={28} className="mb-1 text-gray-800" />
+        <p className="font-bold text-base text-gray-800">{waste.manure} L</p>
+        <p className="text-[10px] text-gray-700">Manure</p>
       </div>
     </div>
+  </div>
+);
+
+const StatCard = ({ title, value }: { title: string; value: string | number }) => (
+  <div className="rounded-xl border bg-white p-5 shadow-sm flex flex-col justify-center h-[120px]">
+    <p className="text-4xl font-bold text-gray-800">{value}</p>
+    <p className="text-sm font-semibold text-gray-600 mt-1 leading-tight">{title}</p>
   </div>
 );
 
 const GreetingCard = ({ 
   firstName, 
   lastName,
-  date 
 }: { 
   firstName?: string; 
   lastName?: string;
-  date?: string;
 }) => (
   <div 
-    className="rounded-xl shadow-sm overflow-hidden relative h-full min-h-[140px] col-span-1 sm:col-span-2 lg:col-span-1 bg-cover bg-center bg-no-repeat"
+    className="rounded-xl overflow-hidden relative h-[120px] bg-cover bg-center bg-no-repeat"
     style={{
       backgroundImage: `url(${DASHTRASH})`,
     }}
   >
-    <div className="absolute inset-0 bg-gradient-to-r from-[#E8F5E9]/90 via-[#C8E6C9]/60 to-transparent" />
-    
-    <div className="absolute inset-0 flex flex-col justify-center px-4 sm:px-5">
-      <div className="z-10 max-w-[180px]">
-        <p className="text-xs text-[#2E7D32] font-medium mb-1">
-          {date || ''}
-        </p>
-        <h2 className="text-lg font-bold text-[#1B5E20] mb-1">
-          Hello, {firstName || 'Ezedrex'} {lastName || 'Jo'}!
-        </h2>
-        <p className="text-xs text-[#2E7D32] leading-tight">
-          Come and save the environment with{" "}
-          <span className="font-semibold">SIBOL Project</span>.
-        </p>
+    <div className="absolute inset-0 bg-gradient-to-r from-[#E8F5E9]/90 via-[#C8E6C9]/70 to-transparent" />
+    <div className="relative h-full flex items-center justify-between px-5">
+      <div className="z-10">
+        <h2 className="text-xl font-bold text-[#1B5E20] whitespace-nowrap">Hello, {firstName || 'Ezedrex'} {lastName || 'Jo'}!</h2>
       </div>
     </div>
   </div>
@@ -205,10 +201,10 @@ const AdditivesPanel = ({
   };
 
   return (
-    <div className="rounded-xl border bg-white p-4 shadow-sm">
-      <p className="text-sm font-semibold mb-4 text-center text-gray-800">Additives Ratio</p>
+    <div className="rounded-xl border bg-white p-3 shadow-sm m-0">
+      <p className="text-xs font-semibold mb-2 text-center text-gray-800">Additives Ratio</p>
 
-      <div className="relative h-44 flex items-center justify-center">
+      <div className="relative h-28 flex items-center justify-center">
         <Doughnut
           data={chartData}
           options={{
@@ -228,19 +224,19 @@ const AdditivesPanel = ({
         />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-2xl font-bold leading-none text-gray-800">{additives.total}</p>
-          <p className="text-xs text-gray-500">Liters</p>
+          <p className="text-lg font-bold leading-none text-gray-800">{additives.total}</p>
+          <p className="text-[10px] text-gray-500">Liters</p>
         </div>
       </div>
 
-      <div className="mt-4 space-y-2">
+      <div className="mt-2 space-y-1">
         {items.map(item => {
           const pct = Math.round((item.value / additives.total) * 100);
           return (
-            <div key={item.label} className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-2">
+            <div key={item.label} className="flex items-center justify-between text-xs">
+              <div className="flex items-center gap-1.5">
                 <span
-                  className="h-2.5 w-2.5 rounded-full"
+                  className="h-2 w-2 rounded-full"
                   style={{ backgroundColor: item.color }}
                 />
                 <span className="text-gray-700">{item.label}</span>
@@ -255,21 +251,21 @@ const AdditivesPanel = ({
 };
 
 const AlertsPanel = ({ alerts }: { alerts: any[] }) => (
-  <div className="rounded-xl border bg-white p-4 shadow-sm">
+  <div className="rounded-xl border bg-white p-3 shadow-sm m-0">
     <p className="text-sm font-semibold mb-3 text-center text-gray-800">Alerts</p>
-    <div className="space-y-3">
-      {alerts.map((alert) => (
-        <div key={alert.id} className="flex items-start gap-3 bg-red-50 px-3 py-3 rounded-lg text-sm">
-          <div className="w-12 h-12 bg-red-200 rounded-lg flex-shrink-0 flex items-center justify-center">
-            <AlertTriangle size={20} className="text-red-500" />
+    <div className="space-y-2">
+      {alerts.slice(0, 3).map((alert) => (
+        <div key={alert.id} className="flex items-start gap-3 bg-white border-l-4 border-red-200 px-3 py-3 rounded-lg text-xs shadow-sm">
+          <div className="w-10 h-10 bg-red-100 rounded-lg flex-shrink-0 flex items-center justify-center">
+            <AlertTriangle size={16} className="text-red-400" />
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-gray-800 text-xs">{alert.type}</p>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between">
+              <p className="font-semibold text-gray-800 text-xs">{alert.type}</p>
+              <p className="text-[10px] text-gray-400">{alert.date}</p>
+            </div>
             <p className="text-xs text-gray-600">{alert.machine}</p>
-            <p className="text-xs text-gray-500 mt-1">Problem: {alert.problem}</p>
-          </div>
-          <div className="text-xs text-gray-400 flex-shrink-0">
-            {alert.date}
+            <p className="text-xs text-gray-500 mt-0.5">Problem: {alert.problem}</p>
           </div>
         </div>
       ))}
@@ -288,7 +284,7 @@ const Tab = ({
 }) => (
   <button
     onClick={onClick}
-    className={`px-4 py-2 rounded-md text-sm font-medium ${
+    className={`px-3 py-1.5 rounded text-xs font-medium ${
       active ? "bg-green-800 text-white" : "bg-gray-100 text-gray-600"
     }`}
   >
@@ -300,9 +296,9 @@ const Tab = ({
 
 const Dashboard: React.FC = () => {
   const dispatch = useAppDispatch();
+  const navigate = useNavigate();
   const { user, isAuthenticated, isFirstLogin: isFirstLoginRedux } = useAppSelector((state) => state.auth);
   const [currentDate, setCurrentDate] = useState<string>("");
-  const navigate = useNavigate();
   const location = useLocation();
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [hasProcessedUrlParams, setHasProcessedUrlParams] = useState(false);
@@ -462,46 +458,62 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
-      <main className="flex-1 px-4 sm:px-6 md:px-8 py-6 flex flex-col gap-6 mt-[8vh]">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <main className="flex-1 px-6 lg:px-8 py-8 flex flex-col gap-6 mt-[10vh] h-[calc(100vh-10vh)] overflow-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
           <GreetingCard 
             firstName={user?.FirstName} 
             lastName={user?.LastName}
-            date={currentDate}
           />
-          <GasYieldCard data={data.gasYield} />
-          <EnergyYieldCard
-            value={data.actualEnergy.at(-1) ?? 0}
-            trend={data.actualEnergy}
-          />
-          <ProcessedWasteCard waste={data.waste} />
-        </div>    
-        <div className="flex flex-col lg:flex-row gap-6">
-          <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 rounded-xl border bg-white p-4 md:p-6 shadow-sm flex flex-col">
-              <div className="mb-4 flex justify-between items-center flex-wrap gap-2">
-                <div className="flex gap-2">
-                  <Tab
-                    label="Gas Yield"
-                    active={activeTab === "gas"}
-                    onClick={() => setActiveTab("gas")}
-                  />
-                  <Tab
-                    label="Energy Yield"
-                    active={activeTab === "energy"}
-                    onClick={() => setActiveTab("energy")}
-                  />
-                </div>
-                <FilterPanel types={["timeRange"]} />
-              </div>
-              <div className="flex-1 min-h-[260px] md:min-h-[340px]">
-                <Line data={chartData} />
-              </div>
-            </div>
+          <StatCard title="Active SIBOL Machines" value="326" />
+          <StatCard title="Total Waste Collected" value="326" />
+          <StatCard title="Total Energy Converted" value="326" />
+        </div>
 
-            <div className="space-y-6">
-              <AdditivesPanel additives={data.additives} />
-              <AlertsPanel alerts={data.alerts} />
+        <div className="flex flex-col lg:flex-row gap-4 flex-1">
+          <div className="w-full lg:w-1/2 flex flex-row gap-2">
+            <AdditivesPanel additives={data.additives} />
+            <AlertsPanel alerts={data.alerts} />
+          </div>
+          
+          <div className="w-full lg:w-1/2 rounded-xl border bg-white p-4 shadow-sm flex flex-col">
+            <div className="mb-3 flex justify-between items-center flex-wrap gap-2">
+              <div className="flex gap-2">
+                <Tab
+                  label="Gas Yield"
+                  active={activeTab === "gas"}
+                  onClick={() => setActiveTab("gas")}
+                />
+                <Tab
+                  label="Energy Yield"
+                  active={activeTab === "energy"}
+                  onClick={() => setActiveTab("energy")}
+                />
+              </div>
+              <button className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded text-xs text-gray-600 bg-white hover:bg-gray-50">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                </svg>
+                Filter by
+              </button>
+            </div>
+            <div className="h-24 relative">
+              <Line 
+                data={chartData} 
+                options={{
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: {
+                      position: 'top',
+                      align: 'end',
+                      labels: {
+                        usePointStyle: true,
+                        boxWidth: 8,
+                        font: { size: 10 }
+                      }
+                    }
+                  }
+                }}
+              />
             </div>
           </div>
         </div>
