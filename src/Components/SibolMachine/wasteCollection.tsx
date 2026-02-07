@@ -152,9 +152,48 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
   useEffect(() => {
     let isMounted = true;
 
+    const CACHE_PREFIX = 'sibol.boundary.';
+    const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const hashString = (input: string) => {
+      let hash = 5381;
+      for (let i = 0; i < input.length; i += 1) {
+        hash = (hash * 33) ^ input.charCodeAt(i);
+      }
+      return (hash >>> 0).toString(16);
+    };
+
+    const cacheKey = (query: string) => `${CACHE_PREFIX}${hashString(query)}`;
+
+    const getCachedBoundary = (query: string): any | null => {
+      try {
+        if (typeof localStorage === 'undefined') return null;
+        const raw = localStorage.getItem(cacheKey(query));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as { ts: number; feature: any };
+        if (!parsed || typeof parsed.ts !== 'number') return null;
+        if (Date.now() - parsed.ts > TTL_MS) return null;
+        return parsed.feature ?? null;
+      } catch {
+        return null;
+      }
+    };
+
+    const setCachedBoundary = (query: string, feature: any) => {
+      try {
+        if (typeof localStorage === 'undefined') return;
+        localStorage.setItem(cacheKey(query), JSON.stringify({ ts: Date.now(), feature }));
+      } catch {
+        // ignore
+      }
+    };
+
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const fetchBoundary = async (query: string, attempt = 0): Promise<any | null> => {
+      const cached = getCachedBoundary(query);
+      if (cached) return cached;
+
       const url = `https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&limit=1&q=${encodeURIComponent(
         query
       )}`;
@@ -171,7 +210,9 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
         return null;
       }
       const data = await res.json();
-      return data?.features?.[0] ?? null;
+      const feature = data?.features?.[0] ?? null;
+      if (feature) setCachedBoundary(query, feature);
+      return feature;
     };
 
     const run = async () => {
