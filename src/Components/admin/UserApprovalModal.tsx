@@ -5,6 +5,7 @@ import * as adminService from "../../services/adminService";
 import type { Account } from "../../types/adminTypes";
 import AttachmentsList from "../maintenance/attachments/AttachmentsList";
 import AttachmentsViewer from "../maintenance/attachments/AttachmentsViewer";
+import SnackBar from "../common/SnackBar"; // ✅ add
 
 interface Props {
   pendingId: number | null;
@@ -45,6 +46,22 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
   const [rejectReason, setRejectReason] = useState<string>("");
   const [actionLoading, setActionLoading] = useState(false);
 
+  // ✅ snackbar state
+  const [snackKey, setSnackKey] = useState(0);
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: "error" | "success" | "info";
+  }>({ visible: false, message: "", type: "info" });
+
+  const showSnack = (message: string, type: "error" | "success" | "info" = "info") => {
+    // bump key so timer/animation restarts even if already visible
+    setSnackKey((k) => k + 1);
+    setSnack({ visible: true, message, type });
+  };
+
+  const dismissSnack = () => setSnack((s) => ({ ...s, visible: false }));
+
   useEffect(() => {
     if (!isOpen || !pendingId) return;
     let mounted = true;
@@ -55,7 +72,6 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         const res = await adminService.fetchPendingById(Number(pendingId));
         if (!mounted) return;
         setAccount(res?.pendingAccount ?? res?.data ?? res);
-        // reset reason when loading a pending account
         setRejectReason("");
       } catch (err: any) {
         setError(err?.message ?? "Failed to load pending account");
@@ -63,7 +79,9 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         if (mounted) setLoading(false);
       }
     })();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [isOpen, pendingId]);
 
   const attachments = useMemo(() => {
@@ -116,31 +134,37 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
       await onApprove(account);
       setShowApproveConfirm(false);
       setActionLoading(false);
+      showSnack("Account approved.", "success"); // ✅ optional
       onClose();
     } catch (err: any) {
-      // minimal UI feedback (modal remains open for retry)
       console.error("approve failed", err);
-      alert(err?.message || "Approve failed");
+      showSnack(err?.message || "Approve failed", "error"); // ✅ replaced alert
       setActionLoading(false);
     }
   };
 
   // Reject directly from the main modal — reason must be provided
-  const confirmReject = async () => {
-    if (!account) return;
+  const confirmReject = async (): Promise<boolean> => {
+    if (!account) return false;
+
     if (!rejectReason || !rejectReason.trim()) {
-      return alert("Please provide a reason to reject the account.");
+      showSnack("Please provide a reason to reject the account.", "error"); // ✅ replaced alert
+      return false;
     }
+
     try {
       setActionLoading(true);
       await onReject(account, rejectReason.trim());
       setActionLoading(false);
       setRejectReason("");
+      showSnack("Account rejected.", "success"); // ✅ optional
       onClose();
+      return true;
     } catch (err: any) {
       console.error("reject failed", err);
-      alert(err?.message || "Reject failed");
+      showSnack(err?.message || "Reject failed", "error"); // ✅ replaced alert
       setActionLoading(false);
+      return false;
     }
   };
 
@@ -207,7 +231,7 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
               </button>
 
               <button
-                onClick={handleApprove}
+                onClick={() => setShowApproveConfirm(true)}
                 className="px-3 py-1 text-white text-sm rounded bg-green-600 hover:bg-green-700"
                 disabled={actionLoading}
               >
@@ -218,7 +242,6 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         )}
       </FormModal>
 
-      {/* Approve confirmation modal */}
       <AdminConfirmModal
         isOpen={showApproveConfirm}
         onClose={() => setShowApproveConfirm(false)}
@@ -235,15 +258,13 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         loading={actionLoading}
       />
 
-      {/* Reject confirmation modal (requires reason entered in main modal) */}
       <AdminConfirmModal
         isOpen={showRejectConfirm}
         onClose={() => setShowRejectConfirm(false)}
         title="Confirm Rejection"
         onConfirm={async () => {
-          // call the same confirmReject handler which validates reason and performs the reject
-          await confirmReject();
-          setShowRejectConfirm(false);
+          const ok = await confirmReject();
+          if (ok) setShowRejectConfirm(false); // ✅ only close if reject succeeded
         }}
         message={
           <div className="space-y-4">
@@ -263,6 +284,15 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         attachment={viewerAttachment}
         isOpen={!!viewerAttachment}
         onClose={() => setViewerAttachment(null)}
+      />
+
+      {/* ✅ Snackbar */}
+      <SnackBar
+        key={snackKey}
+        visible={snack.visible}
+        message={snack.message}
+        type={snack.type}
+        onDismiss={dismissSnack}
       />
     </>
   );

@@ -4,7 +4,6 @@ import AddRewardModal from "../Components/Household/addReward";
 import EditRewardModal from "../Components/Household/editReward";
 import HouseholdTabs from "../Components/Household/tabs";
 import SearchBar from "../Components/common/SearchBar";
-import FilterPanel from "../Components/common/filterPanel";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
 import LeaderboardTab from "../Components/Household/leaderboard";
@@ -22,7 +21,6 @@ interface RowData {
 
 const Household: React.FC = () => {
   const [activeTab, setActiveTab] = useState("reward");
-  const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
   const [refreshKey, setRefreshKey] = useState(0);
   
   useEffect(() => {
@@ -31,7 +29,6 @@ const Household: React.FC = () => {
 
   useEffect(() => {
     console.log("activeTab ->", activeTab);
-    setSelectedFilters([]);
   }, [activeTab]);
 
   const [isRewardModalOpen, setIsRewardModalOpen] = useState(false);
@@ -62,21 +59,6 @@ const Household: React.FC = () => {
     console.log("Reward Updated");
     setIsEditRewardModalOpen(false);
     setRefreshKey(prev => prev + 1);
-  };
-
-  const getFilterTypesByTab = (tab: string): string[] => {
-    switch(tab) {
-      case 'reward':
-        return ['maintenanceStatuses'];
-      case 'leaderboard':
-        return [];
-      case 'claimed':
-        return [];
-      case 'points':
-        return [];
-      default:
-        return [];
-    }
   };
 
   const getButtonLabel = (): string => {
@@ -124,21 +106,13 @@ const Household: React.FC = () => {
                 >
                   {getButtonLabel()}
                 </button>
-                {getFilterTypesByTab(activeTab).length > 0 && (
-                  <FilterPanel 
-                    types={getFilterTypesByTab(activeTab)}
-                    onFilterChange={setSelectedFilters}
-                  />
-                )}
               </div>
             </div>
           )}
   
-          {/* Pass filters to child components */}
           {activeTab === "reward" && (
             <RewardTab 
               key={refreshKey} 
-              filters={selectedFilters}
               onEditReward={handleEditReward}
             />
           )}

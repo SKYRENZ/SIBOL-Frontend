@@ -115,21 +115,22 @@ export const uploadClaimedRewardAttachment = async (
   const form = new FormData();
   form.append("file", file);
   form.append("reward_transaction_id", String(transactionId));
-  const res = await api.post<{ attachment: any }>("/api/upload/reward-attachment", form, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+
+  // Let Axios/browser set Content-Type with boundary
+  const res = await api.post<{ attachment: any }>("/api/upload/reward-attachment", form);
+
   return res.data.attachment;
 };
 
 export const uploadRewardImage = async (file: File): Promise<{ imageUrl: string; publicId: string }> => {
   const form = new FormData();
   form.append("file", file);
-  const res = await api.post<{ imageUrl: string; publicId: string }>("/api/upload/reward-image", form, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+
+  // Let Axios/browser set Content-Type with boundary
+  const res = await api.post<{ imageUrl: string; publicId: string }>("/api/upload/reward-image", form);
+
   return res.data;
 };
-
 
 export const listRewardAttachments = async (transactionId: number): Promise<any[]> => {
   const res = await api.get<any[]>(`/api/rewards/transaction/${transactionId}/attachments`);
