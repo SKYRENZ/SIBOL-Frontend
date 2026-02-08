@@ -5,6 +5,14 @@ import "../tailwind.css";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
+import NotificationsModal from "./common/NotificationsModal";
+import {
+  getNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  type NotificationItem,
+  type NotificationType,
+} from "../services/notificationService";
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -18,7 +26,11 @@ const allLinks = [
 const Header: React.FC = () => {
   const [modules, setModules] = useState<any>({ list: [], has: () => false });
   const [menuOpen, setMenuOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Array<{ id: number }>>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [selectedFilter, setSelectedFilter] = useState<"all" | NotificationType>("all");
   const [profileOpen, setProfileOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -43,13 +55,13 @@ const Header: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const [normalized, notificationsResponse] = await Promise.all([
+        const [normalized, unreadRows] = await Promise.all([
           fetchAllowedModules(),
-          Promise.resolve({ data: [] }),
+          getNotifications({ unreadOnly: true, limit: 200 }),
         ]);
         if (!mounted) return;
         setModules(normalized);
-        setNotifications(notificationsResponse.data);
+        setUnreadCount(unreadRows.length);
       } catch (err) {
         console.error("Error loading data:", err);
         setModules({ list: [], has: () => false });
@@ -60,9 +72,57 @@ const Header: React.FC = () => {
   }, [hasCheckedAuth, isCheckingAuth, isAuthenticated, user]);
 
   useEffect(() => {
+    if (!hasCheckedAuth || isCheckingAuth || !isAuthenticated || !user) return;
+    let mounted = true;
+
+    const refreshUnread = async () => {
+      try {
+        const unreadRows = await getNotifications({ unreadOnly: true, limit: 200 });
+        if (!mounted) return;
+        setUnreadCount(unreadRows.length);
+      } catch {
+        // ignore
+      }
+    };
+
+    refreshUnread();
+    const id = window.setInterval(refreshUnread, 20000);
+    return () => {
+      mounted = false;
+      window.clearInterval(id);
+    };
+  }, [hasCheckedAuth, isCheckingAuth, isAuthenticated, user]);
+
+  useEffect(() => {
     setMenuOpen(false);
     setProfileOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!notificationsOpen || !isAuthenticated) return;
+    let mounted = true;
+    (async () => {
+      setNotificationsLoading(true);
+      try {
+        const rows = await getNotifications({
+          type: selectedFilter,
+          limit: 200,
+        });
+        if (!mounted) return;
+        setNotifications(rows);
+      } catch {
+        if (!mounted) return;
+        setNotifications([]);
+      } finally {
+        if (!mounted) return;
+        setNotificationsLoading(false);
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, [notificationsOpen, selectedFilter, isAuthenticated]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -89,6 +149,8 @@ const Header: React.FC = () => {
   }, []);
 
   const toggleMenu = () => setMenuOpen((prev) => !prev);
+  const openNotifications = () => setNotificationsOpen(true);
+  const closeNotifications = () => setNotificationsOpen(false);
 
   /* ---------------- role logic ---------------- */
 
@@ -162,14 +224,13 @@ const Header: React.FC = () => {
 
           {/* RIGHT ICONS */}
           <div className="nav-icons">
-            {/* Notifications (UNCHANGED) */}
-            <NavLink
-              to="/notifications"
+            {/* Notifications */}
+            <button
+              type="button"
               title="Notifications"
               aria-label="Notifications"
-              className={({ isActive }) =>
-                `icon-btn ${isActive ? "active-icon" : ""}`
-              }
+              className="icon-btn relative"
+              onClick={openNotifications}
             >
               <svg
                 className="icon"
@@ -184,12 +245,12 @@ const Header: React.FC = () => {
                   fill="currentColor"
                 />
               </svg>
-              {notifications.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-                  {notifications.length}
+              {unreadCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center shadow">
+                  {unreadCount}
                 </span>
               )}
-            </NavLink>
+            </button>
 
             {/* PROFILE ICON + DROPDOWN (ICON UNCHANGED) */}
             <div className="relative" ref={profileRef}>
@@ -264,6 +325,50 @@ const Header: React.FC = () => {
           </div>
         </div>
       </nav>
+
+      <NotificationsModal
+        isOpen={notificationsOpen}
+        onClose={closeNotifications}
+        notifications={notifications}
+        loading={notificationsLoading}
+        selectedFilter={selectedFilter}
+        onFilterChange={(value) => setSelectedFilter(value)}
+        onMarkRead={async (id, type) => {
+          try {
+            await markNotificationRead(id, type);
+            setNotifications((prev) => {
+              const wasUnread = prev.find((n) => n.id === id)?.read === false;
+              if (wasUnread) {
+                setUnreadCount((count) => Math.max(0, count - 1));
+              }
+              return prev.map((n) => (n.id === id ? { ...n, read: true } : n));
+            });
+          } catch {
+            // ignore
+          }
+        }}
+        onMarkAllRead={async () => {
+          try {
+            if (selectedFilter === "all") {
+              await Promise.all([
+                markAllNotificationsRead("maintenance"),
+                markAllNotificationsRead("waste-input"),
+                markAllNotificationsRead("collection"),
+                markAllNotificationsRead("system"),
+              ]);
+              setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+              setUnreadCount(0);
+            } else {
+              const unreadInFilter = notifications.filter((n) => !n.read).length;
+              await markAllNotificationsRead(selectedFilter);
+              setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+              setUnreadCount((prev) => Math.max(0, prev - unreadInFilter));
+            }
+          } catch {
+            // ignore
+          }
+        }}
+      />
 
       {/* LOGOUT CONFIRMATION MODAL */}
     {/* ---------------- LOGOUT CONFIRMATION MODAL ---------------- */}
