@@ -89,7 +89,10 @@ const Login: React.FC = () => {
 
   const handleGoogleLogin = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    const authUrl = `${API_URL}/api/auth/google`;
+    
+    // ✅ FIX: Remove trailing slash from API_URL before concatenation
+    const baseUrl = API_URL.replace(/\/$/, '');
+    const authUrl = `${baseUrl}/api/auth/google`;
     
     const width = 500;
     const height = 600;
