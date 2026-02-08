@@ -5,6 +5,8 @@ import { register, resendVerification, clearError, clearSuccess } from '../store
 import { isAuthenticated } from '../services/authService';
 import api from '../services/apiClient';
 import AttachmentsUpload from '../Components/maintenance/attachments/AttachmentsUpload';
+import AttachmentsViewer from '../Components/maintenance/attachments/AttachmentsViewer';
+import type { MaintenanceAttachment } from '../types/maintenance';
 
 type BarangayItem = { id: number; name: string };
 type BarangaysResponse = { success: boolean; barangays: BarangayItem[] };
@@ -19,7 +21,8 @@ const SignUp: React.FC = () => {
   const { isLoading, error: authError, successMessage } = useAppSelector((state) => state.auth);
   
   // ✅ Local state
-  const [role, setRole] = useState('');
+  // CHANGED: Web signup is now Barangay-only, so default role to Barangay Staff ("2")
+  const [role, setRole] = useState('2');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -99,12 +102,24 @@ const SignUp: React.FC = () => {
     };
   }, [dispatch]);
 
+  // ✅ Create/cleanup object URL for viewer
   useEffect(() => {
-    // cleanup object URL
-    return () => {
+    if (!attachmentFile) {
       if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
+      setAttachmentPreviewUrl(null);
+      setShowAttachmentPreview(false);
+      return;
+    }
+
+    const url = URL.createObjectURL(attachmentFile);
+    setAttachmentPreviewUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
     };
-  }, [attachmentPreviewUrl]);
+    // intentionally not depending on attachmentPreviewUrl to avoid double-revoke
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachmentFile]);
 
   // If role changes away from Barangay, clear attachment
   useEffect(() => {
@@ -112,6 +127,7 @@ const SignUp: React.FC = () => {
       if (attachmentPreviewUrl) URL.revokeObjectURL(attachmentPreviewUrl);
       setAttachmentPreviewUrl(null);
       setAttachmentFile(null);
+      setShowAttachmentPreview(false);
       setErrors(prev => {
         const next = { ...prev };
         delete next.attachment;
@@ -120,6 +136,16 @@ const SignUp: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBarangayRoleSelected]);
+
+  const attachmentForViewer: MaintenanceAttachment | null =
+    attachmentFile && attachmentPreviewUrl
+      ? ({
+          File_name: attachmentFile.name,
+          File_path: attachmentPreviewUrl,
+          File_type: attachmentFile.type,
+          File_size: attachmentFile.size,
+        } as MaintenanceAttachment)
+      : null;
 
   const nameFilter = (input: string) => input.replace(/[^A-Za-z\s.'-]/g, '');
   const nameRegex = /^[A-Za-z\s.'-]+$/;
@@ -268,26 +294,16 @@ const SignUp: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 You're creating an account as?
               </label>
-              <select
-                value={role}
-                onChange={(e) => {
-                  setRole(e.target.value);
-                  const newErrors = { ...errors };
-                  if (e.target.value) delete newErrors.role;
-                  setErrors(newErrors);
-                }}
-                onBlur={() => validateField('role')}
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
-                  errors.role 
-                    ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
-                    : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                }`}
-              >
-                <option value="">Select Role</option>
-                <option value="1">Admin</option>
-                <option value="2">Barangay Staff</option>
-              </select>
-              {errors.role && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.role}</div>}
+
+              {/* CHANGED: uneditable + not clickable/focusable */}
+              <input
+                type="text"
+                value="Barangay Staff"
+                disabled
+                aria-disabled="true"
+                tabIndex={-1}
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all border-gray-200 bg-gray-50 text-gray-700 cursor-not-allowed pointer-events-none"
+              />
             </div>
 
             {/* First Name & Last Name */}
@@ -426,6 +442,15 @@ const SignUp: React.FC = () => {
                     setAttachmentFile(null);
                     setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
                   }}
+                  onItemClick={() => {
+                    if (attachmentFile) setShowAttachmentPreview(true);
+                  }}
+                />
+
+                <AttachmentsViewer
+                  attachment={attachmentForViewer}
+                  isOpen={showAttachmentPreview}
+                  onClose={() => setShowAttachmentPreview(false)}
                 />
               </div>
             )}
