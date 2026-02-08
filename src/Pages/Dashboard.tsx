@@ -17,7 +17,7 @@ import {
   Filler
 } from "chart.js";
 import { Line, Doughnut } from "react-chartjs-2";
-import { Trash2, AlertTriangle, Server, Zap } from "lucide-react";
+import { Trash2, AlertTriangle, Server, Zap, PawPrint } from "lucide-react";
 import DASHTRASH from "../assets/images/DASHTRASH.png";
 
 ChartJS.register(
@@ -72,7 +72,7 @@ const GasYieldCard = ({
   };
 
   return (
-    <div className="rounded-xl bg-green-200 p-3 h-[110px]">
+    <div className="rounded-xl bg-green-200 p-3 h-[110px] shadow-md" style={{ height: 'calc(110px * 0.9)' }}>
       <p className="text-xs font-semibold text-gray-800">Gas Yield</p>
 
       <div className="mt-2 flex items-center justify-between">
@@ -112,7 +112,7 @@ const EnergyYieldCard = ({ value, trend }: { value: number; trend: number[] }) =
   };
 
   return (
-    <div className="rounded-xl bg-yellow-200 p-3 h-[110px]">
+    <div className="rounded-xl bg-yellow-200 p-3 h-[110px] shadow-md" style={{ height: 'calc(110px * 0.9)' }}>
       <p className="text-xs font-semibold text-gray-800">Energy Yield</p>
       <p className="text-xl font-bold text-gray-800 mt-1">{value} kWh</p>
       <div className="h-8 mt-1">
@@ -130,7 +130,7 @@ const EnergyYieldCard = ({ value, trend }: { value: number; trend: number[] }) =
 };
 
 const ProcessedWasteCard = ({ waste }: { waste: { food: number; manure: number } }) => (
-  <div className="rounded-xl bg-orange-300 p-3 h-[110px]">
+  <div className="rounded-xl bg-orange-300 p-3 h-[110px] shadow-md" style={{ height: 'calc(110px * 0.9)' }}>
     <p className="text-xs font-semibold text-gray-800">Processed Waste</p>
     <div className="mt-2 flex justify-around gap-4">
       <div className="flex flex-col items-center">
@@ -149,7 +149,7 @@ const ProcessedWasteCard = ({ waste }: { waste: { food: number; manure: number }
 );
 
 const StatCard = ({ title, value }: { title: string; value: string | number }) => (
-  <div className="rounded-xl border bg-white p-5 shadow-sm flex flex-col justify-center h-[120px]">
+  <div className="rounded-xl border bg-white p-5 shadow-md flex flex-col justify-center h-[120px]" style={{ height: 'calc(120px * 0.9)' }}>
     <p className="text-4xl font-bold text-gray-800">{value}</p>
     <p className="text-sm font-semibold text-gray-600 mt-1 leading-tight">{title}</p>
   </div>
@@ -163,9 +163,10 @@ const GreetingCard = ({
   lastName?: string;
 }) => (
   <div 
-    className="rounded-xl overflow-hidden relative h-[120px] bg-cover bg-center bg-no-repeat"
+    className="rounded-xl overflow-hidden relative h-[120px] bg-cover bg-center bg-no-repeat shadow-md"
     style={{
       backgroundImage: `url(${DASHTRASH})`,
+      height: 'calc(120px * 0.9)'
     }}
   >
     <div className="absolute inset-0 bg-gradient-to-r from-[#E8F5E9]/90 via-[#C8E6C9]/70 to-transparent" />
@@ -201,57 +202,59 @@ const AdditivesPanel = ({
   };
 
   return (
-    <div className="rounded-xl border bg-white p-3 shadow-sm m-0">
+    <div className="rounded-xl border bg-white p-3 shadow-md h-full">
       <p className="text-xs font-semibold mb-2 text-center text-gray-800">Additives Ratio</p>
 
-      <div className="relative h-28 flex items-center justify-center">
-        <Doughnut
-          data={chartData}
-          options={{
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx) => {
-                    const value = ctx.raw as number;
-                    const pct = Math.round((value / additives.total) * 100);
-                    return `${ctx.label}: ${value} L (${pct}%)`;
+      <div className="flex gap-2">
+        <div className="relative h-28 flex items-center justify-center flex-[1.5]">
+          <Doughnut
+            data={chartData}
+            options={{
+              plugins: {
+                legend: { display: false },
+                tooltip: {
+                  callbacks: {
+                    label: (ctx) => {
+                      const value = ctx.raw as number;
+                      const pct = Math.round((value / additives.total) * 100);
+                      return `${ctx.label}: ${value} L (${pct}%)`;
+                    },
                   },
                 },
               },
-            },
-          }}
-        />
+            }}
+          />
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-lg font-bold leading-none text-gray-800">{additives.total}</p>
-          <p className="text-[10px] text-gray-500">Liters</p>
+          <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+            <p className="text-lg font-bold leading-none text-gray-800">{additives.total}</p>
+            <p className="text-[10px] text-gray-500">Liters</p>
+          </div>
         </div>
-      </div>
 
-      <div className="mt-2 space-y-1">
-        {items.map(item => {
-          const pct = Math.round((item.value / additives.total) * 100);
-          return (
-            <div key={item.label} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="text-gray-700">{item.label}</span>
+        <div className="flex-1 space-y-1">
+          {items.map(item => {
+            const pct = Math.round((item.value / additives.total) * 100);
+            return (
+              <div key={item.label} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: item.color }}
+                  />
+                  <span className="text-gray-700">{item.label}</span>
+                </div>
+                <span className="font-medium text-gray-800">{pct}%</span>
               </div>
-              <span className="font-medium text-gray-800">{pct}%</span>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 };
 
 const AlertsPanel = ({ alerts }: { alerts: any[] }) => (
-  <div className="rounded-xl border bg-white p-3 shadow-sm m-0">
+  <div className="rounded-xl border bg-white p-3 shadow-md h-full">
     <p className="text-sm font-semibold mb-3 text-center text-gray-800">Alerts</p>
     <div className="space-y-2">
       {alerts.slice(0, 3).map((alert) => (
@@ -458,8 +461,8 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen flex flex-col bg-gray-50">
       <Header />
 
-      <main className="flex-1 px-6 lg:px-8 py-8 flex flex-col gap-6 mt-[10vh] h-[calc(100vh-10vh)] overflow-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
+      <main className="flex-1 px-6 lg:px-8 py-8 flex flex-col gap-6 mt-[10vh] h-[calc(100vh-10vh)] overflow-auto pb-0">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0" style={{ height: 'calc(120px * 0.9)' }}>
           <GreetingCard 
             firstName={user?.FirstName} 
             lastName={user?.LastName}
@@ -470,12 +473,16 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-4 flex-1">
-          <div className="w-full lg:w-1/2 flex flex-row gap-2">
+          <div className="w-full lg:w-1/2 flex flex-row gap-4">
+          <div className="w-1/2">
             <AdditivesPanel additives={data.additives} />
+          </div>
+          <div className="w-1/2">
             <AlertsPanel alerts={data.alerts} />
           </div>
+        </div>
           
-          <div className="w-full lg:w-1/2 rounded-xl border bg-white p-4 shadow-sm flex flex-col">
+          <div className="w-full lg:w-1/2 rounded-xl border bg-white p-4 shadow-md flex flex-col">
             <div className="mb-3 flex justify-between items-center flex-wrap gap-2">
               <div className="flex gap-2">
                 <Tab
@@ -533,6 +540,9 @@ const Dashboard: React.FC = () => {
         }}
         isFirstLogin={isFirstLoginRedux}
       />
+      
+      <footer className="border-t-2 border-gray-300 bg-gray-50 py-4 px-6 lg:px-8">
+      </footer>
     </div>
   );
 };
