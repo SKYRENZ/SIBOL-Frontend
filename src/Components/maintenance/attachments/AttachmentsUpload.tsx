@@ -89,6 +89,9 @@ interface AttachmentUploadProps {
 
   // ✅ NEW (optional): layout for selected items
   itemLayout?: 'thumb' | 'thumb+name';
+
+  // ✅ NEW (optional): click handler for preview/viewer
+  onItemClick?: (file: File, index: number) => void;
 }
 
 const isImageFile = (f: File) =>
@@ -104,6 +107,7 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
   accept = 'image/*,.pdf,.doc,.docx',
   multiple = true,
   itemLayout = 'thumb',
+  onItemClick,
 }) => {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -146,10 +150,10 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
 
       <div className="flex items-center gap-2">
         <input
-          ref={inputRef}                 // ✅ add ref
+          ref={inputRef}
           type="file"
           id={inputId}
-          onChange={handleChange}        // ✅ use wrapper
+          onChange={handleChange}
           accept={accept}
           multiple={multiple}
           disabled={disabled}
@@ -172,13 +176,23 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
       </div>
 
       {files.length > 0 && (
-        // ✅ Default (thumb) stays horizontal like before; only thumb+name stacks rows
         <div className={itemLayout === 'thumb' ? 'flex items-center gap-2 overflow-x-auto pb-1' : 'flex flex-col gap-2'}>
           {previews.map((p, index) =>
             itemLayout === 'thumb+name' ? (
               <div
                 key={`${p.file.name}-${p.file.size}-${index}`}
-                className="flex items-center gap-3 border border-gray-200 bg-gray-50 rounded-md px-2 py-2"
+                className={`flex items-center gap-3 border border-gray-200 bg-gray-50 rounded-md px-2 py-2 ${
+                  onItemClick && !disabled ? 'cursor-pointer hover:border-[#355842]' : ''
+                }`}
+                onClick={() => {
+                  if (!disabled) onItemClick?.(p.file, index);
+                }}
+                role={onItemClick ? 'button' : undefined}
+                tabIndex={onItemClick && !disabled ? 0 : -1}
+                onKeyDown={(e) => {
+                  if (!onItemClick || disabled) return;
+                  if (e.key === 'Enter' || e.key === ' ') onItemClick(p.file, index);
+                }}
               >
                 <div className="w-16 h-16 rounded-md border border-gray-200 overflow-hidden bg-white flex-shrink-0">
                   {p.isImage && p.url ? (
@@ -199,7 +213,10 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => handleRemove(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(index);
+                  }}
                   disabled={disabled}
                   className="bg-red-500 text-white rounded-full p-1 hover:bg-red-600 disabled:opacity-50"
                   aria-label="Remove attachment"
@@ -210,8 +227,19 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
             ) : (
               <div
                 key={`${p.file.name}-${p.file.size}-${index}`}
-                className="relative group w-20 h-20 flex-shrink-0 border border-gray-200 rounded-md overflow-hidden bg-gray-50"
+                className={`relative group w-20 h-20 flex-shrink-0 border border-gray-200 rounded-md overflow-hidden bg-gray-50 ${
+                  onItemClick && !disabled ? 'cursor-pointer hover:border-[#355842]' : ''
+                }`}
                 title={p.file.name}
+                onClick={() => {
+                  if (!disabled) onItemClick?.(p.file, index);
+                }}
+                role={onItemClick ? 'button' : undefined}
+                tabIndex={onItemClick && !disabled ? 0 : -1}
+                onKeyDown={(e) => {
+                  if (!onItemClick || disabled) return;
+                  if (e.key === 'Enter' || e.key === ' ') onItemClick(p.file, index);
+                }}
               >
                 {p.isImage && p.url ? (
                   <img src={p.url} alt={p.file.name} className="w-full h-full object-cover" loading="lazy" />
@@ -223,7 +251,10 @@ const AttachmentsUpload: React.FC<AttachmentUploadProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => handleRemove(index)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemove(index);
+                  }}
                   disabled={disabled}
                   className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 disabled:opacity-50"
                   aria-label="Remove attachment"
