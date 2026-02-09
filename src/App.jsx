@@ -18,7 +18,6 @@ const NotFound = lazy(() => import('./Pages/NotFound.tsx'));
 const EmailVerification = lazy(() => import('./Pages/EmailVerification.tsx'));
 const AdminPending = lazy(() => import('./Pages/AdminPending.tsx'));
 const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
-const ProfilePage = lazy(() => import('./Pages/Profile.tsx'));
 const ChatSupport = lazy(() => import('./Pages/ChatSupport.tsx'));
 const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 
@@ -48,7 +47,6 @@ function App() {
         <Route path="/sibol-machines" element={<SibolMachinePage />} />
         <Route path="/household" element={<Household />} />
         <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/profile" element={<ProfilePage />} />
         <Route path="/notifications" element={<NotificationsPage />} />
       </Route>
 
