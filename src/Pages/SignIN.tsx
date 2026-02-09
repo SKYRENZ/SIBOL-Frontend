@@ -9,12 +9,12 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const { isLoading, error: authError, isAuthenticated } = useAppSelector((state) => state.auth);
-  
-  const [username, setUsername] = useState('');
+
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [touched, setTouched] = useState<{ username?: boolean; password?: boolean }>({});
-  const [ssoError, setSsoError] = useState<string | null>(null); // ✅ ADD
+  const [touched, setTouched] = useState<{ identifier?: boolean; password?: boolean }>({});
+  const [ssoError, setSsoError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -33,8 +33,7 @@ const Login: React.FC = () => {
     const handleMessage = (event: MessageEvent) => {
       const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const allowedOrigin = new URL(API_URL).origin;
-      
-      // Allow messages from same origin (popup) or API origin
+
       if (event.origin !== allowedOrigin && event.origin !== window.location.origin) {
         console.warn('Message from unauthorized origin:', event.origin);
         return;
@@ -44,7 +43,6 @@ const Login: React.FC = () => {
         dispatch(verifyToken()).unwrap().then(() => {
           navigate('/dashboard', { replace: true });
         }).catch((err) => {
-          // If server verify failed but popup sent user object, fall back to setUser
           if (event.data?.user) {
             dispatch(setUser(event.data.user));
             navigate('/dashboard', { replace: true });
@@ -62,43 +60,41 @@ const Login: React.FC = () => {
     return () => window.removeEventListener('message', handleMessage);
   }, [navigate, dispatch]);
 
-  const isValid = useMemo(() => username.trim().length > 0 && password.trim().length > 0, [username, password]);
-  const usernameError = !username.trim() && touched.username ? 'This field is required' : '';
+  const isValid = useMemo(
+    () => identifier.trim().length > 0 && password.trim().length > 0,
+    [identifier, password]
+  );
+
+  const identifierError = !identifier.trim() && touched.identifier ? 'This field is required' : '';
   const passwordError = !password.trim() && touched.password ? 'This field is required' : '';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSsoError(null); // ✅ clear SSO error when trying normal login
-    setTouched({ username: true, password: true });
+    setSsoError(null);
+    setTouched({ identifier: true, password: true });
 
     if (!isValid) return;
 
     try {
-      const result = await dispatch(loginAction({ username: username.trim(), password })).unwrap();
-      
-      // ✅ Only navigate on successful login
+      const result = await dispatch(loginAction({ identifier: identifier.trim(), password })).unwrap();
       if (result?.user) {
         navigate('/dashboard', { replace: true });
       }
     } catch (error: any) {
-      // ✅ Error is now in Redux state and will persist
       console.error('Login failed:', error);
-      // Don't navigate - let the error show
     }
   };
 
   const handleGoogleLogin = () => {
     const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    
-    // ✅ FIX: Remove trailing slash from API_URL before concatenation
     const baseUrl = API_URL.replace(/\/$/, '');
     const authUrl = `${baseUrl}/api/auth/google`;
-    
+
     const width = 500;
     const height = 600;
     const left = window.screen.width / 2 - width / 2;
     const top = window.screen.height / 2 - height / 2;
-    
+
     const popup = window.open(
       authUrl,
       'Google Sign In',
@@ -139,22 +135,23 @@ const Login: React.FC = () => {
           <form className="flex flex-col gap-3 sm:gap-4" onSubmit={handleSubmit} noValidate>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
-                Username
+                Email or Username
               </label>
               <input
                 className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
-                  usernameError 
-                    ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+                  identifierError
+                    ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
                     : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
                 }`}
                 type="text"
-                placeholder="Enter your username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                onBlur={() => setTouched((t) => ({ ...t, username: true }))}
+                placeholder="Enter your email or username"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                onBlur={() => setTouched((t) => ({ ...t, identifier: true }))}
+                autoComplete="username"
               />
-              {usernameError && (
-                <div className="text-red-600 text-xs sm:text-sm mt-1">{usernameError}</div>
+              {identifierError && (
+                <div className="text-red-600 text-xs sm:text-sm mt-1">{identifierError}</div>
               )}
             </div>
 
@@ -165,8 +162,8 @@ const Login: React.FC = () => {
               <div className="relative">
                 <input
                   className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-12 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
-                    passwordError 
-                      ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200' 
+                    passwordError
+                      ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
                       : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
                   }`}
                   type={showPassword ? 'text' : 'password'}
@@ -174,6 +171,7 @@ const Login: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   onBlur={() => setTouched((t) => ({ ...t, password: true }))}
+                  autoComplete="current-password"
                 />
                 <button
                   type="button"
@@ -207,7 +205,6 @@ const Login: React.FC = () => {
               </div>
             )}
 
-            {/* ✅ REMOVED: Loading spinner - Submit Button shows text only */}
             <button 
               className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
               type="submit" 
@@ -217,14 +214,12 @@ const Login: React.FC = () => {
             </button>
           </form>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 sm:gap-4 my-5 sm:my-6 text-gray-400 font-semibold text-sm">
             <div className="flex-1 h-px bg-gray-200"></div>
             <span>Or</span>
             <div className="flex-1 h-px bg-gray-200"></div>
           </div>
 
-          {/* Google Sign In Button */}
           <button
             type="button"
             onClick={handleGoogleLogin}
@@ -236,7 +231,6 @@ const Login: React.FC = () => {
             </span>
           </button>
 
-          {/* Sign Up Link */}
           <p className="text-center mt-6 sm:mt-8 text-gray-700 text-sm sm:text-base">
             Don't have an account?{' '}
             <button 

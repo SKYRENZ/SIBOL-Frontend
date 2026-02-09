@@ -41,16 +41,16 @@ const initialState: AuthState = {
 // ✅ Existing thunks
 export const login = createAsyncThunk(
   'auth/login',
-  async ({ username, password }: { username: string; password: string }, { rejectWithValue }) => {
+  async ({ identifier, password }: { identifier: string; password: string }, { rejectWithValue }) => {
     try {
-      const data = await authService.login(username, password);
+      const data = await authService.login(identifier, password);
       return data;
     } catch (error: any) {
-      const errorMessage = 
+      const errorMessage =
         error?.response?.data?.error ||
         error?.response?.data?.message ||
         error?.message ||
-        'Invalid username or password';
+        'Invalid username/email or password';
       return rejectWithValue(errorMessage);
     }
   }

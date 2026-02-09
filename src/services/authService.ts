@@ -27,8 +27,15 @@ export type RegisterResponse = {
 
 let cachedUser: User | null = null; // <-- in-memory cache
 
-export async function login(username: string, password: string): Promise<AuthResponse> {
-  const res = await api.post('/api/auth/login', { username, password });
+export async function login(identifier: string, password: string): Promise<AuthResponse> {
+  // ✅ Send identifier (email or username). Also include username for backward compatibility.
+  const res = await api.post('/api/auth/login', {
+    identifier,
+    username: identifier,
+    email: identifier,
+    password,
+  });
+
   const data = res.data as any;
   
   // do NOT persist to localStorage — use in-memory cache
