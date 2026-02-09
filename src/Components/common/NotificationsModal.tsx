@@ -47,6 +47,8 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         return "text-teal-700 border-teal-600 bg-teal-50/60";
       case "REGISTERED":
         return "text-blue-700 border-blue-600 bg-blue-50/60";
+      case "REGISTERED_VERIFIED":
+        return "text-emerald-700 border-emerald-600 bg-emerald-50/60";
       case "APPROVED":
         return "text-green-700 border-green-600 bg-green-50/60";
       case "REJECTED":
