@@ -79,6 +79,24 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
     return "text-gray-700 border-gray-500 bg-gray-50/60";
   };
 
+  const eventTags = (eventType?: string | null) => {
+    const type = String(eventType ?? "").toUpperCase();
+    if (!type) return [] as Array<{ label: string; className: string }>;
+
+    if (type === "REGISTERED_VERIFIED") {
+      return [
+        { label: "registered", className: eventBadge("REGISTERED") },
+        { label: "email verified", className: eventBadge("REGISTERED_VERIFIED") },
+      ];
+    }
+
+    if (type === "REGISTERED") {
+      return [{ label: "registered", className: eventBadge("REGISTERED") }];
+    }
+
+    return [{ label: String(eventType ?? ""), className: eventBadge(type) }];
+  };
+
   return (
     <FormModal isOpen={isOpen} onClose={onClose} title="Notifications" width="760px">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -150,11 +168,14 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                             {notification.status}
                           </span>
                         )}
-                        {notification.eventType && (
-                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${eventBadge(notification.eventType)}`}>
-                            {notification.eventType}
+                        {eventTags(notification.eventType).map((tag, index) => (
+                          <span
+                            key={`${notification.id}-tag-${index}`}
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${tag.className}`}
+                          >
+                            {tag.label}
                           </span>
-                        )}
+                        ))}
                       </div>
                       <p className="mt-2 text-sm text-gray-600">{notification.message}</p>
                     </div>
