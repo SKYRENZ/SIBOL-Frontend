@@ -47,6 +47,8 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         return "text-teal-700 border-teal-600 bg-teal-50/60";
       case "REGISTERED":
         return "text-blue-700 border-blue-600 bg-blue-50/60";
+      case "REGISTERED_VERIFIED":
+        return "text-emerald-700 border-emerald-600 bg-emerald-50/60";
       case "APPROVED":
         return "text-green-700 border-green-600 bg-green-50/60";
       case "REJECTED":
@@ -75,6 +77,24 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
     if (s.includes("cancel")) return "text-red-700 border-red-600 bg-red-50/60";
     if (s.includes("requested")) return "text-blue-700 border-blue-600 bg-blue-50/60";
     return "text-gray-700 border-gray-500 bg-gray-50/60";
+  };
+
+  const eventTags = (eventType?: string | null) => {
+    const type = String(eventType ?? "").toUpperCase();
+    if (!type) return [] as Array<{ label: string; className: string }>;
+
+    if (type === "REGISTERED_VERIFIED") {
+      return [
+        { label: "registered", className: eventBadge("REGISTERED") },
+        { label: "email verified", className: eventBadge("REGISTERED_VERIFIED") },
+      ];
+    }
+
+    if (type === "REGISTERED") {
+      return [{ label: "registered", className: eventBadge("REGISTERED") }];
+    }
+
+    return [{ label: String(eventType ?? ""), className: eventBadge(type) }];
   };
 
   return (
@@ -148,11 +168,14 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
                             {notification.status}
                           </span>
                         )}
-                        {notification.eventType && (
-                          <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${eventBadge(notification.eventType)}`}>
-                            {notification.eventType}
+                        {eventTags(notification.eventType).map((tag, index) => (
+                          <span
+                            key={`${notification.id}-tag-${index}`}
+                            className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${tag.className}`}
+                          >
+                            {tag.label}
                           </span>
-                        )}
+                        ))}
                       </div>
                       <p className="mt-2 text-sm text-gray-600">{notification.message}</p>
                     </div>
