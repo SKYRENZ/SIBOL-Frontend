@@ -16,6 +16,7 @@ import UserApproval from '../Components/admin/UserApproval';
 import { Account } from '../types/adminTypes';
 import Header from '../Components/Header';
 import Pagination from '../Components/common/Pagination';
+import SnackBar from '../Components/common/SnackBar'; // ✅ add
 
 export default function Admin() {
   const dispatch = useDispatch<AppDispatch>();
@@ -54,27 +55,43 @@ export default function Admin() {
 
   useEffect(() => setCurrentPage((prev) => Math.min(prev, totalPages)), [totalPages]);
 
+  // ✅ snackbar state (page-level, so it persists even when modals close)
+  const [snackKey, setSnackKey] = useState(0);
+  const [snack, setSnack] = useState<{
+    visible: boolean;
+    message: string;
+    type: 'error' | 'success' | 'info';
+  }>({ visible: false, message: '', type: 'info' });
+
+  const showSnack = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
+    setSnackKey((k) => k + 1);
+    setSnack({ visible: true, message, type });
+  };
+
+  const dismissSnack = () => setSnack((s) => ({ ...s, visible: false }));
+
   // UI-level slim wrappers (network handled in Redux)
   const onCreate = async (p: Partial<Account>) => {
     dispatch(createAccount(p))
       .unwrap()
       .then(() => {
         setCreating(false);
-        dispatch(fetchAdminData()); // Refetch to ensure list is perfectly in sync
+        dispatch(fetchAdminData());
+        showSnack('Admin created.', 'success'); // ✅
       })
-      .catch((err: any) => alert(err?.message ?? 'Create failed'));
+      .catch((err: any) => showSnack(err?.message ?? 'Create failed', 'error')); // ✅ (removed alert)
   };
 
-  // Pass payload object with Account_id (useAdmin.updateAccount expects a payload)
   const onUpdate = async (p: Partial<Account>) => {
     if (!editingAccount?.Account_id) return;
     dispatch(updateAccount({ accountId: editingAccount.Account_id, updates: p }))
       .unwrap()
       .then(() => {
         setEditingAccount(null);
-        dispatch(fetchAdminData()); // Refetch to ensure list is perfectly in sync
+        dispatch(fetchAdminData());
+        showSnack('Admin updated.', 'success'); // ✅
       })
-      .catch((err: any) => alert(err?.message ?? 'Update failed'));
+      .catch((err: any) => showSnack(err?.message ?? 'Update failed', 'error')); // ✅
   };
 
   // use the hook's toggleAccountActive(accountId, isActive) signature
@@ -84,10 +101,10 @@ export default function Admin() {
     dispatch(toggleAccountActive({ accountId: a.Account_id, isActive: newIsActive }))
       .unwrap()
       .then(() => {
-        // The list will update automatically from the reducer, but a refetch is safer
         dispatch(fetchAdminData());
+        showSnack(`Account ${newIsActive ? 'enabled' : 'disabled'}.`, 'success'); // ✅
       })
-      .catch((err: any) => alert(err?.message ?? 'Toggle active failed'));
+      .catch((err: any) => showSnack(err?.message ?? 'Toggle active failed', 'error')); // ✅
   };
 
   // Accept/Approve expects an Account (or id) — keep similar but use hook properly
@@ -97,19 +114,22 @@ export default function Admin() {
     dispatch(approvePendingAccount(Number(pendingId)))
       .unwrap()
       .then(() => {
-        alert('Account approved');
-        dispatch(fetchAdminData()); // Refetch all data to update lists
+        dispatch(fetchAdminData());
+        showSnack('Account approved.', 'success'); // ✅ (removed alert)
       })
-      .catch((err) => alert(err?.message ?? 'Approve failed'));
+      .catch((err) => showSnack(err?.message ?? 'Approve failed', 'error')); // ✅
   };
 
-  const onReject = async (a: Account) => {
+  const onReject = async (a: Account, reason?: string) => {
     const pendingId = (a as any).Pending_id;
     if (!pendingId) return;
-    dispatch(rejectPendingAccount({ pendingId: Number(pendingId), reason: undefined }))
+    dispatch(rejectPendingAccount({ pendingId: Number(pendingId), reason }))
       .unwrap()
-      .then(() => alert('Account rejected'))
-      .catch((err) => alert(err?.message ?? 'Reject failed'));
+      .then(() => {
+        dispatch(fetchAdminData());
+        showSnack('Account rejected.', 'success'); // ✅ (removed alert)
+      })
+      .catch((err) => showSnack(err?.message ?? 'Reject failed', 'error')); // ✅
   };
 
   const pendingCount = pendingAccounts.length;
@@ -259,6 +279,15 @@ export default function Admin() {
           </div>
         </div>
       </div>
+
+      {/* ✅ Page snackbar (removes all browser alerts) */}
+      <SnackBar
+        key={snackKey}
+        visible={snack.visible}
+        message={snack.message}
+        type={snack.type}
+        onDismiss={dismissSnack}
+      />
     </>
   );
 }

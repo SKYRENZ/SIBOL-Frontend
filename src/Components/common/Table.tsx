@@ -33,7 +33,7 @@ interface TableProps<T> {
   initialPageSize?: number;
   fixedPagination?: boolean;
   pagination?: TablePaginationConfig;
-  filterTypes?: string[]; // <-- make optional
+  filterTypes?: string[];
   rowKey?: string;
   customToolbar?: React.ReactNode;
 }
@@ -53,7 +53,7 @@ const Table = <T extends Record<string, any>>({
   initialPageSize = 5,
   fixedPagination = true,
   pagination,
-  filterTypes, // <-- remove default []
+  filterTypes,
   rowKey = "id",
   customToolbar,
 }: TableProps<T>) => {
@@ -117,10 +117,10 @@ const Table = <T extends Record<string, any>>({
   };
 
   const getRowKey = (row: T, index: number) =>
-    row[rowKey] !== undefined ? String(row[rowKey]) : `row-${index}`;
+    row[rowKey] !== undefined ? `${row[rowKey]}-${index}` : `row-${index}`;
 
   return (
-    <div className={`w-full flex flex-col space-y-2 ${className}`}>
+    <div className={`w-full ${className}`}>
       {/* Table wrapper */}
       <div className="relative w-full rounded-xl border border-[#00001A4D] bg-white shadow-sm flex flex-col">
         {/* Search + Filter + Toolbar row */}
@@ -178,7 +178,7 @@ const Table = <T extends Record<string, any>>({
           </table>
 
           {/* Table body scrollable */}
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="overflow-y-auto">
             <table className="w-full text-sm table-fixed">
               <tbody className="divide-y divide-[#00001A4D]">
                 {paginatedData.length === 0 ? (

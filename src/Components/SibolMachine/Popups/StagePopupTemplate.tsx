@@ -38,6 +38,15 @@ type CounterCard = {
 
 type SupportCard = AdditivesCard | GaugeCard | CounterCard;
 
+type WasteInputCard = {
+  title: string;
+  item?: {
+    date: string;
+    weight: string;
+    operator?: string;
+  };
+};
+
 export interface StagePopupData {
   id: string;
   stageNumber: number;
@@ -45,19 +54,28 @@ export interface StagePopupData {
   stageSummary?: string;
   operatorName: string;
   date: string;
+  activity?: {
+    by?: string;
+    date?: string;
+    action?: string;
+  };
   supportCard?: SupportCard;
   sensors: SensorMetric[];
   narration: string;
   selectedMachine: string;
   stageImage: string;
   stageAccent: string;
+  isActive?: boolean;
+  statusLabel?: string;
   toggleDisplay?: string;
+  wasteInputCard?: WasteInputCard;
 }
 
 interface StagePopupTemplateProps extends StagePopupData {
   className?: string;
   onMachinePickerOpen?: () => void;
   onAdditivesHistoryOpen?: () => void;
+  onWasteInputHistoryOpen?: () => void;
 }
 
 const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
@@ -67,17 +85,28 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   stageSummary,
   operatorName,
   date,
+  activity,
   supportCard,
   sensors,
   narration,
   selectedMachine,
   stageImage,
   stageAccent,
+  isActive,
+  statusLabel,
   toggleDisplay = "0",
   onMachinePickerOpen,
   onAdditivesHistoryOpen,
+  onWasteInputHistoryOpen,
+  wasteInputCard,
 }) => {
   const [isLearnMoreOpen, setIsLearnMoreOpen] = useState(false);
+  const isInactive = isActive === false;
+  const hasActivity = Boolean(activity?.by || activity?.date || activity?.action);
+  const showNoData = isInactive || !hasActivity;
+  const activityName = showNoData ? "No data yet" : activity?.by || operatorName;
+  const activityDate = showNoData ? "No data yet" : activity?.date || date;
+  const activityAction = showNoData ? "No data yet" : activity?.action || "Updated machine";
 
   return (
     <div
@@ -95,7 +124,12 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       <div className="pointer-events-none absolute inset-0 -z-10 rounded-[28px] bg-[radial-gradient(circle_at_top_left,rgba(212,230,216,0.45),transparent_60%)]" />
 
       <div className="flex items-center justify-between">
-        <StageToggle accent={stageAccent} display={toggleDisplay} />
+        <StageToggle
+          accent={stageAccent}
+          display={toggleDisplay}
+          isActive={isActive}
+          statusLabel={statusLabel}
+        />
         <div className="w-[88px]" aria-hidden />
       </div>
 
@@ -109,18 +143,22 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
 
       <div className="mt-7 grid gap-5 md:grid-cols-[196px_minmax(0,1fr)_196px]">
         <aside className="space-y-4">
-          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-5 py-5 shadow-sm">
+          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-5 py-5 shadow-sm min-h-[150px]">
             <div className="space-y-3">
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">On</span>
                 <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#1E3426]">
                   <Power size={16} className="text-[#2E523A]" />
-                  <span>{operatorName}</span>
+                  <span>{activityName}</span>
                 </p>
               </div>
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">Date</span>
-                <p className="mt-1 text-sm text-[#40594A]">{date}</p>
+                <p className="mt-1 text-sm text-[#40594A]">{activityDate}</p>
+              </div>
+              <div>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">Action</span>
+                <p className="mt-1 text-sm text-[#40594A]">{activityAction}</p>
               </div>
             </div>
           </div>
@@ -138,8 +176,11 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
           <StageIllustration image={stageImage} accent={stageAccent} />
         </div>
 
-        <aside className="md:pr-1">
+        <aside className="md:pr-1 space-y-4">
           <SensorsCard sensors={sensors} accent={stageAccent} />
+          {wasteInputCard && (
+            <WasteInputCardContent card={wasteInputCard} onHistoryOpen={onWasteInputHistoryOpen} />
+          )}
         </aside>
       </div>
 
@@ -177,8 +218,21 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   );
 };
 
-const StageToggle: React.FC<{ accent: string; display: string }> = ({ accent, display }) => (
-  <div className="inline-flex items-center">
+const StageToggle: React.FC<{ accent: string; display: string; isActive?: boolean; statusLabel?: string }> = ({
+  accent,
+  display,
+  isActive,
+  statusLabel,
+}) => {
+  const active = isActive !== false;
+  const badgeText = statusLabel ?? (active ? "Active" : "Inactive");
+  const badgeClass = active
+    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+    : "bg-red-100 text-red-700 border-red-200";
+  const toggleAccent = active ? accent : "#B91C1C";
+
+  return (
+    <div className="inline-flex items-center gap-2">
     <span
       className="relative inline-flex h-8 min-w-[72px] items-center rounded-full border border-[#D1E3D7] bg-white/90 px-1 shadow-[0_14px_32px_-20px_rgba(33,64,46,0.6)] backdrop-blur-sm"
       style={{ boxShadow: "0 18px 38px -26px rgba(33,64,46,0.65)" }}
@@ -189,15 +243,19 @@ const StageToggle: React.FC<{ accent: string; display: string }> = ({ accent, di
       <span
         className="ml-2 flex h-6 min-w-[36px] items-center justify-end rounded-full px-2"
         style={{
-          background: `linear-gradient(135deg, ${accent} 0%, ${accent}d0 100%)`,
+          background: `linear-gradient(135deg, ${toggleAccent} 0%, ${toggleAccent}d0 100%)`,
           boxShadow: "inset 0 1px 1px rgba(255,255,255,0.5)",
         }}
       >
         <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
       </span>
     </span>
+    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${badgeClass}`}>
+      {badgeText}
+    </span>
   </div>
-);
+  );
+};
 
 const SupportCardContent: React.FC<{
   card: SupportCard;
@@ -264,6 +322,38 @@ const SupportCardContent: React.FC<{
   );
 };
 
+const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: () => void }> = ({ card, onHistoryOpen }) => {
+  return (
+    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[208px]">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
+        {onHistoryOpen && (
+          <button
+            type="button"
+            onClick={onHistoryOpen}
+            className="relative z-10 text-xs font-semibold text-[#2E523A] hover:text-[#1F3527]"
+          >
+            View history
+          </button>
+        )}
+      </div>
+      <div className="mt-4">
+        {card.item ? (
+          <div className="space-y-1">
+            <p className="text-xs text-[#5B7462]">{card.item.date}</p>
+            <p className="text-sm font-semibold text-[#1F3527]">{card.item.weight}</p>
+            {card.item.operator && (
+              <p className="text-xs text-[#6B8976]">{card.item.operator}</p>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs text-[#6B8976]">No waste inputs logged.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image, accent }) => (
   <div className="relative h-[13.5rem] w-[13.5rem] max-w-full md:h-56 md:w-56">
     <div className="absolute inset-0 rounded-full border border-[#D2E2D7] bg-[#F7FBF8]" />
@@ -277,12 +367,12 @@ const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image,
 const SensorsCard: React.FC<{ sensors: SensorMetric[]; accent: string }> = ({ sensors, accent }) => {
   const statusLabel = sensors[0]?.status ?? "Status";
   return (
-    <div className="h-full rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm">
+    <div className="rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[150px]">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#2E523A]">Sensors</h3>
         <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6B8976]">{statusLabel}</span>
       </div>
-      <div className="mt-4 space-y-4">
+      <div className="mt-3 space-y-3">
         {sensors.map((sensor) => (
           <SensorRow key={sensor.id} sensor={sensor} accent={accent} />
         ))}

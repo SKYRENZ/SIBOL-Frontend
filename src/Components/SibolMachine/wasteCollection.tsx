@@ -1,15 +1,18 @@
-import React, { useRef } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from 'react-dom';
 import SearchBar from "../common/SearchBar";
 import { X, MapPin, Calendar, Trash2, History, Weight, List, Table, FileDown, Printer, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import WasteCollectionMap from "./WasteCollectionMap";
-import { MapContainer, TileLayer, Marker } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, GeoJSON, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
+import L from 'leaflet';
 import wasteIcon from './wasteIcon';
 import InfoModal from '../common/InfoModal';
 import CustomScrollbar from '../common/CustomScrollbar';
 import AddWasteContainerForm from './AddWasteContainerForm';
 import FormModal from '../common/FormModal';
+import { buildOrganicPackageFeatures, buildVoronoiPackageFeatures } from '../../utils/geo';
+import { BARANGAY_176_E_PACKAGE_LABELS } from './data/barangay176EPackages';
 
 // Custom Hooks
 import { useWasteContainer } from '../../hooks/wasteContainer/useWasteContainer';
@@ -22,8 +25,95 @@ export interface WasteCollectionTabProps {
   parentSearchTerm?: string;
 }
 
+type BoundaryGeoJSON = any;
+
+const BARANGAY_176_QUERIES = [
+  { key: '176-e', label: 'Barangay 176-E', query: 'Barangay 176-E, Caloocan, Metro Manila, Philippines', style: { color: '#1B5E20', fillColor: '#A5D6A7' } },
+  { key: '176-a', label: 'Barangay 176-A', query: 'Barangay 176-A, Caloocan, Metro Manila, Philippines', style: { color: '#2E7D32', fillColor: '#B7E1B0' } },
+  { key: '176-b', label: 'Barangay 176-B', query: 'Barangay 176-B, Caloocan, Metro Manila, Philippines', style: { color: '#388E3C', fillColor: '#C8E6C9' } },
+  { key: '176-c', label: 'Barangay 176-C', query: 'Barangay 176-C, Caloocan, Metro Manila, Philippines', style: { color: '#43A047', fillColor: '#D1EFD0' } },
+  { key: '176-d', label: 'Barangay 176-D', query: 'Barangay 176-D, Caloocan, Metro Manila, Philippines', style: { color: '#4CAF50', fillColor: '#DDF5D8' } },
+  { key: '176-f', label: 'Barangay 176-F', query: 'Barangay 176-F, Caloocan, Metro Manila, Philippines', style: { color: '#5FBF5B', fillColor: '#E6F7E3' } },
+];
+
+const baseBoundaryStyle = {
+  weight: 2,
+  opacity: 0.9,
+  fillOpacity: 0.45,
+};
+
+const packageBoundaryStyle = {
+  weight: 2,
+  opacity: 0.85,
+  fillOpacity: 0.35,
+  color: '#8D6E63',
+  fillColor: '#E8D2B4',
+};
+
+
+const MapAutoFit: React.FC<{ boundary: BoundaryGeoJSON | null }> = ({ boundary }) => {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!boundary) return;
+    const layer = L.geoJSON(boundary as any);
+    const bounds = layer.getBounds();
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [24, 24] });
+    }
+  }, [boundary, map]);
+
+  return null;
+};
+
+const BoundaryLabel: React.FC<{
+  boundary: BoundaryGeoJSON | null;
+  label: string;
+  hideAtZoom?: number;
+}> = ({ boundary, label, hideAtZoom = 16 }) => {
+  const map = useMap();
+  const [position, setPosition] = useState<L.LatLng | null>(null);
+  const [zoom, setZoom] = useState<number>(map.getZoom());
+
+  useEffect(() => {
+    if (!boundary) return;
+    const layer = L.geoJSON(boundary as any);
+    const bounds = layer.getBounds();
+    if (bounds.isValid()) {
+      setPosition(bounds.getCenter());
+    }
+  }, [boundary]);
+
+  useEffect(() => {
+    const handler = () => setZoom(map.getZoom());
+    map.on('zoomend', handler);
+    return () => {
+      map.off('zoomend', handler);
+    };
+  }, [map]);
+
+  if (!position || zoom >= hideAtZoom) return null;
+
+  return (
+    <Marker
+      position={position}
+      icon={L.divIcon({
+        className: 'barangay-label',
+        html: `<span class="barangay-label__text">${label}</span>`,
+      })}
+      interactive={false}
+    />
+  );
+};
+
 const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTerm = '' }) => {
   const mapRef = useRef<any | null>(null);
+  const [boundary176e, setBoundary176e] = useState<BoundaryGeoJSON | null>(null);
+  const [boundaries, setBoundaries] = useState<Record<string, BoundaryGeoJSON>>({});
+  const [boundaryLoading, setBoundaryLoading] = useState<boolean>(true);
+  const [packageFeatures, setPackageFeatures] = useState<BoundaryGeoJSON[]>([]);
+  const [showContainersModal, setShowContainersModal] = useState(false);
+  const [pendingSelectId, setPendingSelectId] = useState<number | null>(null);
 
   // ✅ 1. Redux State & Actions (via custom hook)
   const {
@@ -36,6 +126,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
     selectContainer,
     addContainer,
     updateSearch,
+    refresh,
   } = useWasteContainer();
 
   // ✅ 2. UI State (local, reusable)
@@ -58,11 +149,162 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
     }
   }, [parentSearchTerm]);
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const CACHE_PREFIX = 'sibol.boundary.';
+    const TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+    const hashString = (input: string) => {
+      let hash = 5381;
+      for (let i = 0; i < input.length; i += 1) {
+        hash = (hash * 33) ^ input.charCodeAt(i);
+      }
+      return (hash >>> 0).toString(16);
+    };
+
+    const cacheKey = (query: string) => `${CACHE_PREFIX}${hashString(query)}`;
+
+    const getCachedBoundary = (query: string): any | null => {
+      try {
+        if (typeof localStorage === 'undefined') return null;
+        const raw = localStorage.getItem(cacheKey(query));
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as { ts: number; feature: any };
+        if (!parsed || typeof parsed.ts !== 'number') return null;
+        if (Date.now() - parsed.ts > TTL_MS) return null;
+        return parsed.feature ?? null;
+      } catch {
+        return null;
+      }
+    };
+
+    const setCachedBoundary = (query: string, feature: any) => {
+      try {
+        if (typeof localStorage === 'undefined') return;
+        localStorage.setItem(cacheKey(query), JSON.stringify({ ts: Date.now(), feature }));
+      } catch {
+        // ignore
+      }
+    };
+
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    const fetchBoundary = async (query: string, attempt = 0): Promise<any | null> => {
+      const cached = getCachedBoundary(query);
+      if (cached) return cached;
+
+      const url = `https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&limit=1&q=${encodeURIComponent(
+        query
+      )}`;
+      const res = await fetch(url, {
+        headers: {
+          'Accept-Language': 'en',
+        },
+      });
+      if (!res.ok) {
+        if (attempt < 2 && (res.status === 429 || res.status >= 500)) {
+          await sleep(400 + attempt * 300);
+          return fetchBoundary(query, attempt + 1);
+        }
+        return null;
+      }
+      const data = await res.json();
+      const feature = data?.features?.[0] ?? null;
+      if (feature) setCachedBoundary(query, feature);
+      return feature;
+    };
+
+    const run = async () => {
+      try {
+        setBoundaryLoading(true);
+        const results: { key: string; feature: any | null }[] = [];
+        for (const b of BARANGAY_176_QUERIES) {
+          if (!isMounted) return;
+          const feature = await fetchBoundary(b.query);
+          results.push({ key: b.key, feature });
+          await sleep(250);
+        }
+        if (!isMounted) return;
+        const next: Record<string, BoundaryGeoJSON> = {};
+        results.forEach((r) => {
+          if (r.feature?.geometry) next[r.key] = r.feature;
+        });
+        setBoundaries(next);
+        if (next['176-e']) setBoundary176e(next['176-e']);
+        setBoundaryLoading(false);
+      } catch {
+        // Silent fail: fall back to default map center
+        if (isMounted) setBoundaryLoading(false);
+      }
+    };
+
+    run();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!boundary176e) {
+      setPackageFeatures([]);
+      return;
+    }
+    const voronoiFeatures = buildVoronoiPackageFeatures(boundary176e, BARANGAY_176_E_PACKAGE_LABELS);
+    if (voronoiFeatures.length) {
+      setPackageFeatures(voronoiFeatures);
+      return;
+    }
+    const organicFeatures = buildOrganicPackageFeatures(boundary176e, BARANGAY_176_E_PACKAGE_LABELS);
+    setPackageFeatures(organicFeatures);
+  }, [boundary176e]);
+
+  useEffect(() => {
+    if (!pendingSelectId || containers.length === 0) return;
+    const created = containers.find((c) => c.container_id === pendingSelectId);
+    if (!created) return;
+
+    selectContainer(created);
+    setPendingSelectId(null);
+
+    const lat = Number(created.latitude);
+    const lon = Number(created.longitude);
+    const map = mapRef.current as any;
+    if (Number.isFinite(lat) && Number.isFinite(lon) && map) {
+      if (typeof map.flyTo === 'function') {
+        map.flyTo([lat, lon], 17, { duration: 0.8 });
+      } else if (typeof map.setView === 'function') {
+        map.setView([lat, lon], 17);
+      }
+    }
+  }, [pendingSelectId, containers, selectContainer]);
+
+  const handleGoToContainer = (container: WasteContainer) => {
+    selectContainer(container);
+    setShowContainersModal(false);
+
+    const lat = Number(container.latitude);
+    const lon = Number(container.longitude);
+    const map = mapRef.current as any;
+    if (Number.isFinite(lat) && Number.isFinite(lon) && map) {
+      if (typeof map.flyTo === 'function') {
+        map.flyTo([lat, lon], 17, { duration: 0.8 });
+      } else if (typeof map.setView === 'function') {
+        map.setView([lat, lon], 17);
+      }
+    }
+  };
+
   // Handle container creation
   const handleAddContainer = async (payload: any) => {
     const result = await addContainer(payload);
     if (result.success) {
       closeModal('add');
+      if (result.data?.container_id) {
+        setPendingSelectId(result.data.container_id);
+      }
+      refresh();
       alert('Container created successfully!');
       return true;
     } else {
@@ -102,6 +344,12 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
   };
 
   const mapCenter: [number, number] = [14.656, 120.982];
+
+  const combinedBoundary = useMemo(() => {
+    const features = Object.values(boundaries).filter(Boolean);
+    if (!features.length) return null;
+    return { type: 'FeatureCollection', features };
+  }, [boundaries]);
 
   if (loading && containers.length === 0) {
     return <div className="p-8 text-center">Loading map data...</div>;
@@ -255,12 +503,19 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           </div>
 
           <div className="p-4 bg-white flex-1 overflow-y-auto space-y-3">
-            <div className="flex items-center gap-3 p-2 rounded-lg">
+            <button
+              onClick={() => setShowContainersModal(true)}
+              className="w-full flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors text-left"
+              aria-label="View available containers"
+            >
               <div className="w-8 h-8 bg-[#e7f4ec] rounded-lg flex items-center justify-center shadow-sm">
                 <Trash2 size={18} className="text-[#235034]" />
               </div>
-              <span className="text-sm font-medium text-gray-700">Active Container</span>
-            </div>
+              <div className="flex-1">
+                <span className="text-sm font-medium text-gray-700">Active Container</span>
+                <p className="text-xs text-gray-500">Tap to view all containers</p>
+              </div>
+            </button>
           </div>
 
           <div className="px-4 py-3 border-t border-gray-100 bg-white rounded-b-xl">
@@ -317,22 +572,93 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           className="z-0"
           ref={mapRef as any}
         >
+          <MapAutoFit boundary={combinedBoundary ?? boundary176e ?? null} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {filteredData.map((item) => (
-            <Marker
-              key={item.container_id}
-              position={[item.latitude, item.longitude]}
-              icon={wasteIcon}
-              eventHandlers={{
-                click: () => selectContainer(item),
-              }}
-            />
+          {BARANGAY_176_QUERIES.map((b) => (
+            boundaries[b.key] ? (
+              <GeoJSON
+                key={b.key}
+                data={boundaries[b.key]}
+                style={{ ...baseBoundaryStyle, ...b.style }}
+                onEachFeature={(_, layer) => {
+                  const baseStyle = { ...baseBoundaryStyle, ...b.style };
+                  layer.setStyle(baseStyle);
+                  layer.bindTooltip(b.label, {
+                    sticky: true,
+                    className: 'barangay-tooltip',
+                    direction: 'center',
+                    opacity: 0.95,
+                  });
+                  layer.on({
+                    mouseover: () => layer.setStyle({ ...baseStyle, weight: 3, fillOpacity: 0.55 }),
+                    mouseout: () => layer.setStyle(baseStyle),
+                    click: (e: any) => {
+                      e?.originalEvent?.preventDefault?.();
+                      layer.setStyle({ ...baseStyle, weight: 4, fillOpacity: 0.6 });
+                      layer.openTooltip();
+                    },
+                  });
+                }}
+                interactive
+              />
+            ) : null
           ))}
+
+          <BoundaryLabel boundary={boundary176e} label="Barangay 176-E" hideAtZoom={16} />
+
+          {packageFeatures.length ? (
+            <GeoJSON
+              data={{ type: 'FeatureCollection', features: packageFeatures }}
+              style={packageBoundaryStyle}
+              onEachFeature={(feature, layer) => {
+                const label = feature?.properties?.label || 'Package';
+                layer.setStyle(packageBoundaryStyle);
+                layer.bindTooltip(label, {
+                  sticky: true,
+                  className: 'package-tooltip',
+                  direction: 'center',
+                  opacity: 0.95,
+                });
+                layer.on({
+                  mouseover: () => layer.setStyle({ ...packageBoundaryStyle, weight: 3, fillOpacity: 0.45 }),
+                  mouseout: () => layer.setStyle(packageBoundaryStyle),
+                  click: (e: any) => {
+                    e?.originalEvent?.preventDefault?.();
+                    layer.setStyle({ ...packageBoundaryStyle, weight: 4, fillOpacity: 0.5 });
+                    layer.openTooltip();
+                  },
+                });
+              }}
+              interactive
+            />
+          ) : null}
+
+          {filteredData
+            .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
+            .map((item) => (
+              <Marker
+                key={item.container_id}
+                position={[Number(item.latitude), Number(item.longitude)]}
+                icon={wasteIcon}
+                eventHandlers={{
+                  click: () => selectContainer(item),
+                }}
+              />
+            ))}
         </MapContainer>
+
+        {boundaryLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white/70 backdrop-blur-sm z-20">
+            <div className="flex items-center gap-3 px-4 py-2 rounded-full bg-white shadow-md border border-green-100">
+              <div className="w-4 h-4 border-2 border-green-600 border-t-transparent rounded-full animate-spin" />
+              <span className="text-sm text-green-800 font-medium">Loading your area map…</span>
+            </div>
+          </div>
+        )}
 
         {filteredData.length === 0 && !loading && (
           <div className="absolute inset-0 flex items-center justify-center bg-white/80 backdrop-blur-sm z-10">
@@ -363,6 +689,55 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           onCancel={() => closeModal('add')}
           onSubmit={handleAddContainer}
         />
+      </FormModal>
+
+      {/* Containers List Modal */}
+      <FormModal
+        isOpen={showContainersModal}
+        onClose={() => setShowContainersModal(false)}
+        title="Available Containers"
+        width="640px"
+      >
+        <div className="space-y-3">
+          {containers.length === 0 ? (
+            <p className="text-sm text-gray-500">No containers available.</p>
+          ) : (
+            <div className="space-y-3">
+              {containers.map((container) => (
+                <div
+                  key={container.container_id}
+                  className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white shadow-sm"
+                >
+                  <div className="w-10 h-10 rounded-lg bg-[#e7f4ec] flex items-center justify-center">
+                    <Trash2 size={18} className="text-[#235034]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-gray-800 truncate">
+                      {container.container_name}
+                    </p>
+                    <p className="text-xs text-gray-500 truncate">
+                      {container.area_name}
+                    </p>
+                    {container.full_address && (
+                      <p className="text-xs text-gray-400 truncate">{container.full_address}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">
+                      {container.status}
+                    </span>
+                    <button
+                      onClick={() => handleGoToContainer(container)}
+                      className="text-xs font-semibold text-white bg-[#2E523A] hover:bg-[#24402b] px-3 py-1.5 rounded-md transition-colors"
+                    >
+                      View on map
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </FormModal>
 
       {/* Container Details Modal */}
