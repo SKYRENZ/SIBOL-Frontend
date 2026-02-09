@@ -6,6 +6,7 @@ import { isAuthenticated } from '../services/authService';
 import api from '../services/apiClient';
 import AttachmentsUpload from '../Components/maintenance/attachments/AttachmentsUpload';
 import AttachmentsViewer from '../Components/maintenance/attachments/AttachmentsViewer';
+import SnackBar from '../Components/common/SnackBar';
 import type { MaintenanceAttachment } from '../types/maintenance';
 
 type BarangayItem = { id: number; name: string };
@@ -21,7 +22,6 @@ const SignUp: React.FC = () => {
   const { isLoading, error: authError, successMessage } = useAppSelector((state) => state.auth);
   
   // ✅ Local state
-  // CHANGED: Web signup is now Barangay-only, so default role to Barangay Staff ("2")
   const [role, setRole] = useState('2');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -34,15 +34,20 @@ const SignUp: React.FC = () => {
   const [isBarangayOpen, setIsBarangayOpen] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
 
-  // ✅ NEW: attachment state (Barangay only)
+  // ✅ Attachment state
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [attachmentPreviewUrl, setAttachmentPreviewUrl] = useState<string | null>(null);
   const [showAttachmentPreview, setShowAttachmentPreview] = useState(false);
 
+  // ✅ NEW: Snackbar state
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarType, setSnackbarType] = useState<'error' | 'success' | 'info'>('info');
+
   const barangayRef = useRef<HTMLDivElement>(null);
   const signupImage = new URL('../assets/images/lilisignup.png', import.meta.url).href;
 
-  const isBarangayRoleSelected = String(role) === '2'; // role select uses "1"/"2"
+  const isBarangayRoleSelected = String(role) === '2';
 
   // Check if user is already logged in
   useEffect(() => {
@@ -117,7 +122,6 @@ const SignUp: React.FC = () => {
     return () => {
       URL.revokeObjectURL(url);
     };
-    // intentionally not depending on attachmentPreviewUrl to avoid double-revoke
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attachmentFile]);
 
@@ -136,6 +140,25 @@ const SignUp: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isBarangayRoleSelected]);
+
+  // ✅ NEW: Show snackbar when there's an error or success from Redux
+  useEffect(() => {
+    if (authError) {
+      setSnackbarMessage(authError);
+      setSnackbarType('error');
+      setSnackbarVisible(true);
+    } else if (successMessage) {
+      setSnackbarMessage(successMessage);
+      setSnackbarType('success');
+      setSnackbarVisible(true);
+    }
+  }, [authError, successMessage]);
+
+  const handleSnackbarDismiss = () => {
+    setSnackbarVisible(false);
+    dispatch(clearError());
+    dispatch(clearSuccess());
+  };
 
   const attachmentForViewer: MaintenanceAttachment | null =
     attachmentFile && attachmentPreviewUrl
@@ -195,17 +218,31 @@ const SignUp: React.FC = () => {
     if (!email.trim()) newErrors.email = "Email is required";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "Invalid email";
     if (!barangay.trim()) newErrors.barangay = "Barangay is required";
-    // ✅ Barangay requires attachment
     if (isBarangayRoleSelected && !attachmentFile) {
       newErrors.attachment = 'Valid ID image is required';
     }
 
     setErrors(newErrors);
+    // ✅ Mark all fields as touched
+    setTouched({
+      role: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      barangay: true,
+      attachment: true,
+    });
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // ✅ Mark attachment as touched when submitting
+    if (isBarangayRoleSelected) {
+      setTouched(prev => ({ ...prev, attachment: true }));
+    }
+    
     if (!validateForm()) return;
 
     const roleId = Number(role);
@@ -214,7 +251,6 @@ const SignUp: React.FC = () => {
       let payload: any;
 
       if (isBarangayRoleSelected) {
-        // ✅ Send multipart only when Barangay
         const form = new FormData();
         form.append('firstName', firstName);
         form.append('lastName', lastName);
@@ -222,11 +258,10 @@ const SignUp: React.FC = () => {
         form.append('email', email);
         form.append('roleId', String(roleId));
         form.append('isSSO', String(Boolean(isSSO)));
-        form.append('attachment', attachmentFile as File); // field name must be "attachment"
+        form.append('attachment', attachmentFile as File);
 
         payload = form;
       } else {
-        // ✅ Non-barangay: JSON (no attachment)
         payload = {
           firstName,
           lastName,
@@ -247,7 +282,7 @@ const SignUp: React.FC = () => {
         };
 
         if (isSSO) params.sso = 'true';
-        if (result.username) params.username = result.username; // ✅ only include if defined
+        if (result.username) params.username = result.username;
 
         const qs = new URLSearchParams(params).toString();
 
@@ -279,6 +314,9 @@ const SignUp: React.FC = () => {
 
   const selectedBarangay = barangays.find(b => b.id.toString() === barangay);
 
+  // ✅ Helper to check if attachment has error
+  const hasAttachmentError = touched.attachment && errors.attachment;
+
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
       {/* Left Panel */}
@@ -294,8 +332,6 @@ const SignUp: React.FC = () => {
               <label className="block text-sm font-semibold text-gray-700 mb-1.5 sm:mb-2">
                 You're creating an account as?
               </label>
-
-              {/* CHANGED: uneditable + not clickable/focusable */}
               <input
                 type="text"
                 value="Barangay Staff"
@@ -416,56 +452,58 @@ const SignUp: React.FC = () => {
               {errors.barangay && <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.barangay}</div>}
             </div>
 
-            {/* ✅ Attachment UI (Barangay only) */}
+            {/* ✅ Attachment UI (Barangay only) - With custom error styling */}
             {isBarangayRoleSelected && (
               <div>
-                <AttachmentsUpload
-                  label="Upload Valid ID (Image)"
-                  required
-                  disabled={isLoading}
-                  accept="image/*"
-                  multiple={false}
-                  itemLayout="thumb+name"
-                  files={attachmentFile ? [attachmentFile] : []}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return; // keep previous if user cancels
-                    setAttachmentFile(file);
-                    setTouched((prev) => ({ ...prev, attachment: true }));
-                    setErrors((prev) => {
-                      const next = { ...prev };
-                      delete next.attachment;
-                      return next;
-                    });
-                  }}
-                  onRemove={() => {
-                    setAttachmentFile(null);
-                    setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
-                  }}
-                  onItemClick={() => {
-                    if (attachmentFile) setShowAttachmentPreview(true);
-                  }}
-                />
+                <style>
+                  {hasAttachmentError ? `
+                    .attachment-error-wrapper .border-dashed {
+                      border-color: #dc2626 !important;
+                    }
+                    .attachment-error-wrapper .border-dashed:hover {
+                      border-color: #dc2626 !important;
+                    }
+                  ` : ''}
+                </style>
+                <div className={hasAttachmentError ? 'attachment-error-wrapper' : ''}>
+                  <AttachmentsUpload
+                    label="Upload Valid ID (Image)"
+                    required
+                    disabled={isLoading}
+                    accept="image/*"
+                    multiple={false}
+                    itemLayout="thumb+name"
+                    files={attachmentFile ? [attachmentFile] : []}
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      setAttachmentFile(file);
+                      setTouched((prev) => ({ ...prev, attachment: true }));
+                      setErrors((prev) => {
+                        const next = { ...prev };
+                        delete next.attachment;
+                        return next;
+                      });
+                    }}
+                    onRemove={() => {
+                      setAttachmentFile(null);
+                      setErrors((prev) => ({ ...prev, attachment: 'Valid ID image is required' }));
+                    }}
+                    onItemClick={() => {
+                      if (attachmentFile) setShowAttachmentPreview(true);
+                    }}
+                  />
+                </div>
+                {/* ✅ Error message below upload */}
+                {hasAttachmentError && (
+                  <div className="text-red-600 text-xs sm:text-sm mt-1">{errors.attachment}</div>
+                )}
 
                 <AttachmentsViewer
                   attachment={attachmentForViewer}
                   isOpen={showAttachmentPreview}
                   onClose={() => setShowAttachmentPreview(false)}
                 />
-              </div>
-            )}
-
-            {/* Error Message */}
-            {authError && (
-              <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 border border-red-200 p-3 rounded-lg">
-                {authError}
-              </div>
-            )}
-
-            {/* Success Message */}
-            {successMessage && (
-              <div className="text-green-600 text-xs sm:text-sm text-center bg-green-50 border border-green-200 p-3 rounded-lg">
-                {successMessage}
               </div>
             )}
 
@@ -515,7 +553,6 @@ const SignUp: React.FC = () => {
               >
                 Resend verification email
               </button>
-              {successMessage && <p className="text-xs text-green-600 mt-2">{successMessage}</p>}
             </div>
           )}
         </div>
@@ -525,6 +562,15 @@ const SignUp: React.FC = () => {
       <div
         className="hidden lg:block bg-cover bg-center bg-no-repeat min-h-screen"
         style={{ backgroundImage: `url(${signupImage})` }}
+      />
+
+      {/* ✅ NEW: SnackBar for errors and success */}
+      <SnackBar
+        visible={snackbarVisible}
+        message={snackbarMessage}
+        onDismiss={handleSnackbarDismiss}
+        type={snackbarType}
+        duration={5000}
       />
     </div>
   );
