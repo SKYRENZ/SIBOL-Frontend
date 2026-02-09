@@ -83,7 +83,6 @@ const StatCard: React.FC<{
 const PointSystem = () => {
   const [isEditable, setIsEditable] = useState(false);
   const [pointsPerKg, setPointsPerKg] = useState<number>(5);
-  const [loading, setLoading] = useState(false);
 
   // modal state
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -349,7 +348,7 @@ const PointSystem = () => {
                   </button>
                   <button
                     onClick={handleSave}
-                    disabled={!isEditable || loading}
+                    disabled={!isEditable || saveInProgress}
                     className={`flex items-center gap-2 px-5 py-3 rounded-lg font-medium transition-all ${
                       isEditable 
                         ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg hover:shadow-xl transform hover:scale-105" 
@@ -357,7 +356,7 @@ const PointSystem = () => {
                     }`}
                   >
                     <Save size={16} />
-                    {loading ? "Saving..." : "Save Changes"}
+                    {saveInProgress ? "Saving..." : "Save Changes"}
                   </button>
                 </div>
               </div>
