@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { getMyProfile, updateMyProfile } from "../../services/profile/profileService";
+import { getMyProfile, updateMyProfile, uploadProfileImage } from "../../services/profile/profileService";
 import { getUser } from "../../services/authService";
 import ChangeUsernameModal from "../verification/ChangeUsernameModal";
 import ChangePasswordModal from "../verification/ChangePasswordModal"; // ✅ use this instead of PasswordModal
@@ -57,6 +57,9 @@ function normalizeProfile(apiProfile: any): UiProfile {
   const rolesNum = Number(localUser?.Roles ?? localUser?.roleId ?? NaN);
   const barangayName = apiProfile?.Barangay_Name ?? apiProfile?.barangayName ?? "-";
 
+  // pick avatar from new Image_path field if available
+  const avatar = apiProfile?.Image_path ?? apiProfile?.image_path ?? apiProfile?.avatar ?? "";
+
   return {
     ...emptyProfile,
     firstName: apiProfile?.FirstName ?? apiProfile?.firstName ?? "",
@@ -65,6 +68,7 @@ function normalizeProfile(apiProfile: any): UiProfile {
     phone: String(apiProfile?.Contact ?? apiProfile?.contact ?? ""),
     role: roleLabel(Number.isFinite(rolesNum) ? rolesNum : null),
     position: roleLabel(Number.isFinite(rolesNum) ? rolesNum : null),
+    avatar,
     address: {
       fullAddress: barangayName,
       areaAssigned: apiProfile?.Area_Name ?? apiProfile?.areaName ?? "-",
@@ -85,6 +89,9 @@ const ProfileInformation: React.FC = () => {
   const [toast, setToast] = useState<string | null>(null);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
+
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -145,13 +152,50 @@ const ProfileInformation: React.FC = () => {
     setIsEditing(false);
   };
 
-  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // optimistic preview
     const imageUrl = URL.createObjectURL(file);
     setProfile(p => ({ ...p, avatar: imageUrl }));
-    setFormData(p => ({ ...p, avatar: imageUrl }));
+
+    setUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const resp: any = await uploadProfileImage(file, (pct) => setUploadProgress(pct));
+      // server returns { message, data: <profile> }
+      const updatedProfile = resp?.data ?? resp;
+      const normalized = normalizeProfile(updatedProfile);
+      setProfile(normalized);
+      setFormData(normalized);
+
+      setToast('Profile image updated');
+      setTimeout(() => setToast(null), 2500);
+    } catch (err: any) {
+      console.error('upload failed', err);
+      // prefer server-provided message when available (axios error response)
+      const serverMsg = err?.response?.data?.message ?? err?.response?.data?.error;
+      const msg = serverMsg || err?.message || 'Upload failed';
+      setToast(msg);
+      // keep optimistic preview but revert after a short delay
+      setTimeout(async () => {
+        try {
+          const apiProfile = await getMyProfile();
+          const normalized = normalizeProfile(apiProfile);
+          setProfile(normalized);
+          setFormData(normalized);
+        } catch (e) {
+          console.warn('failed to refresh profile after upload error', e);
+        }
+      }, 1200);
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      // allow re-selecting same file
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
   };
 
   // =============================
@@ -162,11 +206,24 @@ const ProfileInformation: React.FC = () => {
       {/* LEFT SIDEBAR */}
       <div className="rounded-2xl bg-[#cdddc9] p-6 flex flex-col items-center text-center">
         <div className="relative">
-          <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-[#e9f1e6] overflow-hidden">
+          <div className="h-32 w-32 sm:h-40 sm:w-40 rounded-full bg-[#e9f1e6] overflow-hidden relative">
             {profile.avatar ? (
               <img src={profile.avatar} className="h-full w-full object-cover" />
             ) : (
               <img src="../../assets/images/lili.png" className="h-full w-full object-cover" />
+            )}
+
+            {uploading && (
+              <div className="absolute inset-0 bg-black/40 flex items-end">
+                <div className="w-full px-2 pb-2">
+                  <div className="h-2 bg-white/30 rounded overflow-hidden">
+                    <div
+                      className="h-full bg-[#355842] transition-all"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
 
