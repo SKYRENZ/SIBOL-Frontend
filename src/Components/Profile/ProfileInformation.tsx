@@ -2,8 +2,11 @@ import React, { useEffect, useRef, useState } from "react";
 import { getMyProfile, updateMyProfile, uploadProfileImage } from "../../services/profile/profileService";
 import { getUser } from "../../services/authService";
 import ChangeUsernameModal from "../verification/ChangeUsernameModal";
-import ChangePasswordModal from "../verification/ChangePasswordModal"; // ✅ use this instead of PasswordModal
+import ChangePasswordModal from "../verification/ChangePasswordModal";
 import { Pencil } from "lucide-react";
+import SnackBar from "../common/SnackBar";
+import { useAppDispatch } from "../../store/hooks";
+import { setUser as setAuthUser } from "../../store/slices/authSlice";
 
 // =============================
 // TYPES
@@ -81,12 +84,16 @@ function normalizeProfile(apiProfile: any): UiProfile {
 // MAIN COMPONENT
 // =============================
 const ProfileInformation: React.FC = () => {
+  const dispatch = useAppDispatch();
   const [profile, setProfile] = useState<UiProfile>(emptyProfile);
   const [formData, setFormData] = useState<UiProfile>(emptyProfile);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+
+  // ✅ replace toast with SnackBar state (page-level)
   const [toast, setToast] = useState<string | null>(null);
+
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [showUsernameModal, setShowUsernameModal] = useState(false);
 
@@ -95,9 +102,12 @@ const ProfileInformation: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // =============================
+  // ✅ restriction timestamps
+  const [usernameLastUpdated, setUsernameLastUpdated] = useState<string | null>(null);
+  const [passwordLastUpdated, setPasswordLastUpdated] = useState<string | null>(null);
+  const [profileLastUpdated, setProfileLastUpdated] = useState<string | null>(null);
+
   // LOAD PROFILE
-  // =============================
   useEffect(() => {
     (async () => {
       try {
@@ -105,27 +115,44 @@ const ProfileInformation: React.FC = () => {
         const normalized = normalizeProfile(apiProfile);
         setProfile(normalized);
         setFormData(normalized);
+
+        // backend fields
+        setUsernameLastUpdated(apiProfile?.Username_last_updated ?? apiProfile?.usernameLastUpdated ?? null);
+        setPasswordLastUpdated(apiProfile?.Password_last_updated ?? apiProfile?.passwordLastUpdated ?? null);
+        setProfileLastUpdated(apiProfile?.Profile_last_updated ?? apiProfile?.profileLastUpdated ?? null);
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  // =============================
-  // HANDLERS
-  // =============================
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
+  const showPageSnack = (msg: string) => {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2500);
+  };
 
-    if (name.startsWith("address.")) {
-      const key = name.split(".")[1] as keyof UiProfile["address"];
-      setFormData(p => ({ ...p, address: { ...p.address, [key]: value } }));
-    } else {
-      setFormData(p => ({ ...p, [name]: value } as UiProfile));
-    }
+  const openUsernameModal = () => {
+    const r = remainingDays(usernameLastUpdated, USERNAME_DAYS_RESTRICTION);
+    if (!r.allowed) return showPageSnack(`You can change your username again in ${r.days} day(s).`);
+    setShowUsernameModal(true);
+  };
+
+  const openPasswordModal = () => {
+    const r = remainingDays(passwordLastUpdated, PASSWORD_DAYS_RESTRICTION);
+    if (!r.allowed) return showPageSnack(`You can change your password again in ${r.days} day(s).`);
+    setShowPasswordModal(true);
+  };
+
+  const startEdit = () => {
+    const r = remainingDays(profileLastUpdated, PROFILEINFO_DAYS_RESTRICTION);
+    if (!r.allowed) return showPageSnack(`You can update your profile again in ${r.days} day(s).`);
+    setIsEditing(true);
   };
 
   const handleSave = async () => {
+    const r = remainingDays(profileLastUpdated, PROFILEINFO_DAYS_RESTRICTION);
+    if (!r.allowed) return showPageSnack(`You can update your profile again in ${r.days} day(s).`);
+
     setSaving(true);
     try {
       const resp = await updateMyProfile({
@@ -140,23 +167,42 @@ const ProfileInformation: React.FC = () => {
       setFormData(normalized);
       setIsEditing(false);
 
-      setToast("Profile updated");
-      setTimeout(() => setToast(null), 2500);
+      // ✅ apply restriction immediately
+      setProfileLastUpdated(new Date().toISOString());
+
+      showPageSnack("Profile updated");
+    } catch (err: any) {
+      const retryAt = err?.payload?.retryAt ?? err?.data?.retryAt;
+      if (err?.status === 429 && retryAt) {
+        const days = Math.ceil((new Date(retryAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+        showPageSnack(`You can update your profile again in ${Math.max(days, 1)} day(s).`);
+      } else {
+        showPageSnack(err?.message || "Failed to update profile");
+      }
     } finally {
       setSaving(false);
     }
   };
 
-  const handleCancel = () => {
-    setFormData(profile);
-    setIsEditing(false);
+  const handlePhotoButtonClick = () => {
+    if (isEditing) return;
+    const r = remainingDays(profileLastUpdated, PROFILEINFO_DAYS_RESTRICTION);
+    if (!r.allowed) return showPageSnack(`You can update your profile again in ${r.days} day(s).`);
+    fileInputRef.current?.click();
   };
 
   const handlePhotoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // optimistic preview
+    // block if restricted
+    const r = remainingDays(profileLastUpdated, PROFILEINFO_DAYS_RESTRICTION);
+    if (!r.allowed) {
+      showPageSnack(`You can update your profile again in ${r.days} day(s).`);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     const imageUrl = URL.createObjectURL(file);
     setProfile(p => ({ ...p, avatar: imageUrl }));
 
@@ -165,37 +211,64 @@ const ProfileInformation: React.FC = () => {
 
     try {
       const resp: any = await uploadProfileImage(file, (pct) => setUploadProgress(pct));
-      // server returns { message, data: <profile> }
       const updatedProfile = resp?.data ?? resp;
       const normalized = normalizeProfile(updatedProfile);
       setProfile(normalized);
       setFormData(normalized);
 
-      setToast('Profile image updated');
-      setTimeout(() => setToast(null), 2500);
+      // ✅ apply restriction immediately
+      setProfileLastUpdated(new Date().toISOString());
+
+      showPageSnack('Profile image updated');
     } catch (err: any) {
-      console.error('upload failed', err);
-      // prefer server-provided message when available (axios error response)
-      const serverMsg = err?.response?.data?.message ?? err?.response?.data?.error;
-      const msg = serverMsg || err?.message || 'Upload failed';
-      setToast(msg);
-      // keep optimistic preview but revert after a short delay
+      const retryAt = err?.response?.data?.retryAt;
+      if (err?.response?.status === 429 && retryAt) {
+        const days = Math.ceil((new Date(retryAt).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
+        showPageSnack(`You can update your profile again in ${Math.max(days, 1)} day(s).`);
+      } else {
+        const serverMsg = err?.response?.data?.message ?? err?.response?.data?.error;
+        showPageSnack(serverMsg || err?.message || 'Upload failed');
+      }
+
+      // refresh
       setTimeout(async () => {
         try {
           const apiProfile = await getMyProfile();
           const normalized = normalizeProfile(apiProfile);
           setProfile(normalized);
           setFormData(normalized);
-        } catch (e) {
-          console.warn('failed to refresh profile after upload error', e);
-        }
+        } catch {}
       }, 1200);
     } finally {
       setUploading(false);
       setUploadProgress(0);
-      // allow re-selecting same file
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  // ✅ ADD THIS: handles inputs including nested names like "address.fullAddress"
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+
+    setFormData((prev) => {
+      // nested: address.fullAddress / address.areaAssigned / address.barangay
+      if (name.startsWith("address.")) {
+        const key = name.split(".")[1] as keyof UiProfile["address"];
+        return {
+          ...prev,
+          address: {
+            ...prev.address,
+            [key]: value,
+          },
+        };
+      }
+
+      // top-level fields
+      return {
+        ...prev,
+        [name]: value,
+      } as UiProfile;
+    });
   };
 
   // =============================
@@ -228,7 +301,7 @@ const ProfileInformation: React.FC = () => {
           </div>
 
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={handlePhotoButtonClick} // ✅ gated, no UI change
             disabled={isEditing}
             className={`absolute bottom-2 right-2 rounded-full p-2 shadow ${
               isEditing ? "bg-gray-300 opacity-50" : "bg-white"
@@ -245,9 +318,8 @@ const ProfileInformation: React.FC = () => {
         </h2>
         <p className="text-sm text-gray-600">{profile.role}</p>
 
-        {/* ✅ NEW: Change Username button (above Change Password) */}
         <button
-          onClick={() => setShowUsernameModal(true)}
+          onClick={openUsernameModal} // ✅ gated
           disabled={isEditing || saving}
           className="mt-6 w-full rounded-xl bg-[#6b8f71] py-2 text-sm text-white disabled:opacity-50"
         >
@@ -255,7 +327,7 @@ const ProfileInformation: React.FC = () => {
         </button>
 
         <button
-          onClick={() => setShowPasswordModal(true)}
+          onClick={openPasswordModal} // ✅ gated
           disabled={isEditing || saving}
           className="mt-3 w-full rounded-xl bg-[#6b8f71] py-2 text-sm text-white disabled:opacity-50"
         >
@@ -265,12 +337,11 @@ const ProfileInformation: React.FC = () => {
 
       {/* RIGHT CONTENT */}
       <div className="rounded-2xl bg-white p-4 sm:p-6 shadow space-y-8">
-        {/* HEADER ROW (ALIGNED) */}
         <div className="flex items-center justify-between">
           <h3 className="font-semibold text-[#1c3c2d]">Personal Information</h3>
 
           {!isEditing ? (
-            <button onClick={() => setIsEditing(true)} className="text-[#2E523A]">
+            <button onClick={startEdit} className="text-[#2E523A]">
               <Pencil size={18} />
             </button>
           ) : (
@@ -283,7 +354,7 @@ const ProfileInformation: React.FC = () => {
                 Save
               </button>
               <button
-                onClick={handleCancel}
+                onClick={() => { setFormData(profile); setIsEditing(false); }}
                 className="rounded-full bg-gray-300 px-4 py-1 text-xs"
               >
                 Cancel
@@ -292,7 +363,6 @@ const ProfileInformation: React.FC = () => {
           )}
         </div>
 
-        {/* PERSONAL INFO GRID */}
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 text-sm">
           {isEditing ? (
             <>
@@ -315,7 +385,6 @@ const ProfileInformation: React.FC = () => {
           )}
         </div>
 
-        {/* ADDRESS */}
         <div>
           <h3 className="font-semibold text-[#1c3c2d] mb-4">Address</h3>
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 text-sm">
@@ -336,27 +405,35 @@ const ProfileInformation: React.FC = () => {
         </div>
       </div>
 
-      {toast && (
-        <div className="fixed top-6 right-6 rounded-lg bg-[#2E523A] px-4 py-2 text-sm text-white shadow">
-          {toast}
-        </div>
-      )}
+      {/* ✅ page snackbar (success + restriction notices) */}
+      <SnackBar
+        visible={!!toast}
+        message={toast ?? ''}
+        type="success"
+        onDismiss={() => setToast(null)}
+        duration={2500}
+      />
 
       <ChangePasswordModal
         open={showPasswordModal}
         onClose={() => setShowPasswordModal(false)}
         onSuccess={() => {
-          setToast("Password updated");
-          setTimeout(() => setToast(null), 2500);
+          setPasswordLastUpdated(new Date().toISOString());
+          showPageSnack("Password updated");
         }}
       />
 
       <ChangeUsernameModal
         open={showUsernameModal}
         onClose={() => setShowUsernameModal(false)}
-        onSuccess={() => {
-          setToast("Username updated");
-          setTimeout(() => setToast(null), 2500);
+        currentUsername={getUser()?.Username ?? ''}
+        onSuccess={(newU) => {
+          setUsernameLastUpdated(new Date().toISOString());
+          showPageSnack("Username updated");
+
+          // ✅ update Redux + authService cached user so UI reflects immediately
+          const u = getUser();
+          dispatch(setAuthUser(u ? { ...u, Username: newU } : { Username: newU }));
         }}
       />
     </div>
@@ -386,5 +463,21 @@ const Input = ({ label, name, value, onChange }: any) => (
     />
   </div>
 );
+
+const USERNAME_DAYS_RESTRICTION = 15;
+const PASSWORD_DAYS_RESTRICTION = 15;
+const PROFILEINFO_DAYS_RESTRICTION = 15;
+
+function remainingDays(lastUpdated: string | null | undefined, restrictionDays: number) {
+  if (!lastUpdated) return { allowed: true, days: 0 };
+  const last = new Date(lastUpdated);
+  if (Number.isNaN(last.getTime())) return { allowed: true, days: 0 };
+
+  const retryAt = new Date(last.getTime() + restrictionDays * 24 * 60 * 60 * 1000);
+  const diff = retryAt.getTime() - Date.now();
+  if (diff <= 0) return { allowed: true, days: 0 };
+
+  return { allowed: false, days: Math.ceil(diff / (24 * 60 * 60 * 1000)) };
+}
 
 export default ProfileInformation;

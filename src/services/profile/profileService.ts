@@ -8,6 +8,9 @@ export type ProfileUpdatePayload = {
   area?: number;
   contact?: string | number;
   email?: string;
+
+  // ✅ used to verify identity when changing username
+  currentPassword?: string;
 };
 
 export async function getMyProfile() {

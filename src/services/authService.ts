@@ -27,6 +27,16 @@ export type RegisterResponse = {
 
 let cachedUser: User | null = null; // <-- in-memory cache
 
+// ✅ ADD: allow other parts of the app to sync the cached user after profile updates
+export function setCachedUser(user: User | null) {
+  cachedUser = user;
+}
+
+export function updateCachedUser(patch: Partial<User>) {
+  cachedUser = cachedUser ? { ...cachedUser, ...patch } : ({ ...patch } as User);
+  return cachedUser;
+}
+
 export async function login(identifier: string, password: string): Promise<AuthResponse> {
   // ✅ Send identifier (email or username). Also include username for backward compatibility.
   const res = await api.post('/api/auth/login', {
