@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
+import ProfileModal from "./common/ProfileModal";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -31,7 +32,8 @@ const Header: React.FC = () => {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState<"all" | NotificationType>("all");
-  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false); // <-- added
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const profileRef = useRef<HTMLDivElement | null>(null);
@@ -40,7 +42,7 @@ const Header: React.FC = () => {
   const location = useLocation();
   const dispatch = useAppDispatch();
 
-  const { isFirstLogin, user, isAuthenticated, hasCheckedAuth, isCheckingAuth } = useAppSelector((state) => state.auth); // <- use Redux
+  const { isFirstLogin, user, isAuthenticated, hasCheckedAuth, isCheckingAuth } = useAppSelector((state) => state.auth);
 
   const handleLogout = () => {
     dispatch(logoutAction());
@@ -95,7 +97,7 @@ const Header: React.FC = () => {
 
   useEffect(() => {
     setMenuOpen(false);
-    setProfileOpen(false);
+    setProfileDropdownOpen(false); // <-- replaced
   }, [location.pathname]);
 
   useEffect(() => {
@@ -141,7 +143,7 @@ const Header: React.FC = () => {
         profileRef.current &&
         !profileRef.current.contains(e.target as Node)
       ) {
-        setProfileOpen(false);
+        setProfileDropdownOpen(false); // <-- replaced
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
@@ -252,14 +254,14 @@ const Header: React.FC = () => {
               )}
             </button>
 
-            {/* PROFILE ICON + DROPDOWN (ICON UNCHANGED) */}
+            {/* PROFILE ICON + DROPDOWN */}
             <div className="relative" ref={profileRef}>
               <button
                 type="button"
                 title="Profile"
                 aria-label="Profile"
                 className="icon-btn"
-                onClick={() => setProfileOpen((p) => !p)}
+                onClick={() => setProfileDropdownOpen((prev) => !prev)} // toggle dropdown
               >
                 <svg
                   className="icon"
@@ -276,46 +278,26 @@ const Header: React.FC = () => {
                 </svg>
               </button>
 
-              {profileOpen && (
-                <div
-                  className="
-                    absolute right-0 mt-3 w-44
-                    rounded-xl bg-white
-                    shadow-[0_10px_25px_rgba(0,0,0,0.12)]
-                    border border-gray-100
-                    z-50
-                    overflow-hidden
-                  "
-                >
-                  <NavLink
-                  to="/profile"
-                  onClick={() => setProfileOpen(false)}
-                  className="
-                    flex items-center gap-2
-                    px-4 py-3
-                    text-sm
-                    text-gray-700
-                    hover:bg-green-50
-                    hover:text-green-700
-                    transition
-                  "
-                >
-                  Profile
-                </NavLink>
+              {profileDropdownOpen && (
+                <div className="absolute right-0 mt-3 w-44 rounded-xl bg-white shadow-lg border border-gray-100 z-50 overflow-hidden">
+                  <button
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      setProfileModalOpen(true); // open modal
+                    }}
+                    className="w-full text-left flex items-center gap-2 px-4 py-3 text-sm text-gray-700 hover:bg-green-50 hover:text-green-700 transition"
+                  >
+                    Profile
+                  </button>
+
                   <div className="h-px bg-gray-100" />
 
                   <button
                     onClick={() => {
-                      setProfileOpen(false);
+                      setProfileDropdownOpen(false);
                       setShowLogoutConfirm(true);
                     }}
-                    className="
-                      w-full text-left
-                      px-4 py-3
-                      text-sm text-red-600
-                      hover:bg-red-50
-                      transition
-                    "
+                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition"
                   >
                     Logout
                   </button>
@@ -370,21 +352,22 @@ const Header: React.FC = () => {
         }}
       />
 
-      {/* LOGOUT CONFIRMATION MODAL */}
-    {/* ---------------- LOGOUT CONFIRMATION MODAL ---------------- */}
-<ConfirmationModal
-  isOpen={showLogoutConfirm}
-  onClose={() => setShowLogoutConfirm(false)}
-  onConfirm={async () => handleLogout()}
-  title="Confirm Logout"
-  description="Are you sure you want to log out?"
-  confirmText="Logout"
-  cancelText="Cancel"
-  variant="danger"
->
-  
-</ConfirmationModal>
+      <ProfileModal
+        isOpen={profileModalOpen}
+        onClose={() => setProfileModalOpen(false)}
+      />
 
+      {/* LOGOUT CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={async () => handleLogout()}
+        title="Confirm Logout"
+        description="Are you sure you want to log out?"
+        confirmText="Logout"
+        cancelText="Cancel"
+        variant="danger"
+      />
     </header>
   );
 };
