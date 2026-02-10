@@ -7,7 +7,6 @@ import FormField from '../Components/common/FormField';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
-import Analytics from '../Components/SibolMachine/Analytics';
 import ProcessPanelTab from '../Components/SibolMachine/ProcessPanelTab';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
 import "../tailwind.css";
