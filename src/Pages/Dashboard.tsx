@@ -10,7 +10,6 @@ import { Line } from "react-chartjs-2";
 import { Trash2, AlertTriangle, Server, Zap } from "lucide-react";
 import DASHTRASH from "../assets/images/DASHTRASH.png";
 
-// import chart setup and moved components
 import "../Components/graphs/chartSetup"; // keep for chartjs registration
 import GreetingCard from "../Components/dashboard/GreetingCard";
 import AdditivesPanel from "../Components/dashboard/AdditivesPanel";
@@ -20,14 +19,16 @@ import FoodWasteCard from "../Components/dashboard/FoodWasteCard";
 import StaffUsersCard from "../Components/dashboard/StaffUsersCard";
 import ComparisonChart from "../Components/dashboard/ComparisonChart";
 
+import { getUsersByRole } from "../services/userService";
 
 /* ---------------- MOCK DATA ---------------- */
 
 const analyticsByRange = {
   Yearly: {
-    labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov"],
-    barangayUsers: [45,52,48,58,62,68,72,78,82,88,95],
-    foodWaste: [120,135,125,145,155,168,175,185,195,205,215],
+    labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+    barangayUsers: [45,52,48,58,62,68,72,78,82,88,95,100],
+    householdUsers: [45,52,48,58,62,68,72,78,82,88,95,100],
+    foodWaste: [120,135,125,145,155,168,175,185,195,205,215,220],
     gasYield: { percent: 14, volume: 135 },
     waste: { food: 124, manure: 124 },
     additives: { water: 40, manure: 20, others: 40, total: 100 },
@@ -54,30 +55,75 @@ const Dashboard: React.FC = () => {
   const data = analyticsByRange.Yearly;
   const [foodWasteData, setFoodWasteData] = useState<number[]>(data.foodWaste);
 
-  // fetch monthly food waste for a default area (areaId=1) on mount
+  // household count (total number of household users)
+  const [householdCount, setHouseholdCount] = useState<number | null>(null);
+
+  // fetch monthly food waste for all areas on mount
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       try {
-        const areaId = 1; // choose default area; adapt as needed
         const year = new Date().getFullYear();
-        const resp = await apiClient.get(`/api/areas/${areaId}/waste/monthly?year=${year}`);
-        // apiClient returns axios response with data
+        const resp = await apiClient.get(`/api/waste-collections/monthly?year=${year}`);
         const arr = resp.data?.data ?? resp.data;
         if (Array.isArray(arr) && arr.length === 12) {
-          setFoodWasteData(arr.map((v: any) => Number(v) || 0));
+          if (!cancelled) setFoodWasteData(arr.map((v: any) => Number(v) || 0));
+        } else {
+          console.warn("Unexpected monthly waste response, falling back to mock", arr);
         }
       } catch (e) {
-        console.warn('Failed to load monthly waste for area', e);
+        console.warn('Failed to load monthly waste for all areas', e);
       }
     })();
+    return () => { cancelled = true; };
   }, []);
 
-    const chartData = {
+  // fetch household users count
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const resp = await getUsersByRole("Household");
+        const count = Array.isArray(resp) ? resp.length : 0;
+        if (!cancelled) setHouseholdCount(count);
+      } catch (err) {
+        console.warn("Failed to fetch household users", err);
+        if (!cancelled) setHouseholdCount(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // add state for monthly household series
+  const [householdSeries, setHouseholdSeries] = useState<number[]>(data.householdUsers ?? data.barangayUsers);
+
+  // fetch household monthly series
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const year = new Date().getFullYear();
+        const resp = await apiClient.get(`/api/users/role/Household/monthly?year=${year}&cumulative=1`);
+        const arr = resp.data?.data ?? resp.data;
+        if (!Array.isArray(arr) || arr.length !== 12) {
+          console.warn("Unexpected household monthly response, falling back to mock");
+          return;
+        }
+        if (!cancelled) setHouseholdSeries(arr.map((v: any) => Number(v) || 0));
+      } catch (err) {
+        console.warn("Failed to fetch household monthly series", err);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const chartData = {
     labels: data.labels,
     datasets: [
       {
-        label: "Barangay Users",
-        data: data.barangayUsers,
+        label: "Household Users",
+        // prefer householdUsers mock if present; fallback to legacy barangayUsers
+        data: householdSeries,
         borderColor: "#7CB342",
         backgroundColor: "rgba(124,179,66,0.18)",
         fill: true,
@@ -302,7 +348,7 @@ const Dashboard: React.FC = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
           <div className="w-full">
-            <AdditivesPanel additives={data.additives} />
+            <AdditivesPanel />
           </div>
           <div className="w-full">
             <AlertsPanel alerts={data.alerts} />

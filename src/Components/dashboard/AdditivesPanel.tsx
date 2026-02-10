@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef } from "react";
 import { Doughnut } from "react-chartjs-2";
 import "../graphs/chartSetup";
 import { useDispatch, useSelector } from "react-redux";
@@ -10,8 +10,9 @@ type AdditiveRow = {
   additive_input: string;
   value: number;
   units: string;
-  date: string; // YYYY-MM-DD
-  time: string; // HH:MM:SS
+  date?: string;
+  time?: string;
+  created_at?: string;
   machine_name?: string | null;
   additive_name?: string | null;
   operator_first_name?: string | null;
@@ -31,7 +32,6 @@ const AdditivesPanel: React.FC = () => {
   const computed = useMemo(() => {
     const counts = { water: 0, manure: 0, others: 0 };
     let total = 0;
-
     const otherNameSums: Record<string, number> = {};
 
     for (const row of items) {
@@ -40,18 +40,14 @@ const AdditivesPanel: React.FC = () => {
       const val = Number(row.value) || 0;
       total += val;
 
-      if (name.includes("water")) {
-        counts.water += val;
-      } else if (name.includes("manure")) {
-        counts.manure += val;
-      } else {
+      if (name.includes("water")) counts.water += val;
+      else if (name.includes("manure")) counts.manure += val;
+      else {
         counts.others += val;
-        const key = nameRaw || "Unknown";
-        otherNameSums[key] = (otherNameSums[key] || 0) + val;
+        otherNameSums[nameRaw || "Unknown"] = (otherNameSums[nameRaw || "Unknown"] || 0) + val;
       }
     }
 
-    // pick the most common (by volume) other additive to label the third segment
     let topOtherLabel: string | null = null;
     let topOtherSum = 0;
     for (const [label, sum] of Object.entries(otherNameSums)) {
@@ -64,8 +60,20 @@ const AdditivesPanel: React.FC = () => {
 
     const listTop3 = [...items]
       .sort((a, b) => {
-        const ta = new Date(`${a.date}T${a.time}`).getTime();
-        const tb = new Date(`${b.date}T${b.time}`).getTime();
+        const ta = (() => {
+          if (a.date && a.date.includes("T")) return new Date(a.date).getTime();
+          if (a.date && a.time) return new Date(`${a.date}T${a.time}`).getTime();
+          if (a.created_at) return new Date(a.created_at).getTime();
+          const d = new Date(a.date ?? a.time ?? a.created_at ?? "");
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        })();
+        const tb = (() => {
+          if (b.date && b.date.includes("T")) return new Date(b.date).getTime();
+          if (b.date && b.time) return new Date(`${b.date}T${b.time}`).getTime();
+          if (b.created_at) return new Date(b.created_at).getTime();
+          const d = new Date(b.date ?? b.time ?? b.created_at ?? "");
+          return isNaN(d.getTime()) ? 0 : d.getTime();
+        })();
         return tb - ta;
       })
       .slice(0, 3);
@@ -92,54 +100,81 @@ const AdditivesPanel: React.FC = () => {
     ],
   };
 
+  const chartRef = useRef<any>(null);
+
+  const formatDateOnly = (row: AdditiveRow) => {
+    const tryParse = (s?: string) => {
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    let dt = tryParse(row.date && row.date.includes("T") ? row.date : undefined);
+    if (!dt && row.date && row.time) dt = tryParse(`${row.date}T${row.time}`);
+    if (!dt) dt = tryParse(row.created_at ?? row.date ?? row.time);
+    if (!dt) {
+      const isoMatch = (row.date ?? "").match(/\d{4}-\d{2}-\d{2}T[^\s]*/);
+      if (isoMatch) dt = tryParse(isoMatch[0]);
+    }
+    if (!dt) return row.date ?? "";
+    return dt.toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" });
+  };
+
   return (
-    <div className="rounded-xl border bg-white p-2 shadow-sm h-full flex flex-col">
+    <div className="rounded-xl border bg-white p-3 shadow-sm h-full flex flex-col">
       <p className="text-sm font-semibold mb-2 text-center text-gray-800">Additives Ratio</p>
 
-      <div className="relative h-40 flex items-center justify-center">
-        <Doughnut
-          data={chartData}
-          options={{
-            plugins: {
-              legend: { display: false },
-              tooltip: {
-                callbacks: {
-                  label: (ctx: any) => {
-                    const value = Number(ctx.raw || 0);
-                    const pct = computed.total > 0 ? Math.round((value / computed.total) * 100) : 0;
-                    return `${ctx.label}: ${value} L (${pct}%)`;
+      <div className="flex gap-4 items-start">
+        <div className="relative flex-1" style={{ minWidth: 160 }}>
+          <div style={{ position: "relative", width: "100%", height: 200 }}>
+            <Doughnut
+              ref={chartRef}
+              data={chartData}
+              options={{
+                plugins: {
+                  legend: { display: false },
+                  tooltip: {
+                    callbacks: {
+                      label: (ctx: any) => {
+                        const value = Number(ctx.raw || 0);
+                        const pct = computed.total > 0 ? Math.round((value / computed.total) * 100) : 0;
+                        return `${ctx.label}: ${value} L (${pct}%)`;
+                      },
+                    },
                   },
                 },
-              },
-            },
-          }}
-        />
+                maintainAspectRatio: false,
+              }}
+            />
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="text-center">
+              <div className="text-xl font-bold text-gray-800">{computed.total}</div>
+              <div className="text-xs text-gray-500">Liters</div>
+            </div>
+          </div>
+        </div>
 
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-lg font-bold leading-none text-gray-800">{computed.total}</p>
-          <p className="text-xs text-gray-500">Liters</p>
+        <div className="w-40 flex-shrink-0">
+          {itemsForChart.map((item, i) => {
+            const pct = computed.total > 0 ? Math.round((item.value / computed.total) * 100) : 0;
+            return (
+              <div
+                key={item.label}
+                className="flex items-center justify-between mb-3"
+                style={{ gap: 8 }}
+              >
+                <div className="flex items-center gap-2">
+                  <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                  <div className="text-sm text-gray-700">{item.label}</div>
+                </div>
+                <div className="text-sm font-medium text-gray-800">{pct}%</div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      <div className="mt-2 space-y-1 text-sm">
-        {itemsForChart.map(item => {
-          const pct = computed.total > 0 ? Math.round((item.value / computed.total) * 100) : 0;
-          return (
-            <div key={item.label} className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span
-                  className="h-2.5 w-2.5 rounded-full"
-                  style={{ backgroundColor: item.color }}
-                />
-                <span className="text-gray-700">{item.label}</span>
-              </div>
-              <span className="font-medium text-gray-800">{pct}%</span>
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="mt-3 border-t pt-3">
+      <div className="mt-4 border-t pt-3 flex-1 overflow-auto">
         <p className="text-sm font-semibold text-gray-700 mb-2">Recent Additive Inputs</p>
 
         {loading ? (
@@ -147,16 +182,17 @@ const AdditivesPanel: React.FC = () => {
         ) : computed.listTop3.length === 0 ? (
           <p className="text-sm text-gray-500">No additive entries yet.</p>
         ) : (
-          <div className="space-y-2 text-sm">
+          <div className="space-y-3 text-sm">
             {computed.listTop3.map((row) => {
               const type = row.additive_name || row.additive_input || "Unknown";
-              const machine = row.machine_name || `#${row.machine_id}`;
+              const machineRaw = row.machine_name || `#${row.machine_id}`;
+              const machine = machineRaw.toString().toUpperCase();
               const operator =
                 (row.operator_first_name || row.operator_last_name)
                   ? `${row.operator_first_name ?? ""} ${row.operator_last_name ?? ""}`.trim()
                   : row.operator_username ?? "Unknown";
-              const dt = new Date(`${row.date}T${row.time}`);
-              const when = isNaN(dt.getTime()) ? `${row.date} ${row.time}` : dt.toLocaleString();
+
+              const dateOnly = formatDateOnly(row);
 
               return (
                 <div key={row.id} className="flex items-start justify-between">
@@ -164,7 +200,7 @@ const AdditivesPanel: React.FC = () => {
                     <div className="font-medium text-gray-800">{type}</div>
                     <div className="text-xs text-gray-500">{machine} • {operator}</div>
                   </div>
-                  <div className="text-xs text-gray-500">{when}</div>
+                  <div className="text-xs text-gray-500 whitespace-nowrap">{dateOnly}</div>
                 </div>
               );
             })}
