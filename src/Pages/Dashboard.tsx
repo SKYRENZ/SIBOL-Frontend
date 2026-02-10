@@ -36,10 +36,8 @@ ChartJS.register(
 const analyticsByRange = {
   Yearly: {
     labels: ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov"],
-    actualGas: [20,35,30,55,45,70,60,85,65,78,55],
-    forecastGas: [18,30,28,50,42,65,55,80,60,75,52],
-    actualEnergy: [1.2,1.5,1.4,1.8,1.6,2.1,1.9,2.4,2.2,2.3,2.0],
-    forecastEnergy: [1.1,1.4,1.3,1.6,1.5,2.0,1.8,2.3,2.1,2.2,1.9],
+    barangayUsers: [45,52,48,58,62,68,72,78,82,88,95],
+    foodWaste: [120,135,125,145,155,168,175,185,195,205,215],
     gasYield: { percent: 14, volume: 135 },
     waste: { food: 124, manure: 124 },
     additives: { water: 40, manure: 20, others: 40, total: 100 },
@@ -81,16 +79,18 @@ const GasYieldCard = ({
           <p className="text-[10px] text-gray-600 mt-0.5">vs last period</p>
         </div>
 
-        <div className="relative h-16 w-16 flex items-center justify-center">
-          <Doughnut
-            data={gaugeData}
-            options={{
-              responsive: true,
-              maintainAspectRatio: false,
-              plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            }}
-          />
-          <div className="absolute bottom-2 text-[9px] font-semibold text-gray-700">{data.volume} m³</div>
+        <div className="flex gap-0">
+          <div className="relative h-28 flex items-center justify-center flex-[1.5]">
+            <Doughnut
+              data={gaugeData}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+              }}
+            />
+            <div className="absolute bottom-2 text-[9px] font-semibold text-gray-700">{data.volume} m³</div>
+          </div>
         </div>
       </div>
     </div>
@@ -201,10 +201,10 @@ const AdditivesPanel = ({
   };
 
   return (
-    <div className="rounded-xl border bg-white p-3 shadow-sm m-0">
-      <p className="text-xs font-semibold mb-2 text-center text-gray-800">Additives Ratio</p>
+    <div className="rounded-xl border bg-white p-3 shadow-sm h-full flex flex-col">
+      <p className="text-sm font-semibold mb-2 text-center text-gray-800">Additives Ratio</p>
 
-      <div className="relative h-28 flex items-center justify-center">
+      <div className="relative h-48 flex items-center justify-center">
         <Doughnut
           data={chartData}
           options={{
@@ -224,8 +224,8 @@ const AdditivesPanel = ({
         />
 
         <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <p className="text-lg font-bold leading-none text-gray-800">{additives.total}</p>
-          <p className="text-[10px] text-gray-500">Liters</p>
+          <p className="text-xl font-bold leading-none text-gray-800">{additives.total}</p>
+          <p className="text-sm text-gray-500">Liters</p>
         </div>
       </div>
 
@@ -233,10 +233,10 @@ const AdditivesPanel = ({
         {items.map(item => {
           const pct = Math.round((item.value / additives.total) * 100);
           return (
-            <div key={item.label} className="flex items-center justify-between text-xs">
-              <div className="flex items-center gap-1.5">
+            <div key={item.label} className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-2">
                 <span
-                  className="h-2 w-2 rounded-full"
+                  className="h-3 w-3 rounded-full"
                   style={{ backgroundColor: item.color }}
                 />
                 <span className="text-gray-700">{item.label}</span>
@@ -251,21 +251,21 @@ const AdditivesPanel = ({
 };
 
 const AlertsPanel = ({ alerts }: { alerts: any[] }) => (
-  <div className="rounded-xl border bg-white p-3 shadow-sm m-0">
-    <p className="text-sm font-semibold mb-3 text-center text-gray-800">Alerts</p>
-    <div className="space-y-2">
+  <div className="rounded-xl border bg-white p-4 shadow-sm h-full flex flex-col">
+    <p className="text-base font-semibold mb-2 text-center text-gray-800">Alerts</p>
+    <div className="space-y-2 flex-1 overflow-y-auto">
       {alerts.slice(0, 3).map((alert) => (
-        <div key={alert.id} className="flex items-start gap-3 bg-white border-l-4 border-red-200 px-3 py-3 rounded-lg text-xs shadow-sm">
+        <div key={alert.id} className="flex items-start gap-3 bg-white border-l-4 border-red-200 px-3 py-2 rounded-lg text-sm shadow-sm">
           <div className="w-10 h-10 bg-red-100 rounded-lg flex-shrink-0 flex items-center justify-center">
-            <AlertTriangle size={16} className="text-red-400" />
+            <AlertTriangle size={18} className="text-red-400" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-gray-800 text-xs">{alert.type}</p>
-              <p className="text-[10px] text-gray-400">{alert.date}</p>
+              <p className="font-semibold text-gray-800 text-sm">{alert.type}</p>
+              <p className="text-xs text-gray-400">{alert.date}</p>
             </div>
-            <p className="text-xs text-gray-600">{alert.machine}</p>
-            <p className="text-xs text-gray-500 mt-0.5">Problem: {alert.problem}</p>
+            <p className="text-sm text-gray-600">{alert.machine}</p>
+            <p className="text-sm text-gray-500 mt-1">Problem: {alert.problem}</p>
           </div>
         </div>
       ))}
@@ -303,51 +303,31 @@ const Dashboard: React.FC = () => {
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [hasProcessedUrlParams, setHasProcessedUrlParams] = useState(false);
   
-  const [activeTab, setActiveTab] = useState<"gas" | "energy">("gas");
+  const [activeTab, setActiveTab] = useState<"barangay" | "food">("barangay");
   const data = analyticsByRange.Yearly;
 
   const chartData = {
     labels: data.labels,
-    datasets:
-      activeTab === "gas"
-        ? [
-            {
-              label: "Actual",
-              data: data.actualGas,
-              borderColor: "#7CB342",
-              backgroundColor: "rgba(124,179,66,0.18)",
-              fill: true,
-              tension: 0.45,
-              pointRadius: 0,
-            },
-            {
-              label: "Forecast",
-              data: data.forecastGas,
-              borderColor: "#F59E0B",
-              borderDash: [6, 6],
-              tension: 0.45,
-              pointRadius: 0,
-            },
-          ]
-        : [
-            {
-              label: "Actual",
-              data: data.actualEnergy,
-              borderColor: "#7CB342",
-              backgroundColor: "rgba(124,179,66,0.18)",
-              fill: true,
-              tension: 0.45,
-              pointRadius: 0,
-            },
-            {
-              label: "Forecast",
-              data: data.forecastEnergy,
-              borderColor: "#F59E0B",
-              borderDash: [6, 6],
-              tension: 0.45,
-              pointRadius: 0,
-            },
-          ],
+    datasets: [
+      {
+        label: "Barangay Users",
+        data: data.barangayUsers,
+        borderColor: "#7CB342",
+        backgroundColor: "rgba(124,179,66,0.18)",
+        fill: true,
+        tension: 0.45,
+        pointRadius: 0,
+      },
+      {
+        label: "Food Waste Collected (kg)",
+        data: data.foodWaste,
+        borderColor: "#F59E0B",
+        backgroundColor: "rgba(245,158,11,0.18)",
+        fill: true,
+        tension: 0.45,
+        pointRadius: 0,
+      },
+    ],
   };
 
   useEffect(() => {
@@ -464,39 +444,41 @@ const Dashboard: React.FC = () => {
             firstName={user?.FirstName} 
             lastName={user?.LastName}
           />
-          <StatCard title="Active SIBOL Machines" value="326" />
-          <StatCard title="Total Waste Collected" value="326" />
           <StatCard title="Total Energy Converted" value="326" />
+          <StatCard title="Food Waste Collected" value="326" />
+          <StatCard title="Barangay Household Users" value="326" />
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-4 flex-1">
-          <div className="w-full lg:w-1/2 flex flex-row gap-2">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
+          <div className="w-full">
             <AdditivesPanel additives={data.additives} />
+          </div>
+          <div className="w-full">
             <AlertsPanel alerts={data.alerts} />
           </div>
           
-          <div className="w-full lg:w-1/2 rounded-xl border bg-white p-4 shadow-sm flex flex-col">
-            <div className="mb-3 flex justify-between items-center flex-wrap gap-2">
+          <div className="w-full rounded-xl border bg-white p-4 shadow-sm flex flex-col">
+            <div className="mb-2 flex justify-between items-center flex-wrap">
               <div className="flex gap-2">
                 <Tab
-                  label="Gas Yield"
-                  active={activeTab === "gas"}
-                  onClick={() => setActiveTab("gas")}
+                  label="Barangay Users"
+                  active={true}
+                  onClick={() => {}}
                 />
                 <Tab
-                  label="Energy Yield"
-                  active={activeTab === "energy"}
-                  onClick={() => setActiveTab("energy")}
+                  label="Food Waste"
+                  active={true}
+                  onClick={() => {}}
                 />
               </div>
-              <button className="flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded text-xs text-gray-600 bg-white hover:bg-gray-50">
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded text-sm text-gray-600 bg-white hover:bg-gray-50">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
                 </svg>
                 Filter by
               </button>
             </div>
-            <div className="h-24 relative">
+            <div className="h-40 relative flex-1">
               <Line 
                 data={chartData} 
                 options={{
@@ -507,8 +489,8 @@ const Dashboard: React.FC = () => {
                       align: 'end',
                       labels: {
                         usePointStyle: true,
-                        boxWidth: 8,
-                        font: { size: 10 }
+                        boxWidth: 10,
+                        font: { size: 12 }
                       }
                     }
                   }
