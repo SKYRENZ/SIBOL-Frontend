@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { X, ChevronRight } from "lucide-react";
+import { X, ChevronRight, PanelLeft } from "lucide-react";
 import TypingIndicatorWeb from "./TypingIndicatorWeb";
 
 interface Message {
@@ -15,6 +15,7 @@ interface ChatPanelProps {
   onEndConversation: () => void;
   onFAQSelect?: (faq: string) => void;
   isAITyping?: boolean;
+  onOpenHistory?: () => void; 
 }
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
@@ -24,6 +25,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onEndConversation,
   onFAQSelect,
   isAITyping = false,
+  onOpenHistory
 }) => {
   const [input, setInput] = useState("");
   const [showCloseModal, setShowCloseModal] = useState(false);
@@ -58,7 +60,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   return (
     <div
       className="relative w-full h-full bg-white overflow-hidden flex flex-col"
-      style={{ paddingTop: 'calc(var(--header-height, 72px) + 8px)' }}
     >
 
       {/* TOP CURVE with overflow hidden for clouds */}
@@ -86,27 +87,31 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       </div>
 
       {/* HEADER */}
-      <div className="relative z-20 flex items-center justify-between px-4 sm:px-6 py-3" style={{ marginTop: '-54px' }}>
+            <div className="relative z-20 flex items-center justify-between px-4 sm:px-6 pt-6 pb-3">
         <div className="flex items-center gap-3">
+
+          {/* MOBILE MENU BUTTON */}
+          <button
+            onClick={onOpenHistory}
+            className="lg:hidden p-1"
+            aria-label="Open chat history"
+          >
+            <PanelLeft className="w-6 h-6 text-white" />
+          </button>
+
           <img
             src={new URL("../../assets/images/lili.svg", import.meta.url).href}
             className="w-8 h-8 sm:w-9 sm:h-9"
             alt="Lili"
           />
-          <span className="text-white text-sm sm:text-base font-semibold" style={{ marginLeft: '3%' }}>
+          <span className="text-white text-sm sm:text-base font-semibold">
             Lili
           </span>
         </div>
 
-        <div className="flex items-center">
-          <button
-            onClick={() => setShowCloseModal(true)}
-            className="p-1 bg-transparent hover:text-[#d3e4d3] transition"
-            aria-label="Close chat"
-          >
-            <X className="w-5 h-5 text-white" />
-          </button>
-        </div>
+        <button onClick={() => setShowCloseModal(true)}>
+          <X className="w-5 h-5 text-white" />
+        </button>
       </div>
 
       {/* MESSAGES */}
@@ -119,7 +124,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             className={`w-full flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
           >
             <div
-              className={`inline-block w-fit max-w-[70%] sm:max-w-[65%] px-4 sm:px-5 py-2 sm:py-3 rounded-2xl text-sm sm:text-base leading-relaxed break-words ${
+              className={`inline-block w-fit max-w-[85%] sm:max-w-[70%] lg:max-w-[65%] px-4 sm:px-5 py-2 sm:py-3 rounded-2xl text-sm sm:text-base leading-relaxed break-words ${
                 msg.sender === "user"
                   ? "bg-white text-[#4f7f63] shadow"
                   : "bg-[#7fa98a] text-white"
