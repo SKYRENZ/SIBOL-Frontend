@@ -1,14 +1,12 @@
 import React from "react";
 
 interface MascotPanelProps {
-  user: {
-    firstName: string;
-    lastName: string;
-  };
+  firstName?: string;
+  lastName?: string;
   onHelpClick?: () => void;
 }
 
-const MascotPanel: React.FC<MascotPanelProps> = ({ user, onHelpClick }) => {
+const MascotPanel: React.FC<MascotPanelProps> = ({ firstName, lastName, onHelpClick }) => {
   return (
     <aside className="relative bg-[#94b59a] h-full flex flex-col items-center justify-center px-4 sm:px-10 overflow-hidden rounded-t-[28px] lg:rounded-none lg:rounded-l-[28px]">
 
@@ -48,7 +46,7 @@ const MascotPanel: React.FC<MascotPanelProps> = ({ user, onHelpClick }) => {
 
         {/* GREETING */}
         <h3 className="text-white text-lg sm:text-xl font-semibold">
-          Hi, {user.firstName} {user.lastName}!
+           Hi, {firstName || "User"} {lastName || ""}!
         </h3>
         <p className="text-white/80 mt-1 text-sm sm:text-base mb-8 sm:mb-10">
           Lili here!

@@ -1,19 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Header from "../Components/Header";
 import MascotPanel from "../Components/ChatSupport/MascotPanel";
 import FAQItem from "../Components/ChatSupport/FAQItem";
 import ChatPanel from "../Components/ChatSupport/ChatPanel";
 import ChatHistory from "../Components/ChatSupport/ChatHistory";
+import { getMyProfile } from "../services/profile/profileService";
 
-const user = { firstName: "Laurenz", lastName: "Listangco" };
-
-const defaultFAQs = [
-  "How long does the stage 1 process usually take?",
-  "How do I properly segregate food waste?",
-  "What food waste can be processed?",
-  "How often should the machine be maintained?",
-];
-
+// =============================
+// TYPES
+// =============================
 interface Message {
   sender: "user" | "bot";
   text: string;
@@ -25,19 +20,59 @@ interface Chat {
   messages: Message[];
 }
 
+interface User {
+  firstName: string;
+  lastName: string;
+}
+
+const defaultFAQs = [
+  "How long does the stage 1 process usually take?",
+  "How do I properly segregate food waste?",
+  "What food waste can be processed?",
+  "How often should the machine be maintained?",
+];
+
+// =============================
+// MAIN COMPONENT
+// =============================
 const ChatSupport: React.FC = () => {
+  const [showHistoryMobile, setShowHistoryMobile] = useState(false);
   const [isChatMode, setIsChatMode] = useState(false);
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [chats, setChats] = useState<Chat[]>([]);
-  const [initialUserMessage, setInitialUserMessage] = useState<string | undefined>(undefined);
   const [isAITyping, setIsAITyping] = useState(false);
 
+  const [user, setUser] = useState<User>({ firstName: "Guest", lastName: "" });
+  const [loadingUser, setLoadingUser] = useState(true);
+
+  // =============================
+  // LOAD USER PROFILE
+  // =============================
+  useEffect(() => {
+    (async () => {
+      try {
+        const apiProfile = await getMyProfile();
+        const normalizedUser: User = {
+          firstName: apiProfile?.FirstName ?? apiProfile?.firstName ?? "Guest",
+          lastName: apiProfile?.LastName ?? apiProfile?.lastName ?? "",
+        };
+        setUser(normalizedUser);
+      } catch (err) {
+        console.error("Failed to load user profile:", err);
+      } finally {
+        setLoadingUser(false);
+      }
+    })();
+  }, []);
+
+  // =============================
+  // CHAT FUNCTIONS
+  // =============================
   const startNewChat = (initialMessage?: string) => {
     const id = crypto.randomUUID();
     const newChat: Chat = {
       id,
       title: initialMessage || "New Conversation",
-      // initially empty; we'll call handleSendMessage so the normal flow (add user msg + AI reply) runs
       messages: [],
     };
 
@@ -46,8 +81,6 @@ const ChatSupport: React.FC = () => {
     setIsChatMode(true);
 
     if (initialMessage) {
-      // trigger the message flow so backend will respond
-      // call asynchronously without awaiting to avoid blocking UI
       void handleSendMessage(initialMessage, id);
     }
   };
@@ -75,14 +108,11 @@ const ChatSupport: React.FC = () => {
 
     try {
       setIsAITyping(true);
-      // Call backend AI
       const res = await fetch("http://localhost:5000/api/chat", {
-      method: "POST",
-      credentials: "include",
-      headers: {
-          "Content-Type": "application/json",
-      },
-          body: JSON.stringify({ message: text }),
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text }),
       });
 
       if (!res.ok) throw new Error("Chat failed");
@@ -92,10 +122,7 @@ const ChatSupport: React.FC = () => {
       setChats((prev) =>
         prev.map((chat) =>
           chat.id === id
-            ? {
-                ...chat,
-                messages: [...chat.messages, { sender: "bot", text: data.reply }],
-              }
+            ? { ...chat, messages: [...chat.messages, { sender: "bot", text: data.reply }] }
             : chat
         )
       );
@@ -121,7 +148,6 @@ const ChatSupport: React.FC = () => {
   const handleEndConversation = () => {
     setIsChatMode(false);
     setActiveChatId(null);
-    setInitialUserMessage(undefined);
   };
 
   const handleSelectFAQ = (faq: string) => {
@@ -131,48 +157,74 @@ const ChatSupport: React.FC = () => {
 
   const activeChat = chats.find((c) => c.id === activeChatId);
 
+  // =============================
+  // RENDER
+  // =============================
   return (
     <>
       <Header />
 
       <main className="min-h-screen bg-[#f4f9f4] px-4 sm:px-6 pt-24 pb-8">
-        <div className="relative mx-auto w-full max-w-[1400px] bg-white rounded-[28px] shadow-sm flex flex-col lg:flex-row h-[calc(100vh-6rem)] overflow-hidden">
+        <div className="relative mx-auto w-full max-w-[1400px] bg-white rounded-[28px] shadow-sm h-[calc(100vh-6rem)] overflow-hidden">
+          <div className="flex h-full">
+            {/* LEFT PANEL */}
+            <section
+              className={`
+                bg-white h-full transition-transform duration-300
+                ${isChatMode ? "lg:w-[35%]" : "lg:w-[45%]"}
+                lg:relative
+                absolute top-0 left-0 z-40
+                w-[85%] sm:w-[70%] lg:w-auto
+                ${showHistoryMobile ? "translate-x-0" : "-translate-x-full"}
+                lg:translate-x-0
+              `}
+            >
+              {!isChatMode ? (
+                <MascotPanel
+                  firstName={user.firstName}
+                  lastName={user.lastName}
+                  onHelpClick={() => startNewChat()}
+                />
+              ) : (
+                <ChatHistory
+                  chats={chats}
+                  activeChatId={activeChatId}
+                  onSelectChat={(id) => {
+                    handleSelectChat(id);
+                    setShowHistoryMobile(false);
+                  }}
+                  onNewChat={() => {
+                    startNewChat();
+                    setShowHistoryMobile(false);
+                  }}
+                />
+              )}
+            </section>
 
-          <section className={`relative h-full overflow-auto ${isChatMode ? "lg:w-[35%] w-full" : "lg:w-[45%] w-full"}`}>
-            {!isChatMode ? (
-              <MascotPanel user={user} onHelpClick={() => startNewChat()} />
-            ) : (
-              <ChatHistory
-                chats={chats}
-                activeChatId={activeChatId}
-                onSelectChat={handleSelectChat}
-                onNewChat={() => startNewChat()}
+            {/* MOBILE OVERLAY */}
+            {showHistoryMobile && (
+              <div
+                className="fixed inset-0 bg-black/40 z-30 lg:hidden"
+                onClick={() => setShowHistoryMobile(false)}
               />
             )}
-          </section>
 
-          <div className="absolute top-0 h-full pointer-events-none lg:block left-[45%]">
-            <img
-              src={new URL("../assets/images/border.svg", import.meta.url).href}
-              className={`h-full w-auto ${isChatMode ? "scale-x-[-1]" : ""}`}
-              alt="divider"
-            />
+            {/* RIGHT PANEL */}
+            <section className="relative flex-1 h-full overflow-hidden bg-[#e6efe6]">
+              {isChatMode ? (
+                <ChatPanel
+                  messages={activeChat?.messages ?? []}
+                  suggestedFAQs={defaultFAQs}
+                  onSendMessage={handleSendMessage}
+                  onEndConversation={handleEndConversation}
+                  isAITyping={isAITyping}
+                  onOpenHistory={() => setShowHistoryMobile(true)}
+                />
+              ) : (
+                <FAQItem onSelectFAQ={handleSelectFAQ} />
+              )}
+            </section>
           </div>
-
-          <section className="flex-1 h-full overflow-auto bg-[#e6efe6]">
-            {isChatMode ? (
-              <ChatPanel
-                initialUserMessage={initialUserMessage}
-                suggestedFAQs={defaultFAQs}
-                messages={activeChat?.messages ?? []}
-                onEndConversation={handleEndConversation}
-                onSendMessage={handleSendMessage}
-                isAITyping={isAITyping}
-              />
-            ) : (
-              <FAQItem onSelectFAQ={handleSelectFAQ} isChatMode={isChatMode} />
-            )}
-          </section>
         </div>
       </main>
     </>
