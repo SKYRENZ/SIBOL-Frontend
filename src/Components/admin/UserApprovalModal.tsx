@@ -6,6 +6,7 @@ import type { Account } from "../../types/adminTypes";
 import AttachmentsList from "../maintenance/attachments/AttachmentsList";
 import AttachmentsViewer from "../maintenance/attachments/AttachmentsViewer";
 import SnackBar from "../common/SnackBar"; // ✅ add
+import CustomScrollbar from "../common/CustomScrollbar"; // ✅ add
 
 interface Props {
   pendingId: number | null;
@@ -178,67 +179,69 @@ const PendingAccountModal: React.FC<Props> = ({ pendingId, isOpen, onClose, onAp
         ) : !account ? (
           <div className="p-4 text-sm text-gray-600">No data</div>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {fields.map(([label, value]) => (
-                <div key={label}>
-                  <div className="text-sm text-gray-700 mb-1 font-semibold">{label}</div>
-                  <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 font-normal" style={{ borderRadius: "8px" }}>
-                    {value}
+          <CustomScrollbar maxHeight="max-h-[calc(100vh-220px)]" className="pr-6 px-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                {fields.map(([label, value]) => (
+                  <div key={label}>
+                    <div className="text-sm text-gray-700 mb-1 font-semibold">{label}</div>
+                    <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 font-normal" style={{ borderRadius: "8px" }}>
+                      {value}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <div className="text-sm text-gray-700 mb-1 font-semibold">Attachments</div>
+                <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
+                  <div className="text-sm text-gray-800 font-normal">
+                    <AttachmentsList
+                      attachments={attachments}
+                      onView={(att) => setViewerAttachment(att)}
+                      isReadOnly={true}
+                      size="md"
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <div>
-              <div className="text-sm text-gray-700 mb-1 font-semibold">Attachments</div>
-              <div className="rounded-xl border border-gray-200 bg-white px-3 py-3">
-                <div className="text-sm text-gray-800 font-normal">
-                  <AttachmentsList
-                    attachments={attachments}
-                    onView={(att) => setViewerAttachment(att)}
-                    isReadOnly={true}
-                    size="md"
-                  />
-                </div>
+              {/* Reject reason input (required to enable Reject) */}
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Rejection Reason (required to reject)</label>
+                <textarea
+                  value={rejectReason}
+                  onChange={(e) => setRejectReason(e.target.value)}
+                  className="w-full border rounded px-2 py-2 text-sm"
+                  rows={3}
+                  placeholder="Provide reason for rejecting this account..."
+                  disabled={actionLoading}
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4">
+                <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
+                  Close
+                </button>
+
+                <button
+                  onClick={() => setShowRejectConfirm(true)}
+                  className="px-3 py-1 text-white text-sm rounded bg-red-600 hover:bg-red-700 disabled:opacity-60"
+                  disabled={actionLoading || !rejectReason.trim()}
+                >
+                  {actionLoading ? "Processing..." : "Reject"}
+                </button>
+
+                <button
+                  onClick={() => setShowApproveConfirm(true)}
+                  className="px-3 py-1 text-white text-sm rounded bg-green-600 hover:bg-green-700"
+                  disabled={actionLoading}
+                >
+                  Approve
+                </button>
               </div>
             </div>
-
-            {/* Reject reason input (required to enable Reject) */}
-            <div>
-              <label className="block text-xs text-gray-500 mb-1">Rejection Reason (required to reject)</label>
-              <textarea
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full border rounded px-2 py-2 text-sm"
-                rows={3}
-                placeholder="Provide reason for rejecting this account..."
-                disabled={actionLoading}
-              />
-            </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button onClick={onClose} className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50">
-                Close
-              </button>
-
-              <button
-                onClick={() => setShowRejectConfirm(true)}
-                className="px-3 py-1 text-white text-sm rounded bg-red-600 hover:bg-red-700 disabled:opacity-60"
-                disabled={actionLoading || !rejectReason.trim()}
-              >
-                {actionLoading ? "Processing..." : "Reject"}
-              </button>
-
-              <button
-                onClick={() => setShowApproveConfirm(true)}
-                className="px-3 py-1 text-white text-sm rounded bg-green-600 hover:bg-green-700"
-                disabled={actionLoading}
-              >
-                Approve
-              </button>
-            </div>
-          </div>
+          </CustomScrollbar>
         )}
       </FormModal>
 
