@@ -68,7 +68,7 @@ export default function UserApproval({ accounts, loading, error, onAccept, onRej
           await onAccept(a);
         }}
         onReject={async (a, reason) => {
-          await onReject(a);
+          await onReject(a, reason); // ✅ forward the reason
         }}
       />
     </div>
