@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login as loginAction, clearError, setUser, verifyToken } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
+import SnackBar from '../Components/common/SnackBar';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [touched, setTouched] = useState<{ identifier?: boolean; password?: boolean }>({});
   const [ssoError, setSsoError] = useState<string | null>(null);
+  const [snackbarVisible, setSnackbarVisible] = useState(false);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -111,6 +113,19 @@ const Login: React.FC = () => {
   const leftLogo = new URL('../assets/images/SIBOLWORDLOGO.png', import.meta.url).href
   const topLogo = new URL('../assets/images/SIBOLOGOBULB.png', import.meta.url).href
 
+  // Show snackbar when there's an error
+  useEffect(() => {
+    if (ssoError || authError) {
+      setSnackbarVisible(true);
+    }
+  }, [ssoError, authError]);
+
+  const handleSnackbarDismiss = () => {
+    setSnackbarVisible(false);
+    setSsoError(null);
+    dispatch(clearError());
+  };
+
   return (
     <div className="min-h-screen w-full bg-white lg:grid lg:grid-cols-2">
       {/* Left Panel */}
@@ -198,13 +213,6 @@ const Login: React.FC = () => {
               </button>
             </div>
 
-            {/* Server Error */}
-            {(ssoError || authError) && (
-              <div className="text-red-600 text-xs sm:text-sm text-center bg-red-50 p-2 sm:p-3 rounded-lg">
-                {ssoError || authError}
-              </div>
-            )}
-
             <button 
               className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
               type="submit" 
@@ -243,6 +251,15 @@ const Login: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* SnackBar for errors */}
+      <SnackBar
+        visible={snackbarVisible}
+        message={ssoError || authError || ''}
+        onDismiss={handleSnackbarDismiss}
+        type="error"
+        duration={5000}
+      />
     </div>
   )
 }

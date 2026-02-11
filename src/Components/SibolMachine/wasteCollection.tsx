@@ -703,11 +703,13 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
             <p className="text-sm text-gray-500">No containers available.</p>
           ) : (
             <div className="space-y-3">
-              {containers.map((container) => (
-                <div
-                  key={container.container_id}
-                  className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white shadow-sm"
-                >
+              {containers.map((container) => {
+                const statusText = (container as any).status_label ?? container.status;
+                return (
+                  <div
+                    key={container.container_id}
+                    className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white shadow-sm"
+                  >
                   <div className="w-10 h-10 rounded-lg bg-[#e7f4ec] flex items-center justify-center">
                     <Trash2 size={18} className="text-[#235034]" />
                   </div>
@@ -724,7 +726,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-[11px] px-2 py-1 rounded-full bg-gray-100 text-gray-600 font-medium">
-                      {container.status}
+                      {statusText}
                     </span>
                     <button
                       onClick={() => handleGoToContainer(container)}
@@ -733,8 +735,9 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                       View on map
                     </button>
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -748,8 +751,11 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
               <div className="relative flex items-center gap-4">
-                <div className="bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
+                <div className="relative bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
                   <img src="/images/lili.png" alt="Lili" className="w-14 h-14 rounded-full object-cover" />
+                  <div className="absolute -top-1 -right-1 bg-white/90 rounded-full p-1 shadow-sm">
+                    <Weight size={14} className="text-[#355842]" />
+                  </div>
                 </div>
                 <div className="flex-1">
                   <h2 className="text-2xl font-bold mb-1">{selectedContainer.container_name}</h2>
@@ -759,11 +765,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                   )}
                 </div>
 
-                {selectedContainer.status && selectedContainer.status !== 'Empty' && (
-                  <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 text-white text-sm font-semibold">
-                    {selectedContainer.status}
-                  </span>
-                )}
+                {/* status shown below in the Details cards; remove duplicate header badge */}
               </div>
             </div>
             
@@ -781,7 +783,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                   <div className="bg-blue-100 p-2 rounded-full"><Trash2 size={18} className="text-blue-600" /></div>
                   <div>
                     <p className="text-xs text-gray-500">Status</p>
-                    <p className="font-semibold text-gray-800">{selectedContainer.status}</p>
+                    <p className="font-semibold text-gray-800">{(selectedContainer as any).status_label ?? selectedContainer.status}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg">

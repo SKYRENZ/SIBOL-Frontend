@@ -46,11 +46,7 @@ export const login = createAsyncThunk(
       const data = await authService.login(identifier, password);
       return data;
     } catch (error: any) {
-      const errorMessage =
-        error?.response?.data?.error ||
-        error?.response?.data?.message ||
-        error?.message ||
-        'Invalid username/email or password';
+      const errorMessage = 'Invalid username/email or password';
       return rejectWithValue(errorMessage);
     }
   }
@@ -77,7 +73,12 @@ export const changePassword = createAsyncThunk(
       const data = await authService.changePassword(currentPassword, newPassword);
       return data;
     } catch (error: any) {
-      return rejectWithValue(error?.message || 'Password change failed');
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Password change failed';
+      return rejectWithValue(msg);
     }
   }
 );
@@ -272,6 +273,9 @@ const authSlice = createSlice({
       state.user = action.payload;
       state.isAuthenticated = !!action.payload;
       state.isFirstLogin = action.payload ? action.payload.IsFirstLogin === 1 : false;
+
+      // ✅ keep authService.getUser() in sync
+      authService.setCachedUser(action.payload);
     },
     logout: (state) => {
       state.user = null;
@@ -280,6 +284,9 @@ const authSlice = createSlice({
       state.error = null;
       state.successMessage = null;
       authService.logout();
+
+      // ✅ also clear cache
+      authService.setCachedUser(null);
     },
     clearError: (state) => {
       state.error = null;
@@ -356,6 +363,9 @@ const authSlice = createSlice({
       if (state.user) {
         state.user.IsFirstLogin = 0;
       }
+
+      // ✅ keep cache in sync too
+      authService.updateCachedUser({ IsFirstLogin: 0 });
     });
     builder.addCase(changePassword.rejected, (state, action) => {
       state.isLoading = false;
