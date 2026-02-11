@@ -9,6 +9,11 @@ export interface WasteContainer {
   // added optional full_address so frontend can show the area's full address returned by the backend
   full_address?: string;
   status: 'Empty' | 'Collecting' | 'Full' | 'In-Maintenance';
+  device_id?: string | null;
+  current_kg?: number | null;
+  last_weight_at?: string | null;
+  has_weight_data?: 0 | 1 | boolean;
+  status_label?: string;
   deployment_date: string;
   latitude: number;
   longitude: number;
@@ -16,6 +21,7 @@ export interface WasteContainer {
 
 export interface CreateContainerRequest {
   container_name: string;
+  device_id?: string;
   area_name: string;
   fullAddress: string;
 }
@@ -44,7 +50,7 @@ export const getWasteContainers = async (): Promise<WasteContainer[]> => {
 export const createWasteContainer = async (containerData: CreateContainerRequest): Promise<WasteContainer> => {
   // payload now includes area_name and fullAddress for backend geocoding
   const { data } = await post('/api/waste-containers', containerData);
-  return data;
+  return (data as any)?.data ?? data;
 };
 
 /**

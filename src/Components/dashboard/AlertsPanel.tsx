@@ -12,11 +12,17 @@ const AlertsPanel = ({ alerts }: { alerts: any[] }) => (
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <p className="font-semibold text-gray-800 text-sm">{alert.type}</p>
-              <p className="text-xs text-gray-400">{alert.date}</p>
+              <p className="font-semibold text-gray-800 text-sm">{alert.title ?? alert.type ?? 'Alert'}</p>
+              <p className="text-xs text-gray-400">{alert.timestamp ?? alert.date ?? ''}</p>
             </div>
-            <p className="text-sm text-gray-600">{alert.machine}</p>
-            <p className="text-sm text-gray-500 mt-1">Problem: {alert.problem}</p>
+            {alert.message ? (
+              <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">{alert.machine}</p>
+                <p className="text-sm text-gray-500 mt-1">Problem: {alert.problem}</p>
+              </>
+            )}
           </div>
         </div>
       ))}

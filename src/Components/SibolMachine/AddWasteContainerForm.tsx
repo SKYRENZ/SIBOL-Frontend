@@ -96,6 +96,7 @@ function isPointInBoundary(point: [number, number], boundary: BoundaryGeoJSON | 
 
 const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit, onCancel, loading = false }) => {
   const [containerName, setContainerName] = useState('');
+  const [deviceId, setDeviceId] = useState('');
   const [areaName, setAreaName] = useState('');
   const [fullAddress, setFullAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -340,6 +341,7 @@ const fetchSuggestions = async (q: string) => {
 
   const resetFields = () => {
     setContainerName('');
+    setDeviceId('');
     setAreaName('');
     setFullAddress('');
     setLat(null);
@@ -397,6 +399,7 @@ const fetchSuggestions = async (q: string) => {
 
     const payload: CreateContainerRequest & { latitude?: number; longitude?: number } = {
       container_name: containerName.trim(),
+      device_id: deviceId.trim() ? deviceId.trim() : undefined,
       area_name: areaName.trim(),
       fullAddress: fullAddress.trim(),
     };
@@ -510,8 +513,9 @@ const fetchSuggestions = async (q: string) => {
   const safeCenter: [number, number] = hasCoords ? [lat as number, lon as number] : DEFAULT_CENTER;
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <div>
+    <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col">
+      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
+        <div>
         <label className="block text-sm font-semibold text-gray-800">Container Name <span className="text-red-500">*</span></label>
         <input
           ref={containerNameRef}
@@ -523,9 +527,22 @@ const fetchSuggestions = async (q: string) => {
           required
           aria-label="Container Name"
         />
-      </div>
+        </div>
 
-      <div>
+        <div>
+        <label className="block text-sm font-semibold text-gray-800">Device ID <span className="text-gray-500 text-xs font-normal">(optional)</span></label>
+        <input
+          type="text"
+          value={deviceId}
+          onChange={(e) => setDeviceId(e.target.value)}
+          className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
+          placeholder="e.g. esp32-001"
+          aria-label="Device ID"
+        />
+        <p className="mt-1 text-xs text-gray-500">Must match the ESP32 deviceId sending weight data.</p>
+        </div>
+
+        <div>
         <label className="block text-sm font-semibold text-gray-800">Area Name <span className="text-red-500">*</span></label>
         <select
           value={areaName}
@@ -540,9 +557,9 @@ const fetchSuggestions = async (q: string) => {
             <option key={a.Area_id} value={a.Area_Name}>{a.Area_Name}</option>
           ))}
         </select>
-      </div>
+        </div>
 
-      <div className="relative">
+        <div className="relative">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-semibold text-gray-800">Full Address <span className="text-gray-500 text-xs font-normal">(start typing to see suggestions)</span></label>
           <button
@@ -599,10 +616,10 @@ const fetchSuggestions = async (q: string) => {
           </ul>,
           document.body
         )}
-      </div>
+        </div>
 
       {/* Map preview & draggable marker */}
-      <div>
+        <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Pin Location (drag to refine)</label>
         {!pinEnabled && (
           <p className="text-xs text-gray-500 mb-2">Enable pin to place or drag the marker.</p>
@@ -712,11 +729,13 @@ const fetchSuggestions = async (q: string) => {
           <div>Lat: {lat !== null ? lat.toFixed(6) : '–'}</div>
           <div>Lon: {lon !== null ? lon.toFixed(6) : '–'}</div>
         </div>
+        </div>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      <div className="mt-3 border-t bg-white pt-3">
+        {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
 
-      <div className="flex items-center justify-end gap-3 pt-2">
+        <div className="flex items-center justify-end gap-3">
         <button
           type="button"
           onClick={() => { resetFields(); onCancel(); }}
@@ -733,6 +752,7 @@ const fetchSuggestions = async (q: string) => {
         >
           {submitting || loading ? 'Saving...' : 'Save Container'}
         </button>
+        </div>
       </div>
     </form>
   );

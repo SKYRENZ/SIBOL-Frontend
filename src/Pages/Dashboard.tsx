@@ -14,6 +14,7 @@ import "../Components/graphs/chartSetup"; // keep for chartjs registration
 import GreetingCard from "../Components/dashboard/GreetingCard";
 import AdditivesPanel from "../Components/dashboard/AdditivesPanel";
 import AlertsPanel from "../Components/dashboard/AlertsPanel";
+import { getNotifications, type NotificationItem } from "../services/notificationService";
 import EnergyCard from "../Components/dashboard/EnergyCard";
 import FoodWasteCard from "../Components/dashboard/FoodWasteCard";
 import StaffUsersCard from "../Components/dashboard/StaffUsersCard";
@@ -54,6 +55,9 @@ const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"barangay" | "food">("barangay");
   const data = analyticsByRange.Yearly;
   const [foodWasteData, setFoodWasteData] = useState<number[]>(data.foodWaste);
+
+  // container-full alerts (system notifications)
+  const [containerAlerts, setContainerAlerts] = useState<NotificationItem[]>([]);
 
   // household count (total number of household users)
   const [householdCount, setHouseholdCount] = useState<number | null>(null);
@@ -116,6 +120,26 @@ const Dashboard: React.FC = () => {
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // fetch latest container full alerts
+  useEffect(() => {
+    let cancelled = false;
+    if (!isAuthenticated) return;
+    (async () => {
+      try {
+        const rows = await getNotifications({ type: 'system', limit: 50, offset: 0 });
+        if (cancelled) return;
+        const onlyFull = (rows || []).filter((n) => String(n?.eventType || '').toUpperCase() === 'CONTAINER_FULL');
+        setContainerAlerts(onlyFull);
+      } catch {
+        if (cancelled) return;
+        setContainerAlerts([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
 
   const chartData = {
     labels: data.labels,
@@ -351,7 +375,7 @@ const Dashboard: React.FC = () => {
             <AdditivesPanel />
           </div>
           <div className="w-full">
-            <AlertsPanel alerts={data.alerts} />
+            <AlertsPanel alerts={containerAlerts} />
           </div>
           
           <div className="w-full rounded-xl border bg-white p-4 shadow-sm flex flex-col">
