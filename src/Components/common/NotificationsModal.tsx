@@ -55,6 +55,8 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         return "text-red-700 border-red-600 bg-red-50/60";
       case "CONTAINER_ADDED":
         return "text-emerald-700 border-emerald-600 bg-emerald-50/60";
+      case "CONTAINER_FULL":
+        return "text-red-700 border-red-600 bg-red-50/60";
       case "DELETED":
         return "text-gray-700 border-gray-500 bg-gray-50/60";
       default:
@@ -97,6 +99,17 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
     return [{ label: String(eventType ?? ""), className: eventBadge(type) }];
   };
 
+  const formatNotificationDate = (ts?: string | null) => {
+    if (!ts) return "";
+    try {
+      const d = new Date(String(ts));
+      if (isNaN(d.getTime())) return String(ts);
+      return d.toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" });
+    } catch {
+      return String(ts);
+    }
+  };
+
   return (
     <FormModal isOpen={isOpen} onClose={onClose} title="Notifications" width="760px">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -128,7 +141,7 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
         </button>
       </div>
 
-      <div className="mt-4 rounded-xl border border-gray-200 overflow-hidden">
+      <div className="mt-4">
         {loading ? (
           <div className="flex items-center justify-center p-12">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
@@ -142,22 +155,20 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
           <ul className="space-y-3 max-h-[420px] overflow-y-auto">
             {notifications.map((notification) => (
               <li
-                key={notification.id}
-                className={`rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer ${!notification.read ? "bg-blue-50" : "bg-white"}`}
-                onClick={() => onMarkRead(notification.id, notification.type)}
-              >
-                <div className="px-4 py-4 sm:px-6">
-                  <div className="flex items-start">
-                    <div className="ml-1 flex-1">
-                      <div className="flex items-center justify-between gap-2">
+                  key={notification.id}
+                  className={`rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer ${!notification.read ? "bg-blue-50" : "bg-white"}`}
+                  onClick={() => onMarkRead(notification.id, notification.type)}
+                >
+                  <div className="ml-1 p-4 sm:px-6 relative">
+                    <div className="flex items-start">
+                      <div className="">
+                      <p className="text-xs text-gray-500 absolute right-4 top-4 whitespace-nowrap">{formatNotificationDate(notification.timestamp)}</p>
+                      <div className="flex items-start">
                         <p className="text-sm font-semibold text-[#2E523A]">
                           {notification.title}
                         </p>
-                        <p className="text-xs text-gray-500 ml-2 whitespace-nowrap">
-                          {notification.timestamp}
-                        </p>
                       </div>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
                         {notification.priority && (
                           <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] ${priorityBadge(notification.priority)}`}>
                             {notification.priority}
