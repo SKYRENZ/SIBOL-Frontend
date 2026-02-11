@@ -48,7 +48,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ onSelectFAQ, isChatMode = false }) =>
 
   return (
     <div
-      className={`relative h-full px-4 sm:px-12 lg:px-20 py-8 sm:py-12 lg:py-16 overflow-hidden
+      className={`relative h-full px-4 sm:px-8 lg:px-20 py-8 sm:py-12 lg:py-16 overflow-hidden
         ${isChatMode ? "bg-[#f4f9f4]" : "bg-white"}`}
     >
       {/* TITLE */}
