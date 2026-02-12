@@ -5,6 +5,7 @@ import AttachmentsUpload from "../maintenance/attachments/AttachmentsUpload";
 import AttachmentsList from "../maintenance/attachments/AttachmentsList";
 import AttachmentsViewer from "../maintenance/attachments/AttachmentsViewer";
 import SnackBar from "../common/SnackBar"; // ✅ add
+import CustomScrollbar from "../common/CustomScrollbar"; // ✅ add
 
 interface ClaimViewModalProps {
   isOpen: boolean;
@@ -180,125 +181,116 @@ const ClaimViewModal: React.FC<ClaimViewModalProps> = ({ isOpen, onClose, row, o
     <>
       <FormModal isOpen={!!isOpen} onClose={onClose} title="Claim Details" width="720px">
         {!row ? null : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              {[
-                ["Name", row.Fullname ?? "—"],
-                ["Email", row.Email ?? "—"],
-                ["Reward", row.Item ?? "—"],
-                ["Points Used", row.Total_points ?? 0],
-                ["Code", row.Redemption_code ?? "—"],
-                ["Status", row.Status ?? "—"],
-                ["Date Generated", formatDate(row.Created_at)],
-                ["Date Claimed", formatDate(row.Redeemed_at)],
-              ].map(([label, value]) => {
-                const isStatus = String(label).toLowerCase() === "status";
-                const statusText = String(value ?? "").trim();
-                 return (
-                   <div key={String(label)}>
-                     <div className="text-sm text-gray-700 mb-1 font-semibold">{label}</div>
-                     <div
-                       className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 font-normal"
-                       style={{ borderRadius: "8px" }}
-                     >
-                      {isStatus ? (
-                        <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium ${
-                            statusText === "Claimed" ? "bg-[#D9EBD9] text-[#355842]" : "bg-gray-200 text-gray-600"
-                          }`}
-                        >
-                          {statusText || "—"}
-                        </span>
-                      ) : (
-                        value
-                      )}
+          <CustomScrollbar maxHeight="max-h-[calc(100vh-220px)]" className="pr-6 px-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  ["Name", row.Fullname ?? "—"],
+                  ["Email", row.Email ?? "—"],
+                  ["Reward", row.Item ?? "—"],
+                  ["Points Used", row.Total_points ?? 0],
+                  ["Code", row.Redemption_code ?? "—"],
+                  ["Status", row.Status ?? "—"],
+                  ["Date Generated", formatDate(row.Created_at)],
+                  ["Date Claimed", formatDate(row.Redeemed_at)],
+                ].map(([label, value]) => {
+                  const isStatus = String(label).toLowerCase() === "status";
+                  const statusText = String(value ?? "").trim();
+                   return (
+                     <div key={String(label)}>
+                       <div className="text-sm text-gray-700 mb-1 font-semibold">{label}</div>
+                       <div className="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-800 font-normal" style={{ borderRadius: "8px" }}>
+                        {isStatus ? (
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${ statusText === "Claimed" ? "bg-[#D9EBD9] text-[#355842]" : "bg-gray-200 text-gray-600" }`}>
+                            {statusText || "—"}
+                          </span>
+                        ) : (
+                          value
+                        )}
+                       </div>
                      </div>
-                   </div>
-                 );
-               })}
-            </div>
+                   );
+                 })}
+              </div>
 
-            <div>
-              {isClaimed ? (
-                <div>
-                  <div className="text-sm text-gray-700 mb-2 font-semibold">Uploaded Attachment</div>
-                  <AttachmentsList
-                    attachments={attachments}
-                    onView={(att) => setViewerAttachment(att)}
-                    onRemove={() => {}}
-                    isReadOnly={true}
-                    size="md"
-                  />
-                </div>
-              ) : (
-                <AttachmentsUpload
-                  files={selectedFiles}
-                  onChange={handleLocalFilesChange}
-                  onRemove={handleRemoveLocal}
-                  label="Upload attachment"
-                  itemLayout="thumb"
-                  accept="image/png,image/jpeg"
-                  multiple={true}
-                  disabled={uploading || marking}
-                />
-              )}
-
-              <div className="mt-3">
-                {loadingAttachments ? (
-                  <div className="text-sm text-gray-500">Loading attachments...</div>
-                ) : attachments.length === 0 && selectedFiles.length === 0 ? (
-                  <div className="text-sm text-red-600">No attachments yet. Add at least one before marking as claimed.</div>
+              <div>
+                {isClaimed ? (
+                  <div>
+                    <div className="text-sm text-gray-700 mb-2 font-semibold">Uploaded Attachment</div>
+                    <AttachmentsList
+                      attachments={attachments}
+                      onView={(att) => setViewerAttachment(att)}
+                      onRemove={() => {}}
+                      isReadOnly={true}
+                      size="md"
+                    />
+                  </div>
                 ) : (
-                  <>
-                    {/* show existing attachments (from DB) - only when NOT already shown for claimed */}
-                    {!isClaimed && attachments.length > 0 && (
-                      <>
-                        <AttachmentsList
-                          attachments={attachments}
-                          onView={(att) => setViewerAttachment(att)}
-                          onRemove={(index: number) => {
-                            handleDeleteAttachment(attachments[index].Attachment_id);
-                          }}
-                          isReadOnly={false}
-                          size="md"
-                        />
-                        <div className="text-xs text-gray-500 mt-2">Existing attachments. Click a thumbnail to view. Use Delete to remove.</div>
-                      </>
-                    )}
-
-                    {/* removed manual selectedFiles thumbnail rendering to avoid duplicate previews.
-                         AttachmentsUpload already displays selected thumbnails. */}
-                  </>
+                  <AttachmentsUpload
+                    files={selectedFiles}
+                    onChange={handleLocalFilesChange}
+                    onRemove={handleRemoveLocal}
+                    label="Upload attachment"
+                    itemLayout="thumb"
+                    accept="image/png,image/jpeg"
+                    multiple={true}
+                    disabled={uploading || marking}
+                  />
                 )}
+
+                <div className="mt-3">
+                  {loadingAttachments ? (
+                    <div className="text-sm text-gray-500">Loading attachments...</div>
+                  ) : attachments.length === 0 && selectedFiles.length === 0 ? (
+                    <div className="text-sm text-red-600">No attachments yet. Add at least one before marking as claimed.</div>
+                  ) : (
+                    <>
+                      {!isClaimed && attachments.length > 0 && (
+                        <>
+                          <AttachmentsList
+                            attachments={attachments}
+                            onView={(att) => setViewerAttachment(att)}
+                            onRemove={(index: number) => {
+                              handleDeleteAttachment(attachments[index].Attachment_id);
+                            }}
+                            isReadOnly={false}
+                            size="md"
+                          />
+                          <div className="text-xs text-gray-500 mt-2">Existing attachments. Click a thumbnail to view. Use Delete to remove.</div>
+                        </>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-3 pt-4">
+                  <button
+                    onClick={onClose}
+                    className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                    disabled={marking || uploading}
+                  >
+                    Close
+                  </button>
+
+                  <button
+                    onClick={handleMarkAsClaimed}
+                    disabled={
+                      marking ||
+                      isClaimed ||
+                      (attachments.length === 0 && selectedFiles.length === 0)
+                    }
+                    className={`px-3 py-1 text-white text-sm rounded ${
+                      isClaimed || (attachments.length === 0 && selectedFiles.length === 0)
+                        ? "bg-gray-300 cursor-not-allowed"
+                        : "bg-green-600 hover:bg-green-700"
+                    }`}
+                  >
+                    {marking ? "Processing..." : isClaimed ? "Already Claimed" : "Mark as Claimed"}
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                onClick={onClose}
-                className="px-4 py-2 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
-                disabled={marking || uploading}
-              >
-                Close
-              </button>
-
-              <button
-                onClick={handleMarkAsClaimed}
-                disabled={
-                  marking ||
-                  isClaimed ||
-                  (attachments.length === 0 && selectedFiles.length === 0)
-                }
-                className={`px-3 py-1 text-white text-sm rounded ${
-                  isClaimed || (attachments.length === 0 && selectedFiles.length === 0)
-                    ? "bg-gray-300 cursor-not-allowed"
-                    : "bg-green-600 hover:bg-green-700"
-                }`}
-              >
-                {marking ? "Processing..." : isClaimed ? "Already Claimed" : "Mark as Claimed"}
-              </button>
-            </div>
-          </div>
+          </CustomScrollbar>
         )}
       </FormModal>
 
