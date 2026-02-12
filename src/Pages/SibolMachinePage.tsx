@@ -177,8 +177,6 @@ const SibolMachinePage: React.FC = () => {
             filterTypes={['container-status', 'waste-type']}
           />
         );
-      case 'Analytics':
-        return <Analytics />; // ✅ Analytics tab rendering
       case 'Process Panel':
         return <ProcessPanelTab />;
       default:

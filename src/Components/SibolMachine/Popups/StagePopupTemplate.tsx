@@ -1,6 +1,25 @@
 import React, { useState } from "react";
 import { cn } from "../../../lib/utils";
 import { Power, Check, ChevronDown, Info } from "lucide-react";
+
+const RefreshIcon: React.FC<{ size?: number }> = ({ size = 18 }) => (
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M21 2v6h-6" />
+    <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
+    <path d="M3 22v-6h6" />
+    <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
+  </svg>
+);
 import LearnMoreModal from "./LearnMoreModal";
 
 type SensorMetric = {
@@ -75,6 +94,9 @@ interface StagePopupTemplateProps extends StagePopupData {
   className?: string;
   onMachinePickerOpen?: () => void;
   onAdditivesHistoryOpen?: () => void;
+  onRefreshSensors?: () => void;
+  onRefreshStage?: () => void;
+  onSensorsHistoryOpen?: () => void;
   onWasteInputHistoryOpen?: () => void;
 }
 
@@ -97,6 +119,9 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   toggleDisplay = "0",
   onMachinePickerOpen,
   onAdditivesHistoryOpen,
+  onRefreshSensors,
+  onRefreshStage,
+  onSensorsHistoryOpen,
   onWasteInputHistoryOpen,
   wasteInputCard,
 }) => {
@@ -133,13 +158,28 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         <div className="w-[88px]" aria-hidden />
       </div>
 
-      <div className="text-center">
+      <div className="text-center relative overflow-visible">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#356245]">Stage {stageNumber}</p>
-        <h2 className="mt-1 text-2xl font-semibold text-[#1F3527] md:text-[26px]">{stageName}</h2>
+        <div className="mt-1 flex items-center justify-center gap-3">
+          <h2 className="text-2xl font-semibold text-[#1F3527] md:text-[26px]">{stageName}</h2>
+          {typeof onRefreshStage === 'function' && (
+            <button
+              type="button"
+              onClick={onRefreshStage}
+              data-testid="stage-refresh-btn"
+              title="Refresh stage data"
+              aria-label="Refresh stage data"
+              className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#2E523A] text-white hover:bg-[#244528] focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#A6C7B0] ml-3 z-50 shadow-md"
+            >
+              <RefreshIcon size={18} />
+            </button>
+          )}
+        </div>
         {stageSummary && (
           <p className="mx-auto mt-2 max-w-2xl text-sm text-[#4B6757]">{stageSummary}</p>
         )}
       </div>
+
 
       <div className="mt-7 grid gap-5 md:grid-cols-[196px_minmax(0,1fr)_196px]">
         <aside className="space-y-4">
@@ -177,7 +217,12 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         </div>
 
         <aside className="md:pr-1 space-y-4">
-          <SensorsCard sensors={sensors} accent={stageAccent} />
+          <SensorsCard
+            sensors={sensors}
+            accent={stageAccent}
+            onRefreshSensors={onRefreshSensors}
+            onSensorsHistoryOpen={onSensorsHistoryOpen}
+          />
           {wasteInputCard && (
             <WasteInputCardContent card={wasteInputCard} onHistoryOpen={onWasteInputHistoryOpen} />
           )}
@@ -199,17 +244,18 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
             {selectedMachine}
             <ChevronDown className="h-4 w-4 text-[#2E523A]" />
           </button>
-
-          <button
-            type="button"
-            onClick={() => setIsLearnMoreOpen(true)}
-            className="group flex items-center gap-2 text-sm font-medium text-[#2E523A] hover:text-[#1F3527] transition-colors"
-          >
-            <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E4F2E9] text-[#2E523A] group-hover:bg-[#D4E8DB] transition-colors">
-              <Info size={12} strokeWidth={2.5} />
-            </span>
-            Learn More
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsLearnMoreOpen(true)}
+              className="group flex items-center gap-2 text-sm font-medium text-[#2E523A] hover:text-[#1F3527] transition-colors"
+            >
+              <span className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#E4F2E9] text-[#2E523A] group-hover:bg-[#D4E8DB] transition-colors">
+                <Info size={12} strokeWidth={2.5} />
+              </span>
+              Learn More
+            </button>
+          </div>
         </div>
 
         <p className="max-w-3xl text-center text-sm leading-relaxed text-[#405B4D]">{narration}</p>
@@ -264,20 +310,21 @@ const SupportCardContent: React.FC<{
 }> = ({ card, accent, onAdditivesHistoryOpen }) => {
   if (card.type === "additives") {
     return (
-      <div className="rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[208px]">
+      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
+        {onAdditivesHistoryOpen && (
+          <button
+            type="button"
+            onClick={onAdditivesHistoryOpen}
+            data-testid="additives-history-topright"
+            className="absolute -right-4 -top-4 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+          >
+            View All
+          </button>
+        )}
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
-          {onAdditivesHistoryOpen && (
-            <button
-              type="button"
-              onClick={onAdditivesHistoryOpen}
-              className="text-xs font-semibold text-[#2E523A] hover:text-[#1F3527]"
-            >
-              View history
-            </button>
-          )}
         </div>
-        <div className="mt-4 space-y-3">
+        <div className="mt-4 space-y-3 overflow-visible">
           {card.items.map((item) => (
             <div key={item.name} className="flex items-center justify-between gap-3">
               <div>
@@ -300,7 +347,7 @@ const SupportCardContent: React.FC<{
 
   if (card.type === "gauge") {
     return (
-      <div className="rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[208px]">
+      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
         <div className="mt-4 flex flex-col items-center gap-3">
           <CircularGauge percent={card.percent} accent={accent} />
@@ -312,7 +359,7 @@ const SupportCardContent: React.FC<{
   }
 
   return (
-    <div className="rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[208px]">
+    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
       <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       <div className="mt-4 flex flex-col items-center gap-3">
         <CounterDisplay value={card.value} />
@@ -324,20 +371,21 @@ const SupportCardContent: React.FC<{
 
 const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: () => void }> = ({ card, onHistoryOpen }) => {
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[208px]">
+    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
+      {onHistoryOpen && (
+        <button
+          type="button"
+          onClick={onHistoryOpen}
+          data-testid="waste-history-topright"
+          className="absolute -right-4 -top-4 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+        >
+          View All
+        </button>
+      )}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
-        {onHistoryOpen && (
-          <button
-            type="button"
-            onClick={onHistoryOpen}
-            className="relative z-10 text-xs font-semibold text-[#2E523A] hover:text-[#1F3527]"
-          >
-            View history
-          </button>
-        )}
       </div>
-      <div className="mt-4">
+      <div className="mt-4 overflow-visible">
         {card.item ? (
           <div className="space-y-1">
             <p className="text-xs text-[#5B7462]">{card.item.date}</p>
@@ -364,13 +412,31 @@ const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image,
   </div>
 );
 
-const SensorsCard: React.FC<{ sensors: SensorMetric[]; accent: string }> = ({ sensors, accent }) => {
+const SensorsCard: React.FC<{
+  sensors: SensorMetric[];
+  accent: string;
+  onRefreshSensors?: () => void;
+  onSensorsHistoryOpen?: () => void;
+}> = ({ sensors, accent, onRefreshSensors, onSensorsHistoryOpen }) => {
   const statusLabel = sensors[0]?.status ?? "Status";
   return (
-    <div className="rounded-2xl border border-[#D6E4D9] bg-white px-5 py-5 shadow-sm min-h-[150px]">
-      <div className="flex items-center justify-between">
+    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[150px] overflow-visible z-20">
+      {/* sensor-level refresh removed: stage-level refresh is used instead */}
+
+      {typeof onSensorsHistoryOpen === 'function' && (
+        <button
+          type="button"
+          onClick={onSensorsHistoryOpen}
+          data-testid="sensors-history-topright"
+          title="View sensor history"
+          className="absolute -right-4 -top-4 inline-flex items-center gap-2 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+        >
+          View All
+        </button>
+      )}
+
+      <div className="flex items-center justify-between flex-wrap">
         <h3 className="text-sm font-semibold text-[#2E523A]">Sensors</h3>
-        <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#6B8976]">{statusLabel}</span>
       </div>
       <div className="mt-3 space-y-3">
         {sensors.map((sensor) => (
