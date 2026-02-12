@@ -54,7 +54,6 @@ const SibolMachinePage: React.FC = () => {
     { id: 'Machines', label: 'Machines' },
     { id: 'Process Panel', label: 'Process Panel' },
     { id: 'Waste Container', label: 'Waste Container' },
-    { id: 'Analytics', label: 'Analytics' }
   ];
 
   // Header height calculation

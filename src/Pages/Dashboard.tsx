@@ -121,23 +121,40 @@ const Dashboard: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
-  // fetch latest container full alerts
+  // fetch latest container full alerts by polling live container data
   useEffect(() => {
     let cancelled = false;
     if (!isAuthenticated) return;
-    (async () => {
+
+    const fetchFullContainers = async () => {
       try {
-        const rows = await getNotifications({ type: 'system', limit: 50, offset: 0 });
+        const { getWasteContainers } = await import("../services/wasteContainerService");
+        const containers = await getWasteContainers();
         if (cancelled) return;
-        const onlyFull = (rows || []).filter((n) => String(n?.eventType || '').toUpperCase() === 'CONTAINER_FULL');
-        setContainerAlerts(onlyFull);
-      } catch {
+        const full = (containers || []).filter((c: any) => Number(c.current_kg ?? c.current_weight_kg ?? 0) >= 20);
+        const mapped = full.map((c: any, idx: number) => ({
+          id: Number(c.container_id ?? idx),
+          type: 'system' as const,
+          title: `Container full: ${c.container_name}`,
+          message: `${c.container_name} in ${c.area_name || ''} reached ${Number(c.current_kg ?? c.current_weight_kg ?? 0).toFixed(2)} kg and is now full.`,
+          timestamp: c.last_weight_at ?? c.last_updated ?? new Date().toISOString(),
+          read: false,
+          priority: null,
+          status: null,
+          eventType: 'CONTAINER_FULL',
+        }));
+        setContainerAlerts(mapped);
+      } catch (err) {
         if (cancelled) return;
         setContainerAlerts([]);
       }
-    })();
+    };
+
+    fetchFullContainers();
+    const id = window.setInterval(fetchFullContainers, 20000);
     return () => {
       cancelled = true;
+      window.clearInterval(id);
     };
   }, [isAuthenticated]);
 
