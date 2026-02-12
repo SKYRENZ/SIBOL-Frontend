@@ -11,6 +11,7 @@ import { fetchAdditives, type AdditiveRow } from "../../store/slices/additivesSl
 import FormModal from "../common/FormModal";
 import type { Machine } from "../../services/machineService";
 import { getWasteInputsByMachineId, type WasteInputRow } from "../../services/wasteInputService";
+import { getLatestS3Readings, type S3SensorReading } from "../../services/s3SensorService";
 
 const formatDate = (date?: string) => {
   if (!date) return "N/A";
@@ -137,6 +138,8 @@ const ProcessPanelTab: React.FC = () => {
   const [wastePage, setWastePage] = useState(1);
   const wastePageSize = 6;
 
+  const [s3Readings, setS3Readings] = useState<S3SensorReading | null>(null);
+
   useEffect(() => {
     if (!selectedMachine && machines.length) {
       const defaultMachine = machines.find((m) => isMachineActive(m.status_name)) ?? machines[0];
@@ -177,6 +180,31 @@ const ProcessPanelTab: React.FC = () => {
     return () => {
       mounted = false;
     };
+  }, [selectedMachine?.machine_id]);
+
+  useEffect(() => {
+    if (!selectedMachine?.machine_id) {
+      setS3Readings(null);
+      return;
+    }
+
+    const fetchSensors = async () => {
+      try {
+        const data = await getLatestS3Readings(selectedMachine.machine_id);
+        if (data && data.length > 0) {
+          setS3Readings(data[0]);
+        } else {
+          setS3Readings(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch S3 sensor readings", error);
+      }
+    };
+
+    fetchSensors();
+    const interval = setInterval(fetchSensors, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(interval);
   }, [selectedMachine?.machine_id]);
 
   const stage3Additives = useMemo(
@@ -226,12 +254,12 @@ const ProcessPanelTab: React.FC = () => {
         items.length > 0
           ? items
           : [
-              {
-                name: "No additives logged",
-                detail: selectedMachine ? "Awaiting inputs" : "Select a machine",
-                trailing: "—",
-              },
-            ],
+            {
+              name: "No additives logged",
+              detail: selectedMachine ? "Awaiting inputs" : "Select a machine",
+              trailing: "—",
+            },
+          ],
     };
   }, [latestStage3Additives, selectedMachine]);
 
@@ -317,10 +345,46 @@ const ProcessPanelTab: React.FC = () => {
   const machineActive = selectedMachine ? isMachineActive(selectedMachine.status_name) : undefined;
   const machineStatusLabel = machineActive === undefined ? undefined : machineActive ? "Active" : "Inactive";
 
+  const stage3Sensors = useMemo(() => {
+    if (!s3Readings) return stage3Data.sensors; // Fallback to static data
+
+    return [
+      {
+        id: "ph-1",
+        label: "pH Level",
+        value: s3Readings.Ph_Sensor != null ? s3Readings.Ph_Sensor.toFixed(2) : "N/A",
+        status: s3Readings.Ph_Sensor != null && s3Readings.Ph_Sensor >= 6.5 && s3Readings.Ph_Sensor <= 7.5 ? "Normal" : "Review",
+        percent: s3Readings.Ph_Sensor != null ? (s3Readings.Ph_Sensor / 14) * 100 : 0,
+      },
+      {
+        id: "temp-1",
+        label: "Temperature",
+        value: s3Readings.Temp_Sensor != null ? `${s3Readings.Temp_Sensor.toFixed(1)}°C` : "N/A",
+        status: "Normal", // Logic can be improved
+        percent: s3Readings.Temp_Sensor != null ? (s3Readings.Temp_Sensor / 100) * 100 : 0,
+      },
+      {
+        id: "pressure-1",
+        label: "Pressure",
+        value: s3Readings.Pressure_Sensor != null ? `${s3Readings.Pressure_Sensor.toFixed(1)}` : "N/A",
+        status: "Normal",
+        percent: s3Readings.Pressure_Sensor != null ? Math.min((s3Readings.Pressure_Sensor / 100) * 100, 100) : 0,
+      },
+      {
+        id: "methane-1",
+        label: "Methane",
+        value: s3Readings.Methane_Sensor != null ? `${s3Readings.Methane_Sensor.toFixed(1)}` : "N/A",
+        status: "Normal",
+        percent: s3Readings.Methane_Sensor != null ? Math.min((s3Readings.Methane_Sensor / 100) * 100, 100) : 0,
+      },
+    ];
+  }, [s3Readings]);
+
   const stages = useMemo(
     () => [
       {
         ...stage3Data,
+        sensors: stage3Sensors,
         supportCard: stage3SupportCard,
         selectedMachine: selectedMachineLabel,
         activity: {
@@ -366,6 +430,8 @@ const ProcessPanelTab: React.FC = () => {
       machineStatusLabel,
     ]
   );
+
+
 
   const goPrev = () => {
     setActiveIndex((prev) => (prev === 0 ? stages.length - 1 : prev - 1));

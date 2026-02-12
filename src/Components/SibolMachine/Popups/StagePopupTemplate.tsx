@@ -199,7 +199,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
             {selectedMachine}
             <ChevronDown className="h-4 w-4 text-[#2E523A]" />
           </button>
-          
+
           <button
             type="button"
             onClick={() => setIsLearnMoreOpen(true)}
@@ -211,7 +211,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
             Learn More
           </button>
         </div>
-        
+
         <p className="max-w-3xl text-center text-sm leading-relaxed text-[#405B4D]">{narration}</p>
       </footer>
     </div>
@@ -233,27 +233,27 @@ const StageToggle: React.FC<{ accent: string; display: string; isActive?: boolea
 
   return (
     <div className="inline-flex items-center gap-2">
-    <span
-      className="relative inline-flex h-8 min-w-[72px] items-center rounded-full border border-[#D1E3D7] bg-white/90 px-1 shadow-[0_14px_32px_-20px_rgba(33,64,46,0.6)] backdrop-blur-sm"
-      style={{ boxShadow: "0 18px 38px -26px rgba(33,64,46,0.65)" }}
-    >
-      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#2E523A] shadow-[0_3px_8px_rgba(46,82,58,0.18)]">
-        {display}
-      </span>
       <span
-        className="ml-2 flex h-6 min-w-[36px] items-center justify-end rounded-full px-2"
-        style={{
-          background: `linear-gradient(135deg, ${toggleAccent} 0%, ${toggleAccent}d0 100%)`,
-          boxShadow: "inset 0 1px 1px rgba(255,255,255,0.5)",
-        }}
+        className="relative inline-flex h-8 min-w-[72px] items-center rounded-full border border-[#D1E3D7] bg-white/90 px-1 shadow-[0_14px_32px_-20px_rgba(33,64,46,0.6)] backdrop-blur-sm"
+        style={{ boxShadow: "0 18px 38px -26px rgba(33,64,46,0.65)" }}
       >
-        <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
+        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#2E523A] shadow-[0_3px_8px_rgba(46,82,58,0.18)]">
+          {display}
+        </span>
+        <span
+          className="ml-2 flex h-6 min-w-[36px] items-center justify-end rounded-full px-2"
+          style={{
+            background: `linear-gradient(135deg, ${toggleAccent} 0%, ${toggleAccent}d0 100%)`,
+            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.5)",
+          }}
+        >
+          <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
+        </span>
       </span>
-    </span>
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${badgeClass}`}>
-      {badgeText}
-    </span>
-  </div>
+      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${badgeClass}`}>
+        {badgeText}
+      </span>
+    </div>
   );
 };
 
@@ -395,7 +395,7 @@ const SensorRow: React.FC<{ sensor: SensorMetric; accent: string }> = ({ sensor,
           background: `linear-gradient(90deg, ${accent}, rgba(46,82,58,0.65))`,
         }}
       />
-      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-white">
+      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#1F3527]">
         {sensor.value}
       </span>
     </div>
