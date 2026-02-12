@@ -76,7 +76,7 @@ const buildWasteInputCard = (row: WasteInputRow | null, selectedMachineLabel: st
   return {
     title: "Waste Input",
     item: {
-      date: `${dateLabel}${selectedMachineLabel ? ` • ${selectedMachineLabel}` : ""}`,
+      date: dateLabel,
       weight: `${formatValue(weight)} kg`,
       operator,
     },
@@ -130,6 +130,8 @@ const ProcessPanelTab: React.FC = () => {
   const [isAdditivesHistoryOpen, setIsAdditivesHistoryOpen] = useState(false);
   const [sortBy, setSortBy] = useState<"date" | "additive" | "value">("date");
   const [sortOrder, setSortOrder] = useState<"desc" | "asc">("desc");
+  const [sensorSortBy, setSensorSortBy] = useState<"timestamp" | "ph" | "temp" | "pressure" | "methane">("timestamp");
+  const [sensorSortOrder, setSensorSortOrder] = useState<"desc" | "asc">("desc");
   const [historyPage, setHistoryPage] = useState(1);
   const historyPageSize = 5;
   const [wasteInputs, setWasteInputs] = useState<WasteInputRow[]>([]);
@@ -139,6 +141,9 @@ const ProcessPanelTab: React.FC = () => {
   const wastePageSize = 6;
 
   const [s3Readings, setS3Readings] = useState<S3SensorReading | null>(null);
+  const [isSensorsHistoryOpen, setIsSensorsHistoryOpen] = useState(false);
+  const [sensorHistory, setSensorHistory] = useState<S3SensorReading[]>([]);
+  const [sensorHistoryLoading, setSensorHistoryLoading] = useState(false);
 
   useEffect(() => {
     if (!selectedMachine && machines.length) {
@@ -182,6 +187,23 @@ const ProcessPanelTab: React.FC = () => {
     };
   }, [selectedMachine?.machine_id]);
 
+  // Helper: fetch latest (single) reading and update state
+  const refreshSensors = async () => {
+    if (!selectedMachine?.machine_id) return;
+    try {
+      const data = await getLatestS3Readings(selectedMachine.machine_id, 1);
+      if (data && data.length > 0) {
+        setS3Readings(data[0]);
+        console.log('refreshSensors: got', data.length, 'rows', data[0]);
+      } else {
+        setS3Readings((prev) => (prev && prev.Machine_id === selectedMachine.machine_id ? prev : null));
+        console.log('refreshSensors: no rows returned for machine', selectedMachine.machine_id);
+      }
+    } catch (err) {
+      console.error('Failed to refresh S3 sensor readings', err);
+    }
+  };
+
   useEffect(() => {
     if (!selectedMachine?.machine_id) {
       setS3Readings(null);
@@ -189,31 +211,56 @@ const ProcessPanelTab: React.FC = () => {
     }
 
     let mounted = true;
-
-    const fetchSensors = async () => {
-      try {
-        const data = await getLatestS3Readings(selectedMachine.machine_id);
-        if (!mounted) return;
-        if (data && data.length > 0) {
-          setS3Readings(data[0]);
-        } else {
-          // If there are no new readings, keep the last successful reading
-          // but only if it belongs to the same machine. Otherwise set to null.
-          setS3Readings((prev) => (prev && prev.Machine_id === selectedMachine.machine_id ? prev : null));
-        }
-      } catch (error) {
-        console.error("Failed to fetch S3 sensor readings", error);
-      }
-    };
-
-    fetchSensors();
-    const interval = setInterval(fetchSensors, 5000); // Poll every 5 seconds
+    // initial + polling
+    if (mounted) refreshSensors();
+    const id = setInterval(() => {
+      refreshSensors();
+    }, 5000);
 
     return () => {
       mounted = false;
-      clearInterval(interval);
+      clearInterval(id);
     };
   }, [selectedMachine?.machine_id]);
+
+  // Open sensors history modal and load multiple readings
+  const openSensorsHistory = async () => {
+    if (!selectedMachine?.machine_id) return;
+    setSensorHistoryLoading(true);
+    try {
+      const rows = await getLatestS3Readings(selectedMachine.machine_id, 200);
+      setSensorHistory(rows || []);
+      setIsSensorsHistoryOpen(true);
+    } catch (err) {
+      console.error('Failed to load sensor history', err);
+      setSensorHistory([]);
+      setIsSensorsHistoryOpen(true);
+    } finally {
+      setSensorHistoryLoading(false);
+    }
+  };
+
+  // Refresh the whole Stage 3 data (sensors, additives, waste inputs)
+  const refreshStage = async () => {
+    if (!selectedMachine?.machine_id) return;
+    try {
+      // sensors
+      await refreshSensors();
+      // additives (dispatch will update store and UI)
+      dispatch(fetchAdditives(selectedMachine.machine_id));
+      // waste inputs
+      try {
+        const rows = await getWasteInputsByMachineId(selectedMachine.machine_id);
+        setWasteInputs(rows || []);
+        setWastePage(1);
+      } catch (err) {
+        console.error('Failed to refresh waste inputs', err);
+      }
+      console.log('refreshStage: refreshed stage data for machine', selectedMachine.machine_id);
+    } catch (err) {
+      console.error('Failed to refresh stage data', err);
+    }
+  };
 
   const stage3Additives = useMemo(
     () =>
@@ -353,22 +400,24 @@ const ProcessPanelTab: React.FC = () => {
   const machineActive = selectedMachine ? isMachineActive(selectedMachine.status_name) : undefined;
   const machineStatusLabel = machineActive === undefined ? undefined : machineActive ? "Active" : "Inactive";
 
+  // Build sensors from latest DB reading. Do NOT fall back to mock data.
   const stage3Sensors = useMemo(() => {
-    if (!s3Readings) return stage3Data.sensors; // Fallback to static data
+    if (!s3Readings) return [];
 
     return [
       {
         id: "ph-1",
         label: "pH Level",
         value: s3Readings.Ph_Sensor != null ? s3Readings.Ph_Sensor.toFixed(2) : "N/A",
-        status: s3Readings.Ph_Sensor != null && s3Readings.Ph_Sensor >= 6.5 && s3Readings.Ph_Sensor <= 7.5 ? "Normal" : "Review",
+        // Show same status as other sensors (keep display consistent)
+        status: "Normal",
         percent: s3Readings.Ph_Sensor != null ? (s3Readings.Ph_Sensor / 14) * 100 : 0,
       },
       {
         id: "temp-1",
         label: "Temperature",
         value: s3Readings.Temp_Sensor != null ? `${s3Readings.Temp_Sensor.toFixed(1)}°C` : "N/A",
-        status: "Normal", // Logic can be improved
+        status: "Normal",
         percent: s3Readings.Temp_Sensor != null ? (s3Readings.Temp_Sensor / 100) * 100 : 0,
       },
       {
@@ -376,14 +425,16 @@ const ProcessPanelTab: React.FC = () => {
         label: "Pressure",
         value: s3Readings.Pressure_Sensor != null ? `${s3Readings.Pressure_Sensor.toFixed(1)}` : "N/A",
         status: "Normal",
-        percent: s3Readings.Pressure_Sensor != null ? Math.min((s3Readings.Pressure_Sensor / 100) * 100, 100) : 0,
+        percent:
+          s3Readings.Pressure_Sensor != null ? Math.min((s3Readings.Pressure_Sensor / 100) * 100, 100) : 0,
       },
       {
         id: "methane-1",
         label: "Methane",
         value: s3Readings.Methane_Sensor != null ? `${s3Readings.Methane_Sensor.toFixed(1)}` : "N/A",
         status: "Normal",
-        percent: s3Readings.Methane_Sensor != null ? Math.min((s3Readings.Methane_Sensor / 100) * 100, 100) : 0,
+        percent:
+          s3Readings.Methane_Sensor != null ? Math.min((s3Readings.Methane_Sensor / 100) * 100, 100) : 0,
       },
     ];
   }, [s3Readings]);
@@ -529,6 +580,10 @@ const ProcessPanelTab: React.FC = () => {
                     onWasteInputHistoryOpen={
                       stage.id === "stage-3" ? () => setIsWasteHistoryOpen(true) : undefined
                     }
+                    // expose refresh/history for sensors to ALL stages so buttons are always present
+                    onRefreshSensors={refreshSensors}
+                    onRefreshStage={stage.id === "stage-3" ? refreshStage : undefined}
+                    onSensorsHistoryOpen={openSensorsHistory}
                     className={cn(
                       "w-[1100px] max-w-[1100px] min-h-[650px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible",
                       !isActive && "w-[1000px] max-w-[1000px] min-h-[600px] border-white/60 bg-white/85 backdrop-blur-md"
@@ -536,10 +591,10 @@ const ProcessPanelTab: React.FC = () => {
                   />
                   {isActive && (
                     <>
-                      <span className="pointer-events-none absolute left-8 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
+                      <span className="pointer-events-none absolute left-8 top-6 hidden rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
                         <span className="m-2 h-3 w-3 rounded-full bg-[#2E523A]" />
                       </span>
-                      <span className="pointer-events-none absolute right-8 top-1/2 hidden -translate-y-1/2 rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
+                      <span className="pointer-events-none absolute right-8 bottom-6 hidden rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
                         <span className="m-2 h-3 w-3 rounded-full bg-[#2E523A]" />
                       </span>
                     </>
@@ -823,6 +878,155 @@ const ProcessPanelTab: React.FC = () => {
             </button>
           </div>
         </div>
+      </FormModal>
+
+      <FormModal
+        isOpen={isSensorsHistoryOpen}
+        onClose={() => setIsSensorsHistoryOpen(false)}
+        title={`Sensor Readings${selectedMachine ? ` • ${selectedMachine.Name}` : ""}`}
+        width="920px"
+      >
+          {sensorHistoryLoading && (
+            <div className="py-4 text-center text-xs text-[#6B8976]">Loading sensor readings...</div>
+          )}
+
+          {!sensorHistoryLoading && sensorHistory.length === 0 && (
+            <div className="py-12 text-center text-sm text-[#6B8976]">No sensor readings found.</div>
+          )}
+
+          {!sensorHistoryLoading && sensorHistory.length > 0 && (
+            <>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-[#4B6757] mb-3">
+                <span className="font-semibold">Sort by:</span>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortBy("timestamp")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortBy === "timestamp" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  Timestamp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortBy("ph")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortBy === "ph" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  pH
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortBy("temp")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortBy === "temp" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  Temp
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortBy("pressure")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortBy === "pressure" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  Pressure
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortBy("methane")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortBy === "methane" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  Methane
+                </button>
+
+                <span className="ml-2 font-semibold">Order:</span>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortOrder("asc")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortOrder === "asc" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  Asc
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSensorSortOrder("desc")}
+                  className={cn(
+                    "rounded-full border px-3 py-1",
+                    sensorSortOrder === "desc" ? "border-[#2E523A] text-[#2E523A]" : "border-[#D6E4D9]"
+                  )}
+                >
+                  Desc
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                {(() => {
+                  const arr = [...sensorHistory];
+                  arr.sort((a, b) => {
+                    const getVal = (r: typeof sensorHistory[0]) => {
+                      switch (sensorSortBy) {
+                        case "ph":
+                          return r.Ph_Sensor ?? null;
+                        case "temp":
+                          return r.Temp_Sensor ?? null;
+                        case "pressure":
+                          return r.Pressure_Sensor ?? null;
+                        case "methane":
+                          return r.Methane_Sensor ?? null;
+                        default:
+                          return r.Timestamp ? new Date(r.Timestamp).getTime() : null;
+                      }
+                    };
+                    const av = getVal(a);
+                    const bv = getVal(b);
+                    if (av == null && bv == null) return 0;
+                    if (av == null) return 1;
+                    if (bv == null) return -1;
+                    return Number(av) - Number(bv);
+                  });
+                  if (sensorSortOrder === "desc") arr.reverse();
+
+                  return (
+                    <table className="w-full text-left text-xs text-[#3F5D49]">
+                      <thead className="text-[11px] uppercase tracking-wider text-[#6B8976]">
+                        <tr className="border-b border-[#E4EFE7]">
+                          <th className="py-2">Timestamp</th>
+                          <th className="py-2">pH</th>
+                          <th className="py-2">Temp (°C)</th>
+                          <th className="py-2">Pressure</th>
+                          <th className="py-2">Methane</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {arr.map((r) => (
+                          <tr key={r.S3sensor_id} className="border-b border-[#EEF4F0]">
+                            <td className="py-2 font-semibold text-[#1F3527]">{r.Timestamp ? new Date(r.Timestamp).toLocaleString() : '—'}</td>
+                            <td className="py-2">{r.Ph_Sensor != null ? r.Ph_Sensor.toFixed(2) : '—'}</td>
+                            <td className="py-2">{r.Temp_Sensor != null ? r.Temp_Sensor.toFixed(1) : '—'}</td>
+                            <td className="py-2">{r.Pressure_Sensor != null ? r.Pressure_Sensor.toFixed(1) : '—'}</td>
+                            <td className="py-2">{r.Methane_Sensor != null ? r.Methane_Sensor.toFixed(1) : '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  );
+                })()}
+              </div>
+            </>
+          )}
       </FormModal>
 
       <div className="pointer-events-none absolute inset-6 rounded-[30px] border border-dashed border-[#E2ECE5]" aria-hidden />

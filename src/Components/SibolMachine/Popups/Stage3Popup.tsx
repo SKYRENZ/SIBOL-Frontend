@@ -48,8 +48,38 @@ export const stage3Data: StagePopupData = {
   toggleDisplay: "0",
 };
 
-const Stage3Popup: React.FC = () => {
-  return <StagePopupTemplate {...stage3Data} />;
+interface Stage3PopupProps {
+  onMachinePickerOpen?: () => void;
+  onAdditivesHistoryOpen?: () => void;
+  onRefreshSensors?: () => void;
+  onSensorsHistoryOpen?: () => void;
+  onWasteInputHistoryOpen?: () => void;
+  className?: string;
+  // allow overriding sensors when used standalone
+  sensors?: StagePopupData["sensors"];
+}
+
+const Stage3Popup: React.FC<Stage3PopupProps> = ({
+  onMachinePickerOpen,
+  onAdditivesHistoryOpen,
+  onRefreshSensors,
+  onSensorsHistoryOpen,
+  onWasteInputHistoryOpen,
+  className,
+  sensors,
+}) => {
+  return (
+    <StagePopupTemplate
+      {...stage3Data}
+      sensors={sensors ?? stage3Data.sensors}
+      onMachinePickerOpen={onMachinePickerOpen}
+      onAdditivesHistoryOpen={onAdditivesHistoryOpen}
+      onRefreshSensors={onRefreshSensors}
+      onSensorsHistoryOpen={onSensorsHistoryOpen}
+      onWasteInputHistoryOpen={onWasteInputHistoryOpen}
+      className={className}
+    />
+  );
 };
 
 export default Stage3Popup;
