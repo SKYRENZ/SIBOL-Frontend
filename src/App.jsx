@@ -1,6 +1,7 @@
 import React, { lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './Components/common/ProtectedRoute';
+import FirstLoginGuard from './hooks/signup/useFirstLoginGuard';
 import { useAppDispatch } from './store/hooks';
 import { verifyToken } from './store/slices/authSlice';
 
@@ -24,41 +25,44 @@ const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 
 function App() {
   const dispatch = useAppDispatch();
-
+  
   useEffect(() => {
     dispatch(verifyToken());
   }, [dispatch]);
 
   return (
-    <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Landingpage />} />
-      <Route path="/login" element={<SignIN />} />
-      <Route path="/signup" element={<SignUp />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} /> 
-      <Route path="/email-verification" element={<EmailVerification />} />
-      <Route path="/pending-approval" element={<AdminPending />} />
-      <Route path="/auth/callback" element={<SSOCallback />} />
-      <Route path="/chat-support" element={<ChatSupport />} />
-      
-      {/* Protected Routes for any authenticated user */}
-      <Route element={<ProtectedRoute />}>
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/sibol-machines" element={<SibolMachinePage />} />
-        <Route path="/household" element={<Household />} />
-        <Route path="/maintenance" element={<MaintenancePage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-      </Route>
+    <>
+      <FirstLoginGuard />
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/" element={<Landingpage />} />
+        <Route path="/login" element={<SignIN />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} /> 
+        <Route path="/email-verification" element={<EmailVerification />} />
+        <Route path="/pending-approval" element={<AdminPending />} />
+        <Route path="/auth/callback" element={<SSOCallback />} />
+        <Route path="/chat-support" element={<ChatSupport />} />
+        
+        {/* Protected Routes for any authenticated user */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/sibol-machines" element={<SibolMachinePage />} />
+          <Route path="/household" element={<Household />} />
+          <Route path="/maintenance" element={<MaintenancePage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
+        </Route>
 
-      {/* Admin Only Routes */}
-      <Route element={<ProtectedRoute requiredRole={1} />}>
-        <Route path="/admin" element={<Admin />} />
-      </Route>
+        {/* Admin Only Routes */}
+        <Route element={<ProtectedRoute requiredRole={1} />}>
+          <Route path="/admin" element={<Admin />} />
+        </Route>
 
-      {/* 404 */}
-      <Route path="/404" element={<NotFound />} />
-      <Route path="*" element={<Navigate to="/404" replace />} />
-    </Routes>
+        {/* 404 */}
+        <Route path="/404" element={<NotFound />} />
+        <Route path="*" element={<Navigate to="/404" replace />} />
+      </Routes>
+    </>
   );
 }
 
