@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import apiClient from "../services/apiClient";
+import apiClient, { apiGet } from "../services/apiClient";
 import { useNavigate, useLocation } from "react-router-dom";
 import { isAuthenticated as checkIsAuthenticated, getUser } from "../services/authService";
 import Header from "../Components/Header";
@@ -68,7 +68,7 @@ const Dashboard: React.FC = () => {
     (async () => {
       try {
         const year = new Date().getFullYear();
-        const resp = await apiClient.get(`/api/waste-collections/monthly?year=${year}`);
+        const resp = await apiGet(`/api/waste-collections/monthly?year=${year}`);
         const arr = resp.data?.data ?? resp.data;
         if (Array.isArray(arr) && arr.length === 12) {
           if (!cancelled) setFoodWasteData(arr.map((v: any) => Number(v) || 0));
@@ -107,7 +107,7 @@ const Dashboard: React.FC = () => {
     (async () => {
       try {
         const year = new Date().getFullYear();
-        const resp = await apiClient.get(`/api/users/role/Household/monthly?year=${year}&cumulative=1`);
+        const resp = await apiGet(`/api/users/role/Household/monthly?year=${year}&cumulative=1`);
         const arr = resp.data?.data ?? resp.data;
         if (!Array.isArray(arr) || arr.length !== 12) {
           console.warn("Unexpected household monthly response, falling back to mock");
@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
     (async () => {
       setIsLoadingWaste(true);
       try {
-        const resp = await apiClient.get(`/api/waste-collections/total?range=${wasteRange}`);
+        const resp = await apiGet(`/api/waste-collections/total?range=${wasteRange}`);
         // handle possible response shapes
         const payload = resp.data?.data ?? resp.data;
         const value = Number(payload?.total_kg ?? payload?.total ?? payload ?? 0) || 0;
@@ -317,7 +317,7 @@ const Dashboard: React.FC = () => {
 
     const fetchRoleCount = async (roleName: string) => {
       try {
-        const resp = await apiClient.get(`/api/users/role/${roleName}`);
+        const resp = await apiGet(`/api/users/role/${roleName}`);
         const payload = resp.data?.data ?? resp.data;
         return Array.isArray(payload) ? payload.length : 0;
       } catch (err) {
