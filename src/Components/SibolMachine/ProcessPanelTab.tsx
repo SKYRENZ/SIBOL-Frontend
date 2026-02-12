@@ -188,13 +188,18 @@ const ProcessPanelTab: React.FC = () => {
       return;
     }
 
+    let mounted = true;
+
     const fetchSensors = async () => {
       try {
         const data = await getLatestS3Readings(selectedMachine.machine_id);
+        if (!mounted) return;
         if (data && data.length > 0) {
           setS3Readings(data[0]);
         } else {
-          setS3Readings(null);
+          // If there are no new readings, keep the last successful reading
+          // but only if it belongs to the same machine. Otherwise set to null.
+          setS3Readings((prev) => (prev && prev.Machine_id === selectedMachine.machine_id ? prev : null));
         }
       } catch (error) {
         console.error("Failed to fetch S3 sensor readings", error);
@@ -204,7 +209,10 @@ const ProcessPanelTab: React.FC = () => {
     fetchSensors();
     const interval = setInterval(fetchSensors, 5000); // Poll every 5 seconds
 
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearInterval(interval);
+    };
   }, [selectedMachine?.machine_id]);
 
   const stage3Additives = useMemo(
