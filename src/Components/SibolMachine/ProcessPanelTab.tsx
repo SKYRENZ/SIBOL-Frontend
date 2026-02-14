@@ -3,7 +3,6 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import StagePopupTemplate from "./Popups/StagePopupTemplate";
 import { stage3Data } from "./Popups/Stage3Popup";
 import { stage4Data } from "./Popups/Stage4Popup";
-import { stage5Data } from "./Popups/Stage5Popup";
 import { cn } from "../../lib/utils";
 import { useMachines } from "../../hooks/sibolMachine/useMachines";
 import { useAppDispatch, useAppSelector } from "../../store/hooks";
@@ -457,17 +456,6 @@ const ProcessPanelTab: React.FC = () => {
       },
       {
         ...stage4Data,
-        selectedMachine: selectedMachineLabel,
-        activity: {
-          by: activityBy,
-          date: activityDate,
-          action: activityAction,
-        },
-        isActive: machineActive,
-        statusLabel: machineStatusLabel,
-      },
-      {
-        ...stage5Data,
         selectedMachine: selectedMachineLabel,
         activity: {
           by: activityBy,
