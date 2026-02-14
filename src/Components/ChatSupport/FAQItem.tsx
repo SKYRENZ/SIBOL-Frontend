@@ -4,7 +4,7 @@ const faqs = [
   {
     question: "How long does the stage 1 process usually take?",
     answer:
-      "The stage 1 process typically takes 2-3 business days to complete. You will receive a notification once your submission has been reviewed and approved.",
+      "The stage 1 process typically takes minutes to complete. In this stage, household users can also get their rewards by scanning the QR code on the IoT Machine.",
   },
   {
     question: "How do I properly segregate food waste?",

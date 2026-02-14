@@ -158,9 +158,9 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         <div className="w-[88px]" aria-hidden />
       </div>
 
-      <div className="text-center relative overflow-visible">
+      <div className="text-center relative overflow-visible z-[55]">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#356245]">Stage {stageNumber}</p>
-        <div className="mt-1 flex items-center justify-center gap-3">
+        <div className="mt-1 flex items-Fcenter justify-center gap-3 relative z-[60]">
           <h2 className="text-2xl font-semibold text-[#1F3527] md:text-[26px]">{stageName}</h2>
           {typeof onRefreshStage === 'function' && (
             <button
@@ -169,9 +169,11 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
               data-testid="stage-refresh-btn"
               title="Refresh stage data"
               aria-label="Refresh stage data"
-              className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#2E523A] text-white hover:bg-[#244528] focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#A6C7B0] ml-3 z-50 shadow-md"
+              className="relative inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#2E523A] text-white hover:bg-[#244528] focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#A6C7B0] ml-3 z-[60] shadow-md"
             >
-              <RefreshIcon size={18} />
+              <span className="relative z-[61]">
+                <RefreshIcon size={18} />
+              </span>
             </button>
           )}
         </div>

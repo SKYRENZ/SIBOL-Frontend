@@ -27,8 +27,8 @@ export const stage4Data: StagePopupData = {
       percent: 80,
     },
     {
-      id: "flow-rate",
-      label: "Flow Rate",
+      id: "methane",
+      label: "Methane",
       value: "72",
       status: "Normal",
       percent: 72,
