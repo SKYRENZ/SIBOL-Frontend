@@ -6,10 +6,18 @@ import { login as loginAction, clearError, setUser, verifyToken } from '../store
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 import SnackBar from '../Components/common/SnackBar';
 
+const SUPERADMIN_ROLE = 5;
+
+function getLandingRoute(user: any): string {
+  const role = user?.Roles ?? user?.roleId ?? user?.role;
+  const roleNum = typeof role === 'string' ? Number(role) : role;
+  return roleNum === SUPERADMIN_ROLE ? '/superadmin' : '/dashboard';
+}
+
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
-  const { isLoading, error: authError, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { isLoading, error: authError, isAuthenticated, user } = useAppSelector((state) => state.auth);
 
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
@@ -19,10 +27,10 @@ const Login: React.FC = () => {
   const [snackbarVisible, setSnackbarVisible] = useState(false);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/dashboard', { replace: true });
+    if (isAuthenticated && user) {
+      navigate(getLandingRoute(user), { replace: true });
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, user, navigate]);
 
   useEffect(() => {
     return () => {
@@ -42,12 +50,12 @@ const Login: React.FC = () => {
       }
 
       if (event.data?.type === 'SSO_SUCCESS') {
-        dispatch(verifyToken()).unwrap().then(() => {
-          navigate('/dashboard', { replace: true });
+        dispatch(verifyToken()).unwrap().then((result: any) => {
+          navigate(getLandingRoute(result?.user ?? event.data?.user), { replace: true });
         }).catch((err) => {
           if (event.data?.user) {
             dispatch(setUser(event.data.user));
-            navigate('/dashboard', { replace: true });
+            navigate(getLandingRoute(event.data.user), { replace: true });
           } else {
             setSsoError('SSO verification failed');
           }
@@ -80,7 +88,7 @@ const Login: React.FC = () => {
     try {
       const result = await dispatch(loginAction({ identifier: identifier.trim(), password })).unwrap();
       if (result?.user) {
-        navigate('/dashboard', { replace: true });
+        navigate(getLandingRoute(result.user), { replace: true });
       }
     } catch (error: any) {
       console.error('Login failed:', error);
@@ -135,12 +143,12 @@ const Login: React.FC = () => {
       <div className="flex items-center justify-center px-4 sm:px-6 md:px-8 py-8 sm:py-12 lg:py-16">
         <div className="w-full max-w-md sm:max-w-lg lg:max-w-xl xl:max-w-2xl">
           {/* Logo */}
-          <img 
-            className="block w-12 sm:w-14 md:w-16 h-auto mx-auto mb-4 sm:mb-6" 
-            src={topLogo} 
-            alt="SIBOL" 
+          <img
+            className="block w-12 sm:w-14 md:w-16 h-auto mx-auto mb-4 sm:mb-6"
+            src={topLogo}
+            alt="SIBOL"
           />
-          
+
           {/* Title */}
           <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-6 sm:mb-8">
             Sign in to your account
@@ -153,11 +161,10 @@ const Login: React.FC = () => {
                 Email or Username
               </label>
               <input
-                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
-                  identifierError
+                className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${identifierError
                     ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
                     : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                }`}
+                  }`}
                 type="text"
                 placeholder="Enter your email or username"
                 value={identifier}
@@ -176,11 +183,10 @@ const Login: React.FC = () => {
               </label>
               <div className="relative">
                 <input
-                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-12 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${
-                    passwordError
+                  className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-12 border rounded-lg sm:rounded-xl text-sm sm:text-base outline-none transition-all ${passwordError
                       ? 'border-red-600 focus:border-red-600 focus:ring-2 focus:ring-red-200'
                       : 'border-gray-200 focus:border-green-300 focus:ring-2 focus:ring-green-100'
-                  }`}
+                    }`}
                   type={showPassword ? 'text' : 'password'}
                   placeholder="Enter your password"
                   value={password}
@@ -204,8 +210,8 @@ const Login: React.FC = () => {
 
             {/* Forgot Password Link */}
             <div className="flex justify-end mt-1">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold text-xs sm:text-sm transition-colors cursor-pointer focus:outline-none"
                 onClick={() => navigate('/forgot-password')}
               >
@@ -213,9 +219,9 @@ const Login: React.FC = () => {
               </button>
             </div>
 
-            <button 
+            <button
               className="w-full bg-sibol-green hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold px-4 py-3 sm:py-3.5 rounded-full text-sm sm:text-base transition-all mt-2 sm:mt-3"
-              type="submit" 
+              type="submit"
               disabled={!isValid || isLoading}
             >
               {isLoading ? 'Signing in…' : 'Sign in'}
@@ -241,9 +247,9 @@ const Login: React.FC = () => {
 
           <p className="text-center mt-6 sm:mt-8 text-gray-700 text-sm sm:text-base">
             Don't have an account?{' '}
-            <button 
+            <button
               className="bg-transparent border-0 p-0 text-sibol-green hover:text-green-700 font-bold transition-colors cursor-pointer focus:outline-none"
-              type="button" 
+              type="button"
               onClick={() => navigate('/signup')}
             >
               Sign up

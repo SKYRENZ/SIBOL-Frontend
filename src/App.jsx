@@ -21,11 +21,12 @@ const AdminPending = lazy(() => import('./Pages/AdminPending.tsx'));
 const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
 const ChatSupport = lazy(() => import('./Pages/ChatSupport.tsx'));
 const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
+const SuperAdmin = lazy(() => import('./Pages/SuperAdmin.tsx'));
 
 
 function App() {
   const dispatch = useAppDispatch();
-  
+
   useEffect(() => {
     dispatch(verifyToken());
   }, [dispatch]);
@@ -38,12 +39,12 @@ function App() {
         <Route path="/" element={<Landingpage />} />
         <Route path="/login" element={<SignIN />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} /> 
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/email-verification" element={<EmailVerification />} />
         <Route path="/pending-approval" element={<AdminPending />} />
         <Route path="/auth/callback" element={<SSOCallback />} />
         <Route path="/chat-support" element={<ChatSupport />} />
-        
+
         {/* Protected Routes for any authenticated user */}
         <Route element={<ProtectedRoute />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -56,6 +57,11 @@ function App() {
         {/* Admin Only Routes */}
         <Route element={<ProtectedRoute requiredRole={1} />}>
           <Route path="/admin" element={<Admin />} />
+        </Route>
+
+        {/* SuperAdmin Only Routes */}
+        <Route element={<ProtectedRoute requiredRole={5} />}>
+          <Route path="/superadmin" element={<SuperAdmin />} />
         </Route>
 
         {/* 404 */}
