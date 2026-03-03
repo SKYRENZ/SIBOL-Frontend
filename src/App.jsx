@@ -59,8 +59,8 @@ function App() {
           <Route path="/admin" element={<Admin />} />
         </Route>
 
-        {/* SuperAdmin Only Routes */}
-        <Route element={<ProtectedRoute requiredRole={5} />}>
+        {/* SuperAdmin Routes (Admin + SuperAdmin) */}
+        <Route element={<ProtectedRoute requiredRole={[1, 5]} />}>
           <Route path="/superadmin" element={<SuperAdmin />} />
         </Route>
 

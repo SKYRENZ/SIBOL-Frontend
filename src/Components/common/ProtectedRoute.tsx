@@ -3,7 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
 
 interface ProtectedRouteProps {
-  requiredRole?: number;
+  requiredRole?: number | number[];
 }
 
 function getRoleNumber(user: any): number | null {
@@ -29,20 +29,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
     return null; // or a spinner
   }
 
-  // If user is authenticated but it's their first login, force them to `/dashboard`
+  // Determine if user is an admin (role 1) or superadmin (role 5)
+  const userRole = getRoleNumber(user);
+  const isAdmin = userRole === 1 || userRole === 5;
+  const adminHome = isAdmin ? '/superadmin' : '/dashboard';
+
+  // If user is authenticated but it's their first login, force them to their home page
   // so the Change Password modal flow cannot be bypassed by navigating elsewhere.
-  if (isAuthenticated && isFirstLogin && location.pathname !== '/dashboard') {
-    return <Navigate to="/dashboard" replace />;
+  if (isAuthenticated && isFirstLogin && location.pathname !== adminHome) {
+    return <Navigate to={adminHome} replace />;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  const userRole = getRoleNumber(user);
-
-  if (requiredRole !== undefined && userRole !== requiredRole) {
-    return <Navigate to="/dashboard" replace />;
+  if (requiredRole !== undefined) {
+    const allowedRoles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
+    if (userRole === null || !allowedRoles.includes(userRole)) {
+      return <Navigate to={adminHome} replace />;
+    }
   }
 
   return <Outlet />;

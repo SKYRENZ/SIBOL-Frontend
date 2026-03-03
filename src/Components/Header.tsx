@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { fetchAllowedModules } from "../services/moduleService";
 import "../tailwind.css";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout as logoutAction } from "../store/slices/authSlice";
@@ -21,11 +20,9 @@ const allLinks = [
   { id: 3, to: "/maintenance", label: "Maintenance" },
   { id: 4, to: "/household", label: "Household" },
   { id: 5, to: "/chat-support", label: "Chat Support" },
-  { id: 6, to: "/admin", label: "Admin" },
 ];
 
 const Header: React.FC = () => {
-  const [modules, setModules] = useState<any>({ list: [], has: () => false });
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -57,16 +54,11 @@ const Header: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const [normalized, unreadRows] = await Promise.all([
-          fetchAllowedModules(),
-          getNotifications({ unreadOnly: true, limit: 200 }),
-        ]);
+        const unreadRows = await getNotifications({ unreadOnly: true, limit: 200 });
         if (!mounted) return;
-        setModules(normalized);
         setUnreadCount(unreadRows.length);
       } catch (err) {
         console.error("Error loading data:", err);
-        setModules({ list: [], has: () => false });
       }
     })();
 
@@ -154,36 +146,7 @@ const Header: React.FC = () => {
   const openNotifications = () => setNotificationsOpen(true);
   const closeNotifications = () => setNotificationsOpen(false);
 
-  /* ---------------- role logic ---------------- */
-
-  const hasModule = (key: string | number) => {
-    if (!modules) return false;
-    if (typeof modules.has === "function") return modules.has(key);
-    return !!modules.list?.some(
-      (m: any) =>
-        m.key === key || m.path === key || String(m.id) === String(key)
-    );
-  };
-
-  const isAdminRole = (() => {
-    if (!user) return false;
-    const roleNum =
-      (typeof user.Roles === "number" ? user.Roles : undefined) ??
-      (typeof user.roleId === "number" ? user.roleId : undefined) ??
-      (typeof user.role === "number" ? user.role : undefined);
-    const roleStr = typeof user.role === "string" ? user.role : undefined;
-    return roleNum === 1 || roleStr === "Admin";
-  })();
-
-  const hasModule6 =
-    user && Array.isArray(user.user_modules) && user.user_modules.includes(6);
-
-  const showAdmin = isAdminRole || hasModule6 || hasModule("admin") || hasModule(1);
-
-  const links = allLinks.filter((l) => {
-    if (l.to === "/admin") return showAdmin;
-    return true;
-  });
+  const links = allLinks;
 
   /* ---------------- render ---------------- */
 

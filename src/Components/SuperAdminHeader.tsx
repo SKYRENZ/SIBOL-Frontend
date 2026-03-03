@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { NavLink, useNavigate, useLocation } from "react-router-dom";
+import { fetchAllowedModules } from "../services/moduleService";
 import "../tailwind.css";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout as logoutAction } from "../store/slices/authSlice";
@@ -14,12 +15,18 @@ import {
     type NotificationType,
 } from "../services/notificationService";
 
+const allLinks = [
+    { id: 1, to: "/superadmin", label: "Dashboard" },
+    { id: 2, to: "/admin", label: "Admin" },
+];
+
 /**
- * Simplified header for the SuperAdmin page.
- * Shows: Logo + Notification bell + Profile dropdown.
- * No navigation links.
+ * Header for the SuperAdmin page.
+ * Shows: Logo + Dashboard / Admin nav links + Notification bell + Profile dropdown.
  */
 const SuperAdminHeader: React.FC = () => {
+    const [modules, setModules] = useState<any>({ list: [], has: () => false });
+    const [menuOpen, setMenuOpen] = useState(false);
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -44,18 +51,22 @@ const SuperAdminHeader: React.FC = () => {
 
     /* ---------------- effects ---------------- */
 
-    // Load initial unread count
     useEffect(() => {
         if (!hasCheckedAuth || isCheckingAuth || !isAuthenticated || !user) return;
 
         let mounted = true;
         (async () => {
             try {
-                const unreadRows = await getNotifications({ unreadOnly: true, limit: 200 });
+                const [normalized, unreadRows] = await Promise.all([
+                    fetchAllowedModules(),
+                    getNotifications({ unreadOnly: true, limit: 200 }),
+                ]);
                 if (!mounted) return;
+                setModules(normalized);
                 setUnreadCount(unreadRows.length);
             } catch (err) {
-                console.error("Error loading notifications:", err);
+                console.error("Error loading data:", err);
+                setModules({ list: [], has: () => false });
             }
         })();
 
@@ -87,6 +98,7 @@ const SuperAdminHeader: React.FC = () => {
 
     // Close dropdowns on route change
     useEffect(() => {
+        setMenuOpen(false);
         setProfileDropdownOpen(false);
     }, [location.pathname]);
 
@@ -112,6 +124,16 @@ const SuperAdminHeader: React.FC = () => {
         return () => { mounted = false; };
     }, [notificationsOpen, selectedFilter, isAuthenticated]);
 
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth >= 768) {
+                setMenuOpen(false);
+            }
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
     // Close profile dropdown on outside click
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
@@ -123,8 +145,40 @@ const SuperAdminHeader: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const toggleMenu = () => setMenuOpen((prev) => !prev);
     const openNotifications = () => setNotificationsOpen(true);
     const closeNotifications = () => setNotificationsOpen(false);
+
+    /* ---------------- role logic ---------------- */
+
+    const hasModule = (key: string | number) => {
+        if (!modules) return false;
+        if (typeof modules.has === "function") return modules.has(key);
+        return !!modules.list?.some(
+            (m: any) =>
+                m.key === key || m.path === key || String(m.id) === String(key)
+        );
+    };
+
+    const isAdminRole = (() => {
+        if (!user) return false;
+        const roleNum =
+            (typeof user.Roles === "number" ? user.Roles : undefined) ??
+            (typeof user.roleId === "number" ? user.roleId : undefined) ??
+            (typeof user.role === "number" ? user.role : undefined);
+        const roleStr = typeof user.role === "string" ? user.role : undefined;
+        return roleNum === 1 || roleStr === "Admin";
+    })();
+
+    const hasModule6 =
+        user && Array.isArray(user.user_modules) && user.user_modules.includes(6);
+
+    const showAdmin = isAdminRole || hasModule6 || hasModule("admin") || hasModule(1);
+
+    const links = allLinks.filter((l) => {
+        if (l.to === "/admin") return showAdmin;
+        return true;
+    });
 
     /* ---------------- render ---------------- */
 
@@ -138,9 +192,36 @@ const SuperAdminHeader: React.FC = () => {
                     alt="SIBOL"
                 />
 
-                {/* Right side icons only — no nav links */}
-                <div className="nav-menu">
-                    <div className="nav-icons" style={{ marginLeft: "auto" }}>
+                <button
+                    type="button"
+                    className="menu-toggle"
+                    onClick={toggleMenu}
+                    aria-expanded={menuOpen}
+                    disabled={isFirstLogin}
+                >
+                    <span />
+                    <span />
+                    <span />
+                </button>
+
+                <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
+                    <ul className="nav-links">
+                        {links.map((link) => (
+                            <li key={link.to}>
+                                <NavLink
+                                    to={link.to}
+                                    className={({ isActive }) =>
+                                        `nav-link ${isActive ? "active" : ""}`
+                                    }
+                                >
+                                    {link.label}
+                                </NavLink>
+                            </li>
+                        ))}
+                    </ul>
+
+                    {/* RIGHT ICONS */}
+                    <div className="nav-icons">
                         {/* Notifications */}
                         <button
                             type="button"
