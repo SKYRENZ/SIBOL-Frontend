@@ -80,7 +80,7 @@ export default function SuperAdminDashboard() {
           <p className="mt-2 text-sm text-gray-500">Overview for super admin.</p>
 
           <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-white p-5 shadow-sm">
+            <div className="rounded-2xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-white p-5 shadow-md shadow-emerald-200/60">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-emerald-700/70">Total Admins</p>
@@ -93,7 +93,7 @@ export default function SuperAdminDashboard() {
               <p className="mt-2 text-xs text-gray-500">All admin accounts in the system.</p>
             </div>
 
-            <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 via-white to-white p-5 shadow-sm">
+            <div className="rounded-2xl border-2 border-sky-200 bg-gradient-to-br from-sky-50 via-white to-white p-5 shadow-md shadow-sky-200/60">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-sky-700/70">Barangays Covered</p>
@@ -106,7 +106,7 @@ export default function SuperAdminDashboard() {
               <p className="mt-2 text-xs text-gray-500">Barangays with at least one admin.</p>
             </div>
 
-            <div className="rounded-2xl border border-amber-100 bg-gradient-to-br from-amber-50 via-white to-white p-5 shadow-sm">
+            <div className="rounded-2xl border-2 border-amber-200 bg-gradient-to-br from-amber-50 via-white to-white p-5 shadow-md shadow-amber-200/60">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-amber-700/70">Avg Admins / Barangay</p>
@@ -119,7 +119,7 @@ export default function SuperAdminDashboard() {
               <p className="mt-2 text-xs text-gray-500">Distribution across barangays.</p>
             </div>
 
-            <div className="rounded-2xl border border-violet-100 bg-gradient-to-br from-violet-50 via-white to-white p-5 shadow-sm">
+            <div className="rounded-2xl border-2 border-violet-200 bg-gradient-to-br from-violet-50 via-white to-white p-5 shadow-md shadow-violet-200/60">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-xs font-semibold text-violet-700/70">Top Barangay</p>
@@ -135,7 +135,7 @@ export default function SuperAdminDashboard() {
           </div>
 
           <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="lg:col-span-2 rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="lg:col-span-2 rounded-2xl border-2 border-gray-200 bg-white shadow-md shadow-gray-200/60">
               <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
                 <h3 className="text-sm sm:text-base font-semibold text-sibol-green">Admins by Barangay</h3>
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">Breakdown of admins per barangay.</p>
@@ -174,7 +174,7 @@ export default function SuperAdminDashboard() {
               </div>
             </div>
 
-            <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="rounded-2xl border-2 border-gray-200 bg-white shadow-md shadow-gray-200/60">
               <div className="px-4 sm:px-6 py-4 border-b border-gray-100">
                 <h3 className="text-sm sm:text-base font-semibold text-sibol-green">Quick Insights</h3>
                 <p className="text-xs sm:text-sm text-gray-500 mt-1">Snapshot of admin coverage.</p>
