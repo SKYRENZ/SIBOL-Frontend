@@ -209,20 +209,21 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
             style={{ ...baseBoundaryStyle, ...b.style }}
             onEachFeature={(_, layer) => {
               const baseStyle = { ...baseBoundaryStyle, ...b.style };
-              layer.setStyle(baseStyle);
-              layer.bindTooltip(b.label, {
+              const pathLayer = layer as L.Path;
+              pathLayer.setStyle(baseStyle);
+              pathLayer.bindTooltip(b.label, {
                 sticky: true,
                 className: 'barangay-tooltip',
                 direction: 'center',
                 opacity: 0.95,
               });
-              layer.on({
-                mouseover: () => layer.setStyle({ ...baseStyle, weight: 3, fillOpacity: 0.55 }),
-                mouseout: () => layer.setStyle(baseStyle),
+              pathLayer.on({
+                mouseover: () => pathLayer.setStyle({ ...baseStyle, weight: 3, fillOpacity: 0.55 }),
+                mouseout: () => pathLayer.setStyle(baseStyle),
                 click: (e: any) => {
                   e?.originalEvent?.preventDefault?.();
-                  layer.setStyle({ ...baseStyle, weight: 4, fillOpacity: 0.6 });
-                  layer.openTooltip();
+                  pathLayer.setStyle({ ...baseStyle, weight: 4, fillOpacity: 0.6 });
+                  pathLayer.openTooltip();
                 },
               });
             }}
@@ -233,24 +234,25 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
       <BoundaryLabel boundary={boundary176e} label="Barangay 176-E" hideAtZoom={16} />
       {packageFeatures.length ? (
         <GeoJSON
-          data={{ type: 'FeatureCollection', features: packageFeatures }}
+          data={{ type: 'FeatureCollection', features: packageFeatures } as any}
           style={packageBoundaryStyle}
           onEachFeature={(feature, layer) => {
             const label = feature?.properties?.label || 'Package';
-            layer.setStyle(packageBoundaryStyle);
-            layer.bindTooltip(label, {
+            const pathLayer = layer as L.Path;
+            pathLayer.setStyle(packageBoundaryStyle);
+            pathLayer.bindTooltip(label, {
               sticky: true,
               className: 'package-tooltip',
               direction: 'center',
               opacity: 0.95,
             });
-            layer.on({
-              mouseover: () => layer.setStyle({ ...packageBoundaryStyle, weight: 3, fillOpacity: 0.45 }),
-              mouseout: () => layer.setStyle(packageBoundaryStyle),
+            pathLayer.on({
+              mouseover: () => pathLayer.setStyle({ ...packageBoundaryStyle, weight: 3, fillOpacity: 0.45 }),
+              mouseout: () => pathLayer.setStyle(packageBoundaryStyle),
               click: (e: any) => {
                 e?.originalEvent?.preventDefault?.();
-                layer.setStyle({ ...packageBoundaryStyle, weight: 4, fillOpacity: 0.5 });
-                layer.openTooltip();
+                pathLayer.setStyle({ ...packageBoundaryStyle, weight: 4, fillOpacity: 0.5 });
+                pathLayer.openTooltip();
               },
             });
           }}

@@ -16,8 +16,8 @@ import {
 } from "../services/notificationService";
 
 const allLinks = [
-    { id: 1, to: "/superadmin", label: "Dashboard" },
-    { id: 2, to: "/admin", label: "Admin" },
+    { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
+    { id: 2, to: "/superadmin", label: "User Management" },
 ];
 
 /**
@@ -160,6 +160,16 @@ const SuperAdminHeader: React.FC = () => {
         );
     };
 
+    const isSuperAdminRole = (() => {
+        if (!user) return false;
+        const roleNum =
+            (typeof user.Roles === "number" ? user.Roles : undefined) ??
+            (typeof user.roleId === "number" ? user.roleId : undefined) ??
+            (typeof user.role === "number" ? user.role : undefined);
+        const roleStr = typeof user.role === "string" ? user.role : undefined;
+        return roleNum === 5 || roleStr === "SuperAdmin";
+    })();
+
     const isAdminRole = (() => {
         if (!user) return false;
         const roleNum =
@@ -170,15 +180,20 @@ const SuperAdminHeader: React.FC = () => {
         return roleNum === 1 || roleStr === "Admin";
     })();
 
-    const hasModule6 =
-        user && Array.isArray(user.user_modules) && user.user_modules.includes(6);
-
-    const showAdmin = isAdminRole || hasModule6 || hasModule("admin") || hasModule(1);
-
-    const links = allLinks.filter((l) => {
-        if (l.to === "/admin") return showAdmin;
-        return true;
-    });
+    const links = allLinks
+        .map((l) => {
+            if (l.label === "Dashboard") {
+                return { ...l, to: isSuperAdminRole ? "/superadmin-dashboard" : "/admin-dashboard" };
+            }
+            if (l.label === "User Management") {
+                return { ...l, to: isSuperAdminRole ? "/superadmin" : "/admin" };
+            }
+            return l;
+        })
+        .filter((l) => {
+            if (l.label === "User Management") return isSuperAdminRole || isAdminRole;
+            return true;
+        });
 
     /* ---------------- render ---------------- */
 

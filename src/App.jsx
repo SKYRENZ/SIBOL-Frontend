@@ -13,6 +13,8 @@ const ForgotPassword = lazy(() => import('./Pages/ForgotPassword.tsx')); // ✅ 
 const Dashboard = lazy(() => import('./Pages/Dashboard.tsx'));
 const Household = lazy(() => import('./Pages/Household.tsx'));
 const Admin = lazy(() => import('./Pages/Admin.tsx'));
+const AdminDashboard = lazy(() => import('./Pages/AdminDashboard.tsx'));
+const SuperAdminDashboard = lazy(() => import('./Pages/SuperAdminDashboard.tsx'));
 const MaintenancePage = lazy(() => import('./Pages/MaintenancePage.tsx'));
 const SibolMachinePage = lazy(() => import('./Pages/SibolMachinePage.tsx'));
 const NotFound = lazy(() => import('./Pages/NotFound.tsx'));
@@ -56,12 +58,14 @@ function App() {
 
         {/* Admin Only Routes */}
         <Route element={<ProtectedRoute requiredRole={1} />}>
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/admin" element={<Admin />} />
         </Route>
 
-        {/* SuperAdmin Routes (Admin + SuperAdmin) */}
-        <Route element={<ProtectedRoute requiredRole={[1, 5]} />}>
+        {/* SuperAdmin Routes (SuperAdmin only) */}
+        <Route element={<ProtectedRoute requiredRole={5} />}>
           <Route path="/superadmin" element={<SuperAdmin />} />
+          <Route path="/superadmin-dashboard" element={<SuperAdminDashboard />} />
         </Route>
 
         {/* 404 */}

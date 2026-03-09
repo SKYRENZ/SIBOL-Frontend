@@ -4,7 +4,6 @@ import FormModal from '../common/FormModal';
 import CustomScrollbar from '../common/CustomScrollbar';
 
 type Role = { Roles_id: number; Roles: string };
-type ModuleItem = { Module_id: number; Module_name: string; Path?: string };
 type Barangay = { Barangay_id: number; Barangay_Name: string };
 
 type AdminFormProps = {
@@ -14,7 +13,6 @@ type AdminFormProps = {
   onCancel: () => void;
   // Data comes from parent (hooks live in hooks/)
   roles?: Role[];
-  modules?: ModuleItem[];
   barangays?: Barangay[];
   // show the form inside the shared FormModal
   isOpen?: boolean;
@@ -22,7 +20,6 @@ type AdminFormProps = {
 
 type AdminPayload = Partial<Account> & {
   Password?: string;
-  Access?: string[];
 };
 
 const slugify = (s = '') =>
@@ -38,7 +35,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
   onSubmit,
   onCancel,
   roles = [],
-  modules = [],
   barangays = [],
   isOpen = true,
 }) => {
@@ -52,9 +48,8 @@ const AdminForm: React.FC<AdminFormProps> = ({
   const [email, setEmail] = useState<string>(initialData.Email ?? '');
   const [password, setPassword] = useState<string>('');
 
-  // Role + Access are editable in both modes
+  // Role is editable in both modes
   const [roleId, setRoleId] = useState<number>(initialData.Roles ?? roles[0]?.Roles_id ?? 1);
-  const [access, setAccess] = useState<Record<string, boolean>>({});
 
   // generated username (read-only in UI)
   const generatedUsername = useMemo(
@@ -76,29 +71,8 @@ const AdminForm: React.FC<AdminFormProps> = ({
     // don't overwrite password (leave blank)
   }, [initialData, roles]);
 
-  useEffect(() => {
-    // initialize access based on initialData.Access and modules
-    const rawAccess = (initialData as any)?.Access;
-    const accessItems = !rawAccess ? [] : Array.isArray(rawAccess) ? rawAccess : [rawAccess];
-    const accessSet = new Set<string>();
-    accessItems.forEach((it: any) => {
-      if (it == null) return;
-      accessSet.add(String(it));
-    });
-    const newAccess: Record<string, boolean> = {};
-    modules.forEach((m) => {
-      const name = m.Module_name;
-      newAccess[name] = accessSet.has(name) || accessSet.has(String(m.Module_id));
-    });
-    setAccess(newAccess);
-  }, [initialData, modules]);
-
-  const toggleAccess = (key: string) => setAccess((s) => ({ ...s, [key]: !s[key] }));
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    const accessArray = Object.keys(access).filter((k) => access[k]);
 
     if (isCreate) {
       // create payload: include all editable fields except username (username derived)
@@ -110,7 +84,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
         Roles: roleId,
         Username: generatedUsername,
         Password: password || generatedPassword,
-        Access: accessArray,
       };
       await onSubmit(payload);
       return;
@@ -120,7 +93,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
     const payload: AdminPayload = {
       ...initialData,
       Roles: roleId,
-      Access: accessArray,
       // do not include Password on update to avoid overwriting
     };
     await onSubmit(payload);
@@ -261,25 +233,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Editable: Access checkboxes */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Access</label>
-            <div className="space-y-2 max-h-48 overflow-auto border rounded px-3 py-2 bg-white">
-              {modules.length === 0 && <div className="text-sm text-gray-500">No modules available</div>}
-              {modules.map((mod) => (
-                <label key={mod.Module_id} className="flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={!!access[mod.Module_name]}
-                    onChange={() => toggleAccess(mod.Module_name)}
-                    className="mr-2"
-                  />
-                  <span className="select-none">{mod.Module_name}</span>
-                </label>
-              ))}
-            </div>
           </div>
 
           {/* Buttons */}

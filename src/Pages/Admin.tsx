@@ -24,7 +24,6 @@ export default function Admin() {
     accounts,
     pendingAccounts,
     roles,
-    modules,
     barangays,
     status,
     error,
@@ -268,7 +267,6 @@ export default function Admin() {
                       else setEditingAccount(null);
                     }}
                     roles={roles}
-                    modules={modules}
                     barangays={barangays}
                   />
                 </div>

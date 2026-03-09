@@ -5,14 +5,7 @@ import { useAppDispatch, useAppSelector } from '../store/hooks';
 import { login as loginAction, clearError, setUser, verifyToken } from '../store/slices/authSlice';
 import AuthLeftPanel from '../Components/common/AuthLeftPanel';
 import SnackBar from '../Components/common/SnackBar';
-
-const SUPERADMIN_ROLE = 5;
-
-function getLandingRoute(user: any): string {
-  const role = user?.Roles ?? user?.roleId ?? user?.role;
-  const roleNum = typeof role === 'string' ? Number(role) : role;
-  return roleNum === SUPERADMIN_ROLE ? '/superadmin' : '/dashboard';
-}
+import { getLandingRoute } from '../utils/routeUtils';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
+import { getLandingRoute } from '../../utils/routeUtils';
 
 interface ProtectedRouteProps {
   requiredRole?: number | number[];
@@ -31,8 +32,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ requiredRole }) => {
 
   // Determine if user is an admin (role 1) or superadmin (role 5)
   const userRole = getRoleNumber(user);
-  const isAdmin = userRole === 1 || userRole === 5;
-  const adminHome = isAdmin ? '/superadmin' : '/dashboard';
+  const adminHome = getLandingRoute(user);
 
   // If user is authenticated but it's their first login, force them to their home page
   // so the Change Password modal flow cannot be bypassed by navigating elsewhere.
