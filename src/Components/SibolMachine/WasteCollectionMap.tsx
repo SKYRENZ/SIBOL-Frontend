@@ -1,18 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import wasteIcon from './wasteIcon'; // Import the custom icon
+import React, { useEffect, useState, useRef } from 'react';
+import Map, { Source, Layer, Marker, NavigationControl, MapRef } from 'react-map-gl/mapbox';
+import { FillLayer, LineLayer } from 'mapbox-gl';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import { WasteIconSVG } from './WasteIconSVG';
 import { buildOrganicPackageFeatures, buildVoronoiPackageFeatures } from '../../utils/geo';
 import { BARANGAY_176_E_PACKAGE_LABELS } from './data/barangay176EPackages';
-
-// Fix for default marker icon (can be removed if no longer needed, but safe to keep)
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
 
 interface WasteCollectionMapProps {
   latitude: number;
@@ -32,105 +24,33 @@ const BARANGAY_176_QUERIES = [
   { key: '176-f', label: 'Barangay 176-F', query: 'Barangay 176-F, Caloocan, Metro Manila, Philippines', style: { color: '#5FBF5B', fillColor: '#E6F7E3' } },
 ];
 
-const baseBoundaryStyle = {
-  weight: 2,
-  opacity: 0.9,
-  fillOpacity: 0.45,
-};
-
-const packageBoundaryStyle = {
-  weight: 2,
-  opacity: 0.85,
-  fillOpacity: 0.35,
-  color: '#8D6E63',
-  fillColor: '#E8D2B4',
-};
-
-
-const MapAutoFit: React.FC<{ boundary: BoundaryGeoJSON | null }> = ({ boundary }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!boundary) return;
-    const layer = L.geoJSON(boundary as any);
-    const bounds = layer.getBounds();
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [24, 24] });
-    }
-  }, [boundary, map]);
-
-  return null;
-};
-
-const BoundaryLabel: React.FC<{
-  boundary: BoundaryGeoJSON | null;
-  label: string;
-  hideAtZoom?: number;
-}> = ({ boundary, label, hideAtZoom = 16 }) => {
-  const map = useMap();
-  const [position, setPosition] = useState<L.LatLng | null>(null);
-  const [zoom, setZoom] = useState<number>(map.getZoom());
-
-  useEffect(() => {
-    if (!boundary) return;
-    const layer = L.geoJSON(boundary as any);
-    const bounds = layer.getBounds();
-    if (bounds.isValid()) {
-      setPosition(bounds.getCenter());
-    }
-  }, [boundary]);
-
-  useEffect(() => {
-    const handler = () => setZoom(map.getZoom());
-    map.on('zoomend', handler);
-    return () => {
-      map.off('zoomend', handler);
-    };
-  }, [map]);
-
-  if (!position || zoom >= hideAtZoom) return null;
-
-  return (
-    <Marker
-      position={position}
-      icon={L.divIcon({
-        className: 'barangay-label',
-        html: `<span class="barangay-label__text">${label}</span>`,
-      })}
-      interactive={false}
-    />
-  );
-};
-
 const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
   latitude,
   longitude,
   area,
   interactive = true,
 }) => {
+  const mapRef = useRef<MapRef | null>(null);
   const lat = Number(latitude);
   const lon = Number(longitude);
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
-  const fallbackCenter: [number, number] = [14.656, 120.982];
-  const mapCenter: [number, number] = hasCoords ? [lat, lon] : fallbackCenter;
+  const fallbackCenter: [number, number] = [120.982, 14.656]; // [lng, lat] for mapbox
+  const mapCenter: [number, number] = hasCoords ? [lon, lat] : fallbackCenter;
+
   const [boundary176e, setBoundary176e] = useState<BoundaryGeoJSON | null>(null);
   const [boundaries, setBoundaries] = useState<Record<string, BoundaryGeoJSON>>({});
   const [packageFeatures, setPackageFeatures] = useState<BoundaryGeoJSON[]>([]);
+  const [showPopup, setShowPopup] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
-
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const fetchBoundary = async (query: string, attempt = 0): Promise<any | null> => {
       const url = `https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&limit=1&q=${encodeURIComponent(
         query
       )}`;
-      const res = await fetch(url, {
-        headers: {
-          'Accept-Language': 'en',
-        },
-      });
+      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
       if (!res.ok) {
         if (attempt < 2 && (res.status === 429 || res.status >= 500)) {
           await sleep(400 + attempt * 300);
@@ -159,15 +79,12 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
         setBoundaries(next);
         if (next['176-e']) setBoundary176e(next['176-e']);
       } catch {
-        // Silent fail: fall back to default marker location
+        // Silent fail
       }
     };
 
     run();
-
-    return () => {
-      isMounted = false;
-    };
+    return () => { isMounted = false; };
   }, []);
 
   useEffect(() => {
@@ -178,97 +95,142 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
     const voronoiFeatures = buildVoronoiPackageFeatures(boundary176e, BARANGAY_176_E_PACKAGE_LABELS);
     if (voronoiFeatures.length) {
       setPackageFeatures(voronoiFeatures);
-      return;
+    } else {
+      const organicFeatures = buildOrganicPackageFeatures(boundary176e, BARANGAY_176_E_PACKAGE_LABELS);
+      setPackageFeatures(organicFeatures);
     }
-    const organicFeatures = buildOrganicPackageFeatures(boundary176e, BARANGAY_176_E_PACKAGE_LABELS);
-    setPackageFeatures(organicFeatures);
   }, [boundary176e]);
 
+  // No auto-fit: stay zoomed in on the container marker in 3D
+
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
+  const isMapboxEnabled = mapboxToken.length > 0;
+
   return (
-    <MapContainer
-      center={mapCenter}
-      zoom={16}
-      style={{ height: '300px', width: '100%', borderRadius: '12px' }}
-      className="z-0"
-      dragging={interactive}
-      zoomControl={interactive}
-      scrollWheelZoom={interactive}
-      doubleClickZoom={interactive}
-      touchZoom={interactive}
-    >
-      <MapAutoFit boundary={boundary176e ?? null} />
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
-      {BARANGAY_176_QUERIES.map((b) => (
-        boundaries[b.key] ? (
-          <GeoJSON
-            key={b.key}
-            data={boundaries[b.key]}
-            style={{ ...baseBoundaryStyle, ...b.style }}
-            onEachFeature={(_, layer) => {
-              const baseStyle = { ...baseBoundaryStyle, ...b.style };
-              const pathLayer = layer as L.Path;
-              pathLayer.setStyle(baseStyle);
-              pathLayer.bindTooltip(b.label, {
-                sticky: true,
-                className: 'barangay-tooltip',
-                direction: 'center',
-                opacity: 0.95,
-              });
-              pathLayer.on({
-                mouseover: () => pathLayer.setStyle({ ...baseStyle, weight: 3, fillOpacity: 0.55 }),
-                mouseout: () => pathLayer.setStyle(baseStyle),
-                click: (e: any) => {
-                  e?.originalEvent?.preventDefault?.();
-                  pathLayer.setStyle({ ...baseStyle, weight: 4, fillOpacity: 0.6 });
-                  pathLayer.openTooltip();
-                },
-              });
-            }}
-            interactive
-          />
-        ) : null
-      ))}
-      <BoundaryLabel boundary={boundary176e} label="Barangay 176-E" hideAtZoom={16} />
-      {packageFeatures.length ? (
-        <GeoJSON
-          data={{ type: 'FeatureCollection', features: packageFeatures } as any}
-          style={packageBoundaryStyle}
-          onEachFeature={(feature, layer) => {
-            const label = feature?.properties?.label || 'Package';
-            const pathLayer = layer as L.Path;
-            pathLayer.setStyle(packageBoundaryStyle);
-            pathLayer.bindTooltip(label, {
-              sticky: true,
-              className: 'package-tooltip',
-              direction: 'center',
-              opacity: 0.95,
-            });
-            pathLayer.on({
-              mouseover: () => pathLayer.setStyle({ ...packageBoundaryStyle, weight: 3, fillOpacity: 0.45 }),
-              mouseout: () => pathLayer.setStyle(packageBoundaryStyle),
-              click: (e: any) => {
-                e?.originalEvent?.preventDefault?.();
-                pathLayer.setStyle({ ...packageBoundaryStyle, weight: 4, fillOpacity: 0.5 });
-                pathLayer.openTooltip();
-              },
-            });
+    <div style={{ height: '300px', width: '100%', borderRadius: '12px', overflow: 'hidden', position: 'relative' }}>
+      {!isMapboxEnabled && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100/80 backdrop-blur-sm">
+          <p className="text-gray-600 font-medium px-4 text-center">Missing Mapbox Access Token.<br /><span className="text-xs">Provide VITE_MAPBOX_TOKEN in .env</span></p>
+        </div>
+      )}
+      <Map
+        ref={mapRef}
+        attributionControl={false}
+        mapboxAccessToken={mapboxToken}
+        initialViewState={{
+          longitude: mapCenter[0],
+          latitude: mapCenter[1],
+          zoom: 16.5,
+          pitch: 60,
+          bearing: -20,
+        }}
+        mapStyle="mapbox://styles/mapbox/streets-v12"
+        interactive={interactive}
+        dragPan={interactive}
+        scrollZoom={interactive}
+        doubleClickZoom={interactive}
+        dragRotate={interactive}
+      >
+        {interactive && <NavigationControl position="top-right" visualizePitch />}
+
+        {/* 3D Buildings Layer */}
+        <Layer
+          id="3d-buildings"
+          source="composite"
+          source-layer="building"
+          filter={['==', 'extrude', 'true']}
+          type="fill-extrusion"
+          minzoom={15}
+          paint={{
+            'fill-extrusion-color': '#aaa',
+            'fill-extrusion-height': ['get', 'height'],
+            'fill-extrusion-base': ['get', 'min_height'],
+            'fill-extrusion-opacity': 0.6
           }}
-          interactive
         />
-      ) : null}
-      {hasCoords ? (
-        <Marker position={[lat, lon]} icon={wasteIcon}>
-          <Popup>
-            <div className="text-sm">
-              <p className="font-semibold">{area}</p>
+
+        {/* Barangay Boundaries */}
+        {BARANGAY_176_QUERIES.map((b) => {
+          if (!boundaries[b.key]) return null;
+          return (
+            <Source key={`src-${b.key}`} type="geojson" data={boundaries[b.key]}>
+              <Layer
+                id={`fill-${b.key}`}
+                type="fill"
+                paint={{
+                  'fill-color': b.style.fillColor,
+                  'fill-opacity': 0.25
+                }}
+              />
+              <Layer
+                id={`line-${b.key}`}
+                type="line"
+                paint={{
+                  'line-color': b.style.color,
+                  'line-width': 2,
+                  'line-opacity': 0.9
+                }}
+              />
+            </Source>
+          );
+        })}
+
+        {/* Package Features inside 176-E */}
+        {packageFeatures.length > 0 && (
+          <Source type="geojson" data={{ type: 'FeatureCollection', features: packageFeatures } as any}>
+            <Layer
+              id="package-fill"
+              type="fill"
+              paint={{
+                'fill-color': '#E8D2B4',
+                'fill-opacity': 0.2
+              }}
+            />
+            <Layer
+              id="package-line"
+              type="line"
+              paint={{
+                'line-color': '#8D6E63',
+                'line-width': 2,
+                'line-opacity': 0.8
+              }}
+            />
+            <Layer
+              id="package-label"
+              type="symbol"
+              layout={{
+                'text-field': ['get', 'label'],
+                'text-size': 12,
+                'text-anchor': 'center'
+              }}
+              paint={{
+                'text-color': '#5D4037',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 1.5
+              }}
+            />
+          </Source>
+        )}
+
+        {/* Marker */}
+        {hasCoords && (
+          <Marker longitude={lon} latitude={lat} anchor="bottom">
+            <div
+              onMouseEnter={() => setShowPopup(true)}
+              onMouseLeave={() => setShowPopup(false)}
+              className="cursor-pointer transition-transform hover:scale-110 relative"
+            >
+              <WasteIconSVG />
+              {showPopup && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-white px-2 py-1 rounded shadow-md text-sm font-semibold whitespace-nowrap z-50">
+                  {area}
+                </div>
+              )}
             </div>
-          </Popup>
-        </Marker>
-      ) : null}
-    </MapContainer>
+          </Marker>
+        )}
+      </Map>
+    </div>
   );
 };
 
