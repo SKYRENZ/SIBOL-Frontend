@@ -24,6 +24,7 @@ const SSOCallback = lazy(() => import('./Pages/SSOCallback.tsx'));
 const ChatSupport = lazy(() => import('./Pages/ChatSupport.tsx'));
 const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 const SuperAdmin = lazy(() => import('./Pages/SuperAdmin.tsx'));
+const PointSystemPage = lazy(() => import('./Pages/PointSystemPage.tsx'));
 
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
         <Route element={<ProtectedRoute requiredRole={1} />}>
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/admin" element={<Admin />} />
+          <Route path="/point-system" element={<PointSystemPage />} />
         </Route>
 
         {/* SuperAdmin Routes (SuperAdmin only) */}

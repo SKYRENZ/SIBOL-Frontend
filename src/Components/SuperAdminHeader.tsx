@@ -18,6 +18,7 @@ import {
 const allLinks = [
     { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
     { id: 2, to: "/superadmin", label: "User Management" },
+    { id: 3, to: "/point-system", label: "Point System" },
 ];
 
 /**
