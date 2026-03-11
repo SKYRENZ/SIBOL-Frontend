@@ -7,6 +7,7 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
+import { CircleQuestionMark } from "lucide-react";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -215,7 +216,19 @@ const Header: React.FC = () => {
                 <NavLink
                   to={link.to}
                   className={({ isActive }) =>
-                    `nav-link ${isActive ? "active" : ""}`
+                    `nav-link text-sm lg:text-base ${isActive ? "active" : ""} ${
+                      link.to === "/dashboard" ? "tour-dashboard" : ""
+                    } ${
+                      link.to === "/sibol-machines" ? "tour-sibol" : ""
+                    } ${
+                      link.to === "/maintenance" ? "tour-maintenance" : ""
+                    } ${
+                      link.to === "/household" ? "tour-household" : ""
+                    } ${
+                      link.to === "/chat-support" ? "tour-chat" : ""
+                    } ${
+                      link.to === "/admin" ? "tour-admin" : ""
+                    }`
                   }
                 >
                   {link.label}
@@ -226,12 +239,24 @@ const Header: React.FC = () => {
 
           {/* RIGHT ICONS */}
           <div className="nav-icons">
+
+            {/* TOUR GUIDE */}
+          <button
+            type="button"
+            title="Website Tour"
+            aria-label="Start Website Tour"
+            className="icon-btn tour-trigger"
+            onClick={() => window.dispatchEvent(new Event("start-tour"))}
+          >
+            <CircleQuestionMark className="icon" size={20} />
+          </button>
+
             {/* Notifications */}
             <button
               type="button"
               title="Notifications"
               aria-label="Notifications"
-              className="icon-btn relative"
+              className="icon-btn relative tour-notification"
               onClick={openNotifications}
             >
               <svg
@@ -260,7 +285,7 @@ const Header: React.FC = () => {
                 type="button"
                 title="Profile"
                 aria-label="Profile"
-                className="icon-btn"
+                className="icon-btn tour-profile"
                 onClick={() => setProfileDropdownOpen((prev) => !prev)} // toggle dropdown
               >
                 <svg
