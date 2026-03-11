@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
-import { MapContainer, TileLayer, Marker, useMap, GeoJSON, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
+import Map, { Marker, NavigationControl, Source, Layer, MapRef } from 'react-map-gl/mapbox';
+import 'mapbox-gl/dist/mapbox-gl.css';
+import bbox from '@turf/bbox';
+import { WasteIconSVG } from './WasteIconSVG';
 import type { CreateContainerRequest } from '../../services/wasteContainerService';
 import { buildOrganicPackageFeatures, buildVoronoiPackageFeatures, getGeoJSONBounds } from '../../utils/geo';
 import { BARANGAY_176_E_PACKAGE_LABELS } from './data/barangay176EPackages';
@@ -14,7 +16,6 @@ interface AddWasteContainerFormProps {
 }
 
 const DEFAULT_CENTER: [number, number] = [14.656, 120.982];
-// bias toward the Philippines to improve suggestion relevance/perf
 const PH_CENTER = { lat: 12.879721, lon: 121.774017 };
 const BARANGAY_176_E_QUERY = 'Barangay 176-E, Caloocan, Metro Manila, Philippines';
 const BARANGAY_176_QUERIES = [
@@ -27,37 +28,6 @@ const BARANGAY_176_QUERIES = [
 ];
 
 type BoundaryGeoJSON = any;
-
-const baseBoundaryStyle = {
-  weight: 2,
-  opacity: 0.9,
-  fillOpacity: 0.25,
-};
-
-const packageBoundaryStyle = {
-  weight: 2,
-  opacity: 0.85,
-  fillOpacity: 0.25,
-  color: '#8D6E63',
-  fillColor: '#E8D2B4',
-};
-
-
-const MapAutoFit: React.FC<{ boundary: BoundaryGeoJSON | null }> = ({ boundary }) => {
-  const map = useMap();
-
-  useEffect(() => {
-    if (!boundary) return;
-    const layer = L.geoJSON(boundary as any);
-    const bounds = layer.getBounds();
-    if (bounds.isValid()) {
-      map.fitBounds(bounds, { padding: [16, 16] });
-      map.setMaxBounds(bounds.pad(0.05));
-    }
-  }, [boundary, map]);
-
-  return null;
-};
 
 function isPointInRing(point: [number, number], ring: number[][]) {
   // point: [lon, lat]
@@ -109,6 +79,8 @@ const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit,
   const [areasLoading, setAreasLoading] = useState<boolean>(false);
   const [pinEnabled, setPinEnabled] = useState<boolean>(false);
   const [targetBounds, setTargetBounds] = useState<{ minLng: number; minLat: number; maxLng: number; maxLat: number } | null>(null);
+  const mapRef = useRef<MapRef | null>(null);
+  const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || '';
 
   // autocomplete state
   const [suggestions, setSuggestions] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
@@ -119,7 +91,7 @@ const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit,
   // map/pin state
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
-  const [markerKey, setMarkerKey] = useState<number>(0); // remount marker/map when needed
+  const [_markerKey, setMarkerKey] = useState<number>(0); // remount marker/map when needed
 
   // input refs
   const containerNameRef = useRef<HTMLInputElement | null>(null);
@@ -184,58 +156,58 @@ const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit,
   }, []);
 
   // small helper to fetch suggestions from Nominatim (country-limited to PH) with Photon fallback.
-// Nominatim typically returns better street-level results when countrycodes is provided.
-const fetchSuggestions = async (q: string) => {
-  if (!q.trim()) {
-    setSuggestions([]);
-    return;
-  }
-  try {
-    // Try Nominatim first (limit to Philippines, include address-level results)
-    const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-      q
-    )}&addressdetails=1&limit=10&countrycodes=ph`;
-    const nomRes = await fetch(nomUrl, { headers: { 'User-Agent': 'SIBOL-App/1.0' } });
-    const nomData = await nomRes.json();
+  // Nominatim typically returns better street-level results when countrycodes is provided.
+  const fetchSuggestions = async (q: string) => {
+    if (!q.trim()) {
+      setSuggestions([]);
+      return;
+    }
+    try {
+      // Try Nominatim first (limit to Philippines, include address-level results)
+      const nomUrl = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+        q
+      )}&addressdetails=1&limit=10&countrycodes=ph`;
+      const nomRes = await fetch(nomUrl, { headers: { 'User-Agent': 'SIBOL-App/1.0' } });
+      const nomData = await nomRes.json();
 
-    let items = (nomData || []).map((r: any) => ({
-      display_name: r.display_name,
-      lat: String(r.lat),
-      lon: String(r.lon),
-    }));
-
-    // Fallback: Photon with PH bias if Nominatim yields nothing
-    if (!items.length) {
-      const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lat=${PH_CENTER.lat}&lon=${PH_CENTER.lon}`;
-      const phRes = await fetch(photonUrl, { headers: { 'User-Agent': 'SIBOL-App/1.0' } });
-      const phData = await phRes.json();
-      items = (phData.features || []).map((f: any) => ({
-        display_name:
-          f.properties.label ||
-          f.properties.name ||
-          [f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
-        lat: f.geometry.coordinates[1].toString(),
-        lon: f.geometry.coordinates[0].toString(),
+      let items = (nomData || []).map((r: any) => ({
+        display_name: r.display_name,
+        lat: String(r.lat),
+        lon: String(r.lon),
       }));
-    }
 
-    if (boundary?.geometry) {
-      items = items.filter((s) => {
-        const latNum = parseFloat(s.lat);
-        const lonNum = parseFloat(s.lon);
-        if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return false;
-        return isPointInBoundary([lonNum, latNum], boundary);
-      });
-    }
+      // Fallback: Photon with PH bias if Nominatim yields nothing
+      if (!items.length) {
+        const photonUrl = `https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=10&lat=${PH_CENTER.lat}&lon=${PH_CENTER.lon}`;
+        const phRes = await fetch(photonUrl, { headers: { 'User-Agent': 'SIBOL-App/1.0' } });
+        const phData = await phRes.json();
+        items = (phData.features || []).map((f: any) => ({
+          display_name:
+            f.properties.label ||
+            f.properties.name ||
+            [f.properties.street, f.properties.city, f.properties.country].filter(Boolean).join(', '),
+          lat: f.geometry.coordinates[1].toString(),
+          lon: f.geometry.coordinates[0].toString(),
+        }));
+      }
 
-    setSuggestions(items);
-    setSelectedIndex(-1);
-  } catch (err) {
-    console.error('Autocomplete error', err);
-    setSuggestions([]);
-    setSelectedIndex(-1);
-  }
-};
+      if (boundary?.geometry) {
+        items = items.filter((s: { display_name: string; lat: string; lon: string }) => {
+          const latNum = parseFloat(s.lat);
+          const lonNum = parseFloat(s.lon);
+          if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return false;
+          return isPointInBoundary([lonNum, latNum], boundary);
+        });
+      }
+
+      setSuggestions(items);
+      setSelectedIndex(-1);
+    } catch (err) {
+      console.error('Autocomplete error', err);
+      setSuggestions([]);
+      setSelectedIndex(-1);
+    }
+  };
 
   // debounced input watcher
   useEffect(() => {
@@ -466,269 +438,280 @@ const fetchSuggestions = async (q: string) => {
     }
   };
 
-  // small leaflet marker icon to match project style
-  const markerIcon = new L.DivIcon({
-    html: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#355842" width="28" height="28"><path d="M12 2C8.1 2 5 5.1 5 9c0 5.3 7 13 7 13s7-7.7 7-13c0-3.9-3.1-7-7-7z"/></svg>`,
-    className: '',
-    iconSize: [28, 28],
-    iconAnchor: [14, 28],
-  });
+  useEffect(() => {
+    if (boundary && mapRef.current) {
+      try {
+        const [minLng, minLat, maxLng, maxLat] = bbox(boundary);
+        mapRef.current.fitBounds(
+          [[minLng, minLat], [maxLng, maxLat]],
+          { padding: 24, duration: 800, pitch: 60, bearing: -20 }
+        );
+      } catch (e) {
+        // Ignore error
+      }
+    }
+  }, [boundary]);
 
-  const MapFocus: React.FC<{ bounds: { minLng: number; minLat: number; maxLng: number; maxLat: number } | null }> = ({ bounds }) => {
-    const map = useMap();
-    useEffect(() => {
-      if (!bounds) return;
-      map.fitBounds(
-        [
-          [bounds.minLat, bounds.minLng],
-          [bounds.maxLat, bounds.maxLng],
-        ],
-        { padding: [24, 24], maxZoom: 17 }
+  useEffect(() => {
+    if (targetBounds && mapRef.current) {
+      mapRef.current.fitBounds(
+        [[targetBounds.minLng, targetBounds.minLat], [targetBounds.maxLng, targetBounds.maxLat]],
+        { padding: 24, duration: 800, maxZoom: 17, pitch: 60, bearing: -20 }
       );
-    }, [bounds, map]);
-    return null;
-  };
+    }
+  }, [targetBounds]);
 
-  const MapPinHandler: React.FC<{ enabled: boolean }> = ({ enabled }) => {
-    useMapEvents({
-      click: (ev) => {
-        if (!enabled) return;
-        const { lat: nextLat, lng: nextLng } = ev.latlng;
-        if (boundary?.geometry && !isPointInBoundary([nextLng, nextLat], boundary)) {
-          setError('Pinned location must be داخل Barangay 176.');
-          return;
-        }
-        setError(null);
-        setLat(nextLat);
-        setLon(nextLng);
-        setLastValid([nextLat, nextLng]);
-        setMarkerKey(k => k + 1);
-        void updateAddressFromCoords(nextLat, nextLng);
-      },
-    });
-    return null;
-  };
+
 
   const hasCoords = Number.isFinite(lat) && Number.isFinite(lon);
-  const safeCenter: [number, number] = hasCoords ? [lat as number, lon as number] : DEFAULT_CENTER;
+  const safeCenter: [number, number] = hasCoords ? [lon as number, lat as number] : [DEFAULT_CENTER[1], DEFAULT_CENTER[0]]; // [lng, lat]
 
   return (
     <form onSubmit={handleSubmit} className="flex max-h-[75vh] flex-col">
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         <div>
-        <label className="block text-sm font-semibold text-gray-800">Container Name <span className="text-red-500">*</span></label>
-        <input
-          ref={containerNameRef}
-          type="text"
-          value={containerName}
-          onChange={(e) => setContainerName(e.target.value)}
-          className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
-          placeholder="e.g. Block A - Container 1"
-          required
-          aria-label="Container Name"
-        />
+          <label className="block text-sm font-semibold text-gray-800">Container Name <span className="text-red-500">*</span></label>
+          <input
+            ref={containerNameRef}
+            type="text"
+            value={containerName}
+            onChange={(e) => setContainerName(e.target.value)}
+            className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
+            placeholder="e.g. Block A - Container 1"
+            required
+            aria-label="Container Name"
+          />
         </div>
 
         <div>
-        <label className="block text-sm font-semibold text-gray-800">Device ID <span className="text-gray-500 text-xs font-normal">(optional)</span></label>
-        <input
-          type="text"
-          value={deviceId}
-          onChange={(e) => setDeviceId(e.target.value)}
-          className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
-          placeholder="e.g. esp32-001"
-          aria-label="Device ID"
-        />
-        <p className="mt-1 text-xs text-gray-500">Must match the ESP32 deviceId sending weight data.</p>
+          <label className="block text-sm font-semibold text-gray-800">Device ID <span className="text-gray-500 text-xs font-normal">(optional)</span></label>
+          <input
+            type="text"
+            value={deviceId}
+            onChange={(e) => setDeviceId(e.target.value)}
+            className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
+            placeholder="e.g. esp32-001"
+            aria-label="Device ID"
+          />
+          <p className="mt-1 text-xs text-gray-500">Must match the ESP32 deviceId sending weight data.</p>
         </div>
 
         <div>
-        <label className="block text-sm font-semibold text-gray-800">Area Name <span className="text-red-500">*</span></label>
-        <select
-          value={areaName}
-          onChange={(e) => handleAreaSelect(e.target.value)}
-          className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
-          required
-          aria-label="Area Name"
-          disabled={areasLoading}
-        >
-          <option value="" disabled>{areasLoading ? 'Loading areas...' : 'Select area'}</option>
-          {areas.map((a) => (
-            <option key={a.Area_id} value={a.Area_Name}>{a.Area_Name}</option>
-          ))}
-        </select>
+          <label className="block text-sm font-semibold text-gray-800">Area Name <span className="text-red-500">*</span></label>
+          <select
+            value={areaName}
+            onChange={(e) => handleAreaSelect(e.target.value)}
+            className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
+            required
+            aria-label="Area Name"
+            disabled={areasLoading}
+          >
+            <option value="" disabled>{areasLoading ? 'Loading areas...' : 'Select area'}</option>
+            {areas.map((a) => (
+              <option key={a.Area_id} value={a.Area_Name}>{a.Area_Name}</option>
+            ))}
+          </select>
         </div>
 
         <div className="relative">
-        <div className="flex items-center justify-between">
-          <label className="block text-sm font-semibold text-gray-800">Full Address <span className="text-gray-500 text-xs font-normal">(start typing to see suggestions)</span></label>
-          <button
-            type="button"
-            onClick={() => setPinEnabled((v) => !v)}
-            className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${pinEnabled ? 'bg-[#2E523A] text-white border-[#2E523A]' : 'bg-white text-[#2E523A] border-[#2E523A]'}`}
-          >
-            {pinEnabled ? 'Pin Enabled' : 'Enable Pin'}
-          </button>
-        </div>
-        <input
-          ref={inputRef}
-          type="text"
-          value={fullAddress}
-          onChange={(e) => { setFullAddress(e.target.value); setShowSuggestions(true); }}
-          onFocus={() => setShowSuggestions(true)}
-          onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
-          onKeyDown={handleInputKeyDown}
-          className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
-          placeholder="Start typing address to see suggestions..."
-          required
-          autoComplete="off"
-          aria-label="Full Address"
-        />
+          <div className="flex items-center justify-between">
+            <label className="block text-sm font-semibold text-gray-800">Full Address <span className="text-gray-500 text-xs font-normal">(start typing to see suggestions)</span></label>
+            <button
+              type="button"
+              onClick={() => setPinEnabled((v) => !v)}
+              className={`text-xs font-semibold px-2.5 py-1 rounded-md border ${pinEnabled ? 'bg-[#2E523A] text-white border-[#2E523A]' : 'bg-white text-[#2E523A] border-[#2E523A]'}`}
+            >
+              {pinEnabled ? 'Pin Enabled' : 'Enable Pin'}
+            </button>
+          </div>
+          <input
+            ref={inputRef}
+            type="text"
+            value={fullAddress}
+            onChange={(e) => { setFullAddress(e.target.value); setShowSuggestions(true); }}
+            onFocus={() => setShowSuggestions(true)}
+            onBlur={() => setTimeout(() => setShowSuggestions(false), 180)}
+            onKeyDown={handleInputKeyDown}
+            className="mt-1 block w-full rounded-md border-2 border-gray-200 bg-white px-3 py-2 text-base text-gray-900 placeholder-gray-500 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#355842]/30 focus:border-[#355842]"
+            placeholder="Start typing address to see suggestions..."
+            required
+            autoComplete="off"
+            aria-label="Full Address"
+          />
 
-        {/* suggestions: portal to body so they float above the map and subheader */}
-        {showSuggestions && suggestions.length > 0 && suggestionBoxStyle && ReactDOM.createPortal(
-          <ul
-            role="listbox"
-            aria-label="Address suggestions"
-            style={{
-              position: 'absolute',
-              left: suggestionBoxStyle.left,
-              top: suggestionBoxStyle.top,
-              width: suggestionBoxStyle.width,
-              zIndex: 999999, // very high to ensure it's above maps/subheaders
-              boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
-            }}
-            className="max-h-36 overflow-y-auto bg-white border rounded-md text-sm divide-y divide-gray-100"
-          >
-            {suggestions.slice(0, 3).map((s, i) => (
-              <li
-                key={i}
-                role="option"
-                aria-selected={selectedIndex === i}
-                tabIndex={-1}
-                onMouseDown={(e) => { e.preventDefault(); handlePickSuggestion(s); }}
-                onMouseEnter={() => setSelectedIndex(i)}
-                className={`px-3 py-2 cursor-pointer ${selectedIndex === i ? 'bg-[#e6f4ee] font-medium text-gray-900' : 'hover:bg-gray-50 text-gray-800'}`}
-              >
-                {s.display_name}
-              </li>
-            ))}
-          </ul>,
-          document.body
-        )}
-        </div>
-
-      {/* Map preview & draggable marker */}
-        <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Pin Location (drag to refine)</label>
-        {!pinEnabled && (
-          <p className="text-xs text-gray-500 mb-2">Enable pin to place or drag the marker.</p>
-        )}
-        <div className="h-56 rounded-md overflow-hidden border">
-          <MapContainer
-            key={markerKey}
-            center={safeCenter}
-            zoom={hasCoords ? 16 : 13}
-            style={{ height: '100%', width: '100%' }}
-            scrollWheelZoom={pinEnabled}
-            dragging={pinEnabled}
-            doubleClickZoom={pinEnabled}
-            touchZoom={pinEnabled}
-          >
-            <MapAutoFit boundary={boundary} />
-            <MapFocus bounds={targetBounds} />
-            <MapPinHandler enabled={pinEnabled} />
-            <TileLayer
-              attribution='&copy; OpenStreetMap contributors'
-              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            {BARANGAY_176_QUERIES.map((b) => (
-              boundaries[b.key] ? (
-                <GeoJSON
-                  key={b.key}
-                  data={boundaries[b.key]}
-                  style={{ ...baseBoundaryStyle, ...b.style }}
-                  onEachFeature={(_, layer) => {
-                    const baseStyle = { ...baseBoundaryStyle, ...b.style };
-                    layer.setStyle(baseStyle);
-                    layer.bindTooltip(b.label, {
-                      sticky: true,
-                      className: 'barangay-tooltip',
-                      direction: 'center',
-                      opacity: 0.95,
-                    });
-                    layer.on({
-                      mouseover: () => layer.setStyle({ ...baseStyle, weight: 3, fillOpacity: 0.55 }),
-                      mouseout: () => layer.setStyle(baseStyle),
-                      click: (e: any) => {
-                        e?.originalEvent?.preventDefault?.();
-                        layer.setStyle({ ...baseStyle, weight: 4, fillOpacity: 0.6 });
-                        layer.openTooltip();
-                      },
-                    });
-                  }}
-                  interactive
-                />
-              ) : null
-            ))}
-            {packageFeatures.length ? (
-              <GeoJSON
-                data={{ type: 'FeatureCollection', features: packageFeatures }}
-                style={packageBoundaryStyle}
-                onEachFeature={(feature, layer) => {
-                  const label = feature?.properties?.label || 'Package';
-                  layer.setStyle(packageBoundaryStyle);
-                  layer.bindTooltip(label, {
-                    sticky: true,
-                    className: 'package-tooltip',
-                    direction: 'center',
-                    opacity: 0.95,
-                  });
-                  layer.on({
-                    mouseover: () => layer.setStyle({ ...packageBoundaryStyle, weight: 3, fillOpacity: 0.35 }),
-                    mouseout: () => layer.setStyle(packageBoundaryStyle),
-                    click: (e: any) => {
-                      e?.originalEvent?.preventDefault?.();
-                      layer.setStyle({ ...packageBoundaryStyle, weight: 4, fillOpacity: 0.4 });
-                      layer.openTooltip();
-                    },
-                  });
-                }}
-                interactive
-              />
-            ) : null}
-            <Marker
-              position={safeCenter}
-              icon={markerIcon as any}
-              draggable={pinEnabled}
-              eventHandlers={{
-                dragend: (ev: any) => {
-                  if (!pinEnabled) return;
-                  const m = ev.target;
-                  const p = m.getLatLng();
-                  if (boundary?.geometry && !isPointInBoundary([p.lng, p.lat], boundary)) {
-                    setError('Pinned location must be داخل Barangay 176.');
-                    if (lastValid) {
-                      setLat(lastValid[0]);
-                      setLon(lastValid[1]);
-                      setMarkerKey(k => k + 1);
-                    }
-                    return;
-                  }
-                  setError(null);
-                  setLat(p.lat);
-                  setLon(p.lng);
-                  setLastValid([p.lat, p.lng]);
-                  void updateAddressFromCoords(p.lat, p.lng);
-                }
+          {/* suggestions: portal to body so they float above the map and subheader */}
+          {showSuggestions && suggestions.length > 0 && suggestionBoxStyle && ReactDOM.createPortal(
+            <ul
+              role="listbox"
+              aria-label="Address suggestions"
+              style={{
+                position: 'absolute',
+                left: suggestionBoxStyle.left,
+                top: suggestionBoxStyle.top,
+                width: suggestionBoxStyle.width,
+                zIndex: 999999, // very high to ensure it's above maps/subheaders
+                boxShadow: '0 6px 18px rgba(0,0,0,0.12)',
               }}
-            />
-          </MapContainer>
+              className="max-h-36 overflow-y-auto bg-white border rounded-md text-sm divide-y divide-gray-100"
+            >
+              {suggestions.slice(0, 3).map((s, i) => (
+                <li
+                  key={i}
+                  role="option"
+                  aria-selected={selectedIndex === i}
+                  tabIndex={-1}
+                  onMouseDown={(e) => { e.preventDefault(); handlePickSuggestion(s); }}
+                  onMouseEnter={() => setSelectedIndex(i)}
+                  className={`px-3 py-2 cursor-pointer ${selectedIndex === i ? 'bg-[#e6f4ee] font-medium text-gray-900' : 'hover:bg-gray-50 text-gray-800'}`}
+                >
+                  {s.display_name}
+                </li>
+              ))}
+            </ul>,
+            document.body
+          )}
         </div>
-        <div className="flex justify-between text-xs text-gray-600 mt-2">
-          <div>Lat: {lat !== null ? lat.toFixed(6) : '–'}</div>
-          <div>Lon: {lon !== null ? lon.toFixed(6) : '–'}</div>
-        </div>
+
+        {/* Map preview & draggable marker */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Pin Location (drag to refine)</label>
+          {!pinEnabled && (
+            <p className="text-xs text-gray-500 mb-2">Enable pin to place or drag the marker.</p>
+          )}
+          <div className="h-56 rounded-md overflow-hidden border">
+            <Map
+              ref={mapRef}
+              attributionControl={false}
+              mapboxAccessToken={mapboxToken}
+              initialViewState={{
+                longitude: safeCenter[0],
+                latitude: safeCenter[1],
+                zoom: hasCoords ? 16 : 14,
+                pitch: 60,
+                bearing: -20,
+              }}
+              mapStyle="mapbox://styles/mapbox/streets-v12"
+              style={{ width: '100%', height: '100%' }}
+              interactive={pinEnabled}
+              onClick={(ev) => {
+                if (!pinEnabled) return;
+                const nextLng = ev.lngLat.lng;
+                const nextLat = ev.lngLat.lat;
+                if (boundary?.geometry && !isPointInBoundary([nextLng, nextLat], boundary)) {
+                  setError('Pinned location must be within Barangay 176.');
+                  return;
+                }
+                setError(null);
+                setLat(nextLat);
+                setLon(nextLng);
+                setLastValid([nextLat, nextLng]);
+                void updateAddressFromCoords(nextLat, nextLng);
+              }}
+            >
+              <NavigationControl position="top-right" />
+
+              {BARANGAY_176_QUERIES.map((b) => {
+                if (!boundaries[b.key]) return null;
+                return (
+                  <Source key={`src-${b.key}`} type="geojson" data={boundaries[b.key]}>
+                    <Layer
+                      id={`fill-${b.key}`}
+                      type="fill"
+                      paint={{
+                        'fill-color': b.style.fillColor,
+                        'fill-opacity': 0.25,
+                      }}
+                    />
+                    <Layer
+                      id={`line-${b.key}`}
+                      type="line"
+                      paint={{
+                        'line-color': b.style.color,
+                        'line-width': 2,
+                        'line-opacity': 0.9,
+                      }}
+                    />
+                  </Source>
+                );
+              })}
+
+              {packageFeatures.length > 0 && (
+                <Source type="geojson" data={{ type: 'FeatureCollection', features: packageFeatures } as any}>
+                  <Layer
+                    id="package-fill"
+                    type="fill"
+                    paint={{
+                      'fill-color': '#E8D2B4',
+                      'fill-opacity': 0.25,
+                    }}
+                  />
+                  <Layer
+                    id="package-line"
+                    type="line"
+                    paint={{
+                      'line-color': '#8D6E63',
+                      'line-width': 2,
+                      'line-opacity': 0.85,
+                    }}
+                  />
+                  <Layer
+                    id="package-label"
+                    type="symbol"
+                    layout={{
+                      'text-field': ['get', 'label'],
+                      'text-size': 12,
+                      'text-anchor': 'center'
+                    }}
+                    paint={{
+                      'text-color': '#5D4037',
+                      'text-halo-color': '#ffffff',
+                      'text-halo-width': 1.5
+                    }}
+                  />
+                </Source>
+              )}
+
+              {hasCoords && (
+                <Marker
+                  longitude={lon as number}
+                  latitude={lat as number}
+                  draggable={pinEnabled}
+                  onDragEnd={(ev) => {
+                    if (!pinEnabled) return;
+                    const nextLng = ev.lngLat.lng;
+                    const nextLat = ev.lngLat.lat;
+                    if (boundary?.geometry && !isPointInBoundary([nextLng, nextLat], boundary)) {
+                      setError('Pinned location must be within Barangay 176.');
+                      if (lastValid) {
+                        setLat(lastValid[0]);
+                        setLon(lastValid[1]);
+                      }
+                      return;
+                    }
+                    setError(null);
+                    setLat(nextLat);
+                    setLon(nextLng);
+                    setLastValid([nextLat, nextLng]);
+                    void updateAddressFromCoords(nextLat, nextLng);
+                  }}
+                >
+                  <div className="cursor-pointer transition-transform hover:scale-110">
+                    <WasteIconSVG />
+                  </div>
+                </Marker>
+              )}
+
+              {!mapboxToken && (
+                <div className="absolute inset-0 z-50 flex items-center justify-center bg-gray-100/80 backdrop-blur-sm pointer-events-none">
+                  <p className="text-gray-600 font-medium px-4 text-center text-xs">Mapbox Token Missing</p>
+                </div>
+              )}
+            </Map>
+          </div>
+          <div className="flex justify-between text-xs text-gray-600 mt-2">
+            <div>Lat: {lat !== null ? lat.toFixed(6) : '–'}</div>
+            <div>Lon: {lon !== null ? lon.toFixed(6) : '–'}</div>
+          </div>
         </div>
       </div>
 
@@ -736,22 +719,22 @@ const fetchSuggestions = async (q: string) => {
         {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
 
         <div className="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onClick={() => { resetFields(); onCancel(); }}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
-          disabled={submitting || loading}
-        >
-          Cancel
-        </button>
+          <button
+            type="button"
+            onClick={() => { resetFields(); onCancel(); }}
+            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-md text-sm hover:bg-gray-200"
+            disabled={submitting || loading}
+          >
+            Cancel
+          </button>
 
-        <button
-          type="submit"
-          className="px-4 py-2 bg-[#355842] text-white rounded-md text-sm hover:bg-[#2e4a36] disabled:opacity-60"
-          disabled={submitting || loading}
-        >
-          {submitting || loading ? 'Saving...' : 'Save Container'}
-        </button>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-[#355842] text-white rounded-md text-sm hover:bg-[#2e4a36] disabled:opacity-60"
+            disabled={submitting || loading}
+          >
+            {submitting || loading ? 'Saving...' : 'Save Container'}
+          </button>
         </div>
       </div>
     </form>

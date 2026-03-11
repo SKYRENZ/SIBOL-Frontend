@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin, Facebook } from 'lucide-react';
-import { isAuthenticated } from '../services/authService';
+import { getUser, isAuthenticated } from '../services/authService';
+import { getLandingRoute } from '../utils/routeUtils';
 
 const Landingpage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,7 +30,8 @@ const Landingpage: React.FC = () => {
   // Redirect authenticated users to dashboard
   useEffect(() => {
     if (isAuthenticated()) {
-      navigate('/dashboard', { replace: true });
+      const user = getUser();
+      navigate(getLandingRoute(user), { replace: true });
     }
   }, [navigate]);
 
