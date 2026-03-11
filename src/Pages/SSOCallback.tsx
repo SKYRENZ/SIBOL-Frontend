@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
+import { getLandingRoute } from '../utils/routeUtils';
 
 const SSOCallback: React.FC = () => {
   const [searchParams] = useSearchParams();
@@ -69,7 +70,7 @@ const SSOCallback: React.FC = () => {
               setTimeout(() => window.close(), 500);
             } else {
               // navigate main window — server cookie should already be set; main app will verify on mount
-              window.location.href = '/dashboard';
+              window.location.href = getLandingRoute(parsedUser);
             }
             return;
           } catch (e) {

@@ -14,7 +14,7 @@ import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
 import { Account } from '../types/adminTypes';
-import Header from '../Components/Header';
+import SuperAdminHeader from '../Components/SuperAdminHeader';
 import Pagination from '../Components/common/Pagination';
 import SnackBar from '../Components/common/SnackBar'; // ✅ add
 
@@ -24,7 +24,6 @@ export default function Admin() {
     accounts,
     pendingAccounts,
     roles,
-    modules,
     barangays,
     status,
     error,
@@ -140,7 +139,7 @@ export default function Admin() {
 
   return (
     <>
-      <Header />
+      <SuperAdminHeader />
       <div className="w-full bg-white">
         {/* spacer to avoid header overlap */}
         <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
@@ -163,11 +162,10 @@ export default function Admin() {
                 aria-selected={activeTab === 'list'}
                 onClick={() => setActiveTab('list')}
                 className={`text-lg sm:text-xl px-3 sm:px-4 py-2 font-medium bg-transparent transition-colors duration-150
-                ${
-                  activeTab === 'list'
+                ${activeTab === 'list'
                     ? 'text-sibol-green font-semibold underline underline-offset-4'
                     : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'
-                }`}
+                  }`}
               >
                 List of Accounts
               </button>
@@ -178,11 +176,10 @@ export default function Admin() {
                 aria-selected={activeTab === 'approval'}
                 onClick={() => setActiveTab('approval')}
                 className={`flex items-center gap-2 text-lg sm:text-xl px-3 sm:px-4 py-2 font-medium bg-transparent transition-colors duration-150
-                ${
-                  activeTab === 'approval'
+                ${activeTab === 'approval'
                     ? 'text-sibol-green font-semibold underline underline-offset-4'
                     : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'
-                }`}
+                  }`}
               >
                 User Approval
                 <span className="chip chip-rose ml-1 text-xs">{pendingCount}</span>
@@ -229,10 +226,10 @@ export default function Admin() {
 
             {activeTab === 'approval' && (
               <div className="overflow-x-auto">
-                <UserApproval 
-                  accounts={pendingAccounts} 
-                  onAccept={onAccept} 
-                  onReject={onReject} 
+                <UserApproval
+                  accounts={pendingAccounts}
+                  onAccept={onAccept}
+                  onReject={onReject}
                   loading={loading}
                   error={error}
                 />
@@ -241,41 +238,40 @@ export default function Admin() {
 
             {/* Modal (Create/Edit) */}
             {(creating || editingAccount) && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6">
-              {/* Backdrop */}
-              <div
-                className="absolute inset-0 bg-black/40"
-                onClick={() => {
-                  if (creating) setCreating(false);
-                  if (editingAccount) setEditingAccount(null);
-                }}
-              />
-
-              {/* Panel */}
-              <div
-                className="relative w-full max-w-md sm:max-w-2xl bg-white rounded-2xl shadow-xl 
-                p-5 sm:p-8 text-sm text-[#3D5341] overflow-y-auto"
-                style={{
-                  maxHeight: 'calc(100vh - var(--header-height, 72px) - 20px)', // prevents overlapping header
-                  marginTop: 'calc(var(--header-height, 72px) + 10px)',
-                  marginBottom: '10px',
-                }}
-              >
-                <AdminForm
-                  initialData={initialData}
-                  mode={creating ? 'create' : 'edit'}
-                  onSubmit={creating ? onCreate : onUpdate}
-                  onCancel={() => {
+              <div className="fixed inset-0 z-50 flex items-center justify-center px-4 sm:px-6">
+                {/* Backdrop */}
+                <div
+                  className="absolute inset-0 bg-black/40"
+                  onClick={() => {
                     if (creating) setCreating(false);
-                    else setEditingAccount(null);
+                    if (editingAccount) setEditingAccount(null);
                   }}
-                  roles={roles}
-                  modules={modules}
-                  barangays={barangays}
                 />
+
+                {/* Panel */}
+                <div
+                  className="relative w-full max-w-md sm:max-w-2xl bg-white rounded-2xl shadow-xl 
+                p-5 sm:p-8 text-sm text-[#3D5341] overflow-y-auto"
+                  style={{
+                    maxHeight: 'calc(100vh - var(--header-height, 72px) - 20px)', // prevents overlapping header
+                    marginTop: 'calc(var(--header-height, 72px) + 10px)',
+                    marginBottom: '10px',
+                  }}
+                >
+                  <AdminForm
+                    initialData={initialData}
+                    mode={creating ? 'create' : 'edit'}
+                    onSubmit={creating ? onCreate : onUpdate}
+                    onCancel={() => {
+                      if (creating) setCreating(false);
+                      else setEditingAccount(null);
+                    }}
+                    roles={roles}
+                    barangays={barangays}
+                  />
+                </div>
               </div>
-            </div>
-          )}
+            )}
           </div>
         </div>
       </div>
