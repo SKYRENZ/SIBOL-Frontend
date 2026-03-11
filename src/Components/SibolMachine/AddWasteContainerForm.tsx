@@ -91,7 +91,7 @@ const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit,
   // map/pin state
   const [lat, setLat] = useState<number | null>(null);
   const [lon, setLon] = useState<number | null>(null);
-  const [markerKey, setMarkerKey] = useState<number>(0); // remount marker/map when needed
+  const [_markerKey, setMarkerKey] = useState<number>(0); // remount marker/map when needed
 
   // input refs
   const containerNameRef = useRef<HTMLInputElement | null>(null);
@@ -192,7 +192,7 @@ const AddWasteContainerForm: React.FC<AddWasteContainerFormProps> = ({ onSubmit,
       }
 
       if (boundary?.geometry) {
-        items = items.filter((s) => {
+        items = items.filter((s: { display_name: string; lat: string; lon: string }) => {
           const latNum = parseFloat(s.lat);
           const lonNum = parseFloat(s.lon);
           if (!Number.isFinite(latNum) || !Number.isFinite(lonNum)) return false;
