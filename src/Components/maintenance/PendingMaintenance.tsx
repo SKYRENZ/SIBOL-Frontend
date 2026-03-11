@@ -7,7 +7,6 @@ import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 
 import { useAppSelector } from '../../store/hooks';
-import { User } from "lucide-react";
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
 import { MaintenanceCard } from "./MaintenanceCard";

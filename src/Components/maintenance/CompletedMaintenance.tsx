@@ -1,7 +1,6 @@
 import { useState, useMemo } from "react";
 import { useCompletedMaintenance } from "../../hooks/maintenance/useCompletedMaintenance";
 import type { MaintenanceTicket } from "../../types/maintenance";
-import { Calendar, CheckCircle } from "lucide-react";
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
 import { MaintenanceCard } from "./MaintenanceCard";
