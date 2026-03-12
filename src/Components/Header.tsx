@@ -153,6 +153,9 @@ const Header: React.FC = () => {
   return (
     <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
       <nav className="nav">
+        {user?.Barangay_Name && (
+          <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
+        )}
         <img
           className="nav-logo"
           src={new URL("../assets/images/collection.png", import.meta.url).href}

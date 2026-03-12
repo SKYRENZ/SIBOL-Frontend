@@ -2,8 +2,8 @@ import { get, put } from './apiClient';
 
 const BASE = '/api/conversion';
 
-export async function fetchConversion() {
-  const { data } = await get<{ pointsPerKg: number }>(BASE);
+export async function fetchConversion(barangayId: number) {
+  const { data } = await get<{ pointsPerKg: number }>(`${BASE}?barangayId=${barangayId}`);
   return data;
 }
 
