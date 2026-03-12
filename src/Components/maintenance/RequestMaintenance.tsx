@@ -9,6 +9,7 @@ import { Trash2 } from "lucide-react";
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
 import { MaintenanceCard } from "./MaintenanceCard";
+import Pagination from "../common/Pagination";
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
@@ -34,6 +35,10 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
   const getPriorityColor = (priority: string | null | undefined) => {
     const p = (priority || '').toLowerCase();
@@ -114,8 +119,28 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
     return result;
   }, [tickets, searchQuery, activeFilters]);
 
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTickets.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentTickets = filteredTickets.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilters]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
+
   return (
-    <div>
+    <div className="pb-20"> {/* Add padding bottom for pagination */}
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {/* Toolbar */}
@@ -157,13 +182,13 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
       {/* Cards Grid */}
       {loading ? (
         <p className="text-center text-gray-500 py-8">Loading...</p>
-      ) : filteredTickets.length === 0 ? (
+      ) : currentTickets.length === 0 ? (
         <p className="text-center text-gray-500 py-8">
           {searchQuery || activeFilters.length > 0 ? "No matching requests found" : "No maintenance requests found"}
         </p>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredTickets.map((ticket) => (
+          {currentTickets.map((ticket) => (
             <MaintenanceCard
               key={ticket.Request_Id ?? ticket.request_id}
               ticket={ticket}
@@ -174,6 +199,19 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
             />
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {filteredTickets.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          pageSize={pageSize}
+          totalItems={filteredTickets.length}
+          onPageSizeChange={handlePageSizeChange}
+          fixed={true}
+        />
       )}
 
       <CancelConfirmModal
