@@ -145,7 +145,7 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
       <DatePicker
         label={
           <span className="flex items-center gap-2">
-            <span>Date Picker</span>
+            <span>Due Date</span>
             <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
           </span>
         }
