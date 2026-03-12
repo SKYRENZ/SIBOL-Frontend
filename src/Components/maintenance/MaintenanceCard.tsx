@@ -46,10 +46,10 @@ export const MaintenanceCard: React.FC<MaintenanceCardProps> = ({
   const canDelete = status === "Requested" || status === "Cancelled";
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden">
+    <div className="bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 hover:border-gray-300 transition-all duration-200 ease-in-out overflow-hidden cursor-pointer">
       {/* Title with Status Badge - Header Section */}
       <div className="bg-gradient-to-r from-[#355842] to-[#4a7c5d] px-5 py-4 border-b border-gray-200 flex items-center justify-between gap-3">
-        <h3 className="font-semibold text-gray-900 text-white text-lg flex-1 min-w-0">{ticket.Title}</h3>
+        <h3 className="font-semibold text-white text-lg flex-1 min-w-0">{ticket.Title}</h3>
         
         {/* Status Badge aligned with title */}
         {mode === 'request' && isCancelled && (
