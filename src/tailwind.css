@@ -297,9 +297,9 @@ input:-webkit-autofill:active {
   .menu-toggle { @apply hidden flex-col justify-center items-center gap-1.5 w-10 h-10 rounded-full border border-white/25 bg-transparent cursor-pointer transition; }
   .menu-toggle span { @apply block w-[18px] h-[2px] bg-white rounded-full transition; }
 
-  .nav-links { @apply flex gap-[56px] list-none m-0 p-0; }
+  .nav-links { @apply flex gap-[36px] list-none m-0 p-0; }
   .nav-icons { @apply flex items-center gap-[28px]; }
-  .nav-menu { @apply flex items-center gap-[48px]; }
+  .nav-menu { @apply flex items-center gap-[36px]; }
 
   .nav-link {
     @apply text-[#d1d1d1] text-lg font-normal no-underline transition-colors font-sans;

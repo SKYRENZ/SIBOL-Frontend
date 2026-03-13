@@ -201,6 +201,10 @@ const SuperAdminHeader: React.FC = () => {
     return (
         <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
             <nav className="nav">
+                {/* Barangay label */}
+                {user?.Barangay_Name && (
+                    <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
+                )}
                 {/* Logo */}
                 <img
                     className="nav-logo"

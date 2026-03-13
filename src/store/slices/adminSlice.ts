@@ -26,11 +26,11 @@ const initialState: AdminState = {
 };
 
 // Async thunk for fetching all primary admin data
-export const fetchAdminData = createAsyncThunk('admin/fetchData', async () => {
+export const fetchAdminData = createAsyncThunk('admin/fetchData', async (barangayId?: number) => {
   // Fetch all data in parallel for efficiency
   const [accounts, pending, roles, modules, barangays] = await Promise.all([
-    adminService.fetchAccounts(),
-    adminService.fetchPendingAccounts(),
+    adminService.fetchAccounts(barangayId),
+    adminService.fetchPendingAccounts(barangayId),
     adminService.fetchUserRoles(),
     adminService.fetchModules(),
     adminService.fetchBarangays(),

@@ -28,13 +28,14 @@ export default function Admin() {
     status,
     error,
   } = useSelector((state: RootState) => state.admin);
+  const { user } = useSelector((state: RootState) => state.auth);
 
   // Fetch data on component mount
   useEffect(() => {
     if (status === 'idle') {
-      dispatch(fetchAdminData());
+      dispatch(fetchAdminData(user?.Barangay_id));
     }
-  }, [status, dispatch]);
+  }, [status, dispatch, user?.Barangay_id]);
 
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
@@ -75,7 +76,7 @@ export default function Admin() {
       .unwrap()
       .then(() => {
         setCreating(false);
-        dispatch(fetchAdminData());
+        dispatch(fetchAdminData(user?.Barangay_id));
         showSnack('Admin created.', 'success'); // ✅
       })
       .catch((err: any) => showSnack(err?.message ?? 'Create failed', 'error')); // ✅ (removed alert)
@@ -87,7 +88,7 @@ export default function Admin() {
       .unwrap()
       .then(() => {
         setEditingAccount(null);
-        dispatch(fetchAdminData());
+        dispatch(fetchAdminData(user?.Barangay_id));
         showSnack('Admin updated.', 'success'); // ✅
       })
       .catch((err: any) => showSnack(err?.message ?? 'Update failed', 'error')); // ✅
@@ -100,7 +101,7 @@ export default function Admin() {
     dispatch(toggleAccountActive({ accountId: a.Account_id, isActive: newIsActive }))
       .unwrap()
       .then(() => {
-        dispatch(fetchAdminData());
+        dispatch(fetchAdminData(user?.Barangay_id));
         showSnack(`Account ${newIsActive ? 'enabled' : 'disabled'}.`, 'success'); // ✅
       })
       .catch((err: any) => showSnack(err?.message ?? 'Toggle active failed', 'error')); // ✅
@@ -113,7 +114,7 @@ export default function Admin() {
     dispatch(approvePendingAccount(Number(pendingId)))
       .unwrap()
       .then(() => {
-        dispatch(fetchAdminData());
+        dispatch(fetchAdminData(user?.Barangay_id));
         showSnack('Account approved.', 'success'); // ✅ (removed alert)
       })
       .catch((err) => showSnack(err?.message ?? 'Approve failed', 'error')); // ✅
@@ -125,7 +126,7 @@ export default function Admin() {
     dispatch(rejectPendingAccount({ pendingId: Number(pendingId), reason }))
       .unwrap()
       .then(() => {
-        dispatch(fetchAdminData());
+        dispatch(fetchAdminData(user?.Barangay_id));
         showSnack('Account rejected.', 'success'); // ✅ (removed alert)
       })
       .catch((err) => showSnack(err?.message ?? 'Reject failed', 'error')); // ✅
