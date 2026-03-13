@@ -1,5 +1,4 @@
-import { useMemo, useState } from "react";
-import Table from "../common/Table";
+import { useState, useMemo } from "react";
 import { useRequestMaintenance } from "../../hooks/maintenance/useRequestMaintenance";
 import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
@@ -7,6 +6,10 @@ import CancelConfirmModal from "./CancelConfirmModal";
 import DeletedRequestsModal from "./DeletedRequestsModal";
 import { useAppSelector } from '../../store/hooks';
 import { Trash2 } from "lucide-react";
+import SearchBar from "../common/SearchBar";
+import FilterPanel from "../common/filterPanel";
+import { MaintenanceCard } from "./MaintenanceCard";
+import Pagination from "../common/Pagination";
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
@@ -29,78 +32,21 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
   const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [deletedError, setDeletedError] = useState<string | null>(null);
 
-  const columns = useMemo(
-    () => [
-      {
-        key: "Title",
-        label: "Title",
-        render: (_: any, row: MaintenanceTicket) => {
-          const status = row.Status ?? "";
-          const isCancelled = status === "Cancelled";
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
-          return (
-            <div className="flex items-center gap-2">
-              <span>{row.Title}</span>
-              {isCancelled && (
-                <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-red-100 text-red-700">
-                  Cancelled
-                </span>
-              )}
-            </div>
-          );
-        },
-      },
-      {
-        key: "Priority",
-        label: "Priority",
-        render: (value: any) => value ?? "—",
-      },
-      {
-        key: "Request_date",
-        label: "Date Created",
-        render: (value: any) => (value ? new Date(value).toLocaleDateString() : "—"),
-      },
-      {
-        key: "Due_date",
-        label: "Due Date",
-        render: (value: any) => (value ? new Date(value).toLocaleDateString() : "—"),
-      },
-      {
-        key: "actions",
-        label: "Actions",
-        render: (_: any, row: MaintenanceTicket) => {
-          const requestId = row.Request_Id ?? row.request_id;
-          const status = row.Status ?? "";
-
-          const canAcceptOrAssign = status === "Requested" || status === "Cancelled";
-          const canDelete = status === "Requested" || status === "Cancelled";
-
-          return (
-            <div className="flex gap-2">
-              <button
-                onClick={() => onOpenForm('assign', row)}
-                disabled={!canAcceptOrAssign}
-                className="px-3 py-1 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36] disabled:opacity-50"
-              >
-                View & Accept
-              </button>
-
-              {canDelete && (
-                <button
-                  onClick={() => setSelectedTicketForDelete(row)}
-                  disabled={!requestId || isDeleting}
-                  className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              )}
-            </div>
-          );
-        },
-      },
-    ],
-    [onOpenForm, isDeleting]
-  );
+  const getPriorityColor = (priority: string | null | undefined) => {
+    const p = (priority || '').toLowerCase();
+    if (p === 'critical') return 'bg-red-100 text-red-700 border-red-200';
+    if (p === 'urgent') return 'bg-orange-100 text-orange-700 border-orange-200';
+    if (p === 'mild') return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    return 'bg-gray-100 text-gray-700 border-gray-200';
+  };
 
   const handleConfirmDelete = async (reason?: string) => {
     if (!selectedTicketForDelete) return;
@@ -149,39 +95,124 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
     setIsDeletedModalOpen(false);
   };
 
-  // Custom toolbar with buttons
-  const customToolbar = (
-    <div className="flex gap-3">
-      <button
-        onClick={onOpenCreateForm}
-        className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap"
-      >
-        New Maintenance Request
-      </button>
-      
-      <button
-        type="button"
-        onClick={openDeletedModal}
-        className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition"
-        title="View deleted requests"
-        aria-label="View deleted requests"
-      >
-        <Trash2 size={18} className="text-gray-700" />
-      </button>
-    </div>
-  );
+  // Filter and search tickets
+  const filteredTickets = useMemo(() => {
+    let result = tickets;
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((ticket) =>
+        ticket.Title?.toLowerCase().includes(query) ||
+        ticket.Priority?.toLowerCase().includes(query) ||
+        ticket.Status?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply filters
+    if (activeFilters.length > 0) {
+      result = result.filter((ticket) =>
+        activeFilters.includes(ticket.Priority || '')
+      );
+    }
+
+    return result;
+  }, [tickets, searchQuery, activeFilters]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTickets.length / pageSize);
+  const startIndex = (currentPage - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  const currentTickets = filteredTickets.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useMemo(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilters]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  };
 
   return (
-    <div>
-      {error && <p className="text-sm text-red-600">{error}</p>}
+    <div className="pb-20"> {/* Add padding bottom for pagination */}
+      {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
-      <Table
-        columns={columns}
-        data={tickets}
-        emptyMessage={loading ? "Loading..." : "No maintenance requests found"}
-        filterTypes={["maintenancePriorities"]}
-        customToolbar={customToolbar}
-      />
+      {/* Toolbar */}
+      <div className="flex gap-4 mb-6 items-center justify-between">
+        {/* Left Side: Search Bar */}
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search maintenance requests..."
+          className="flex-1 max-w-2xl"
+        />
+        
+        {/* Right Side: Buttons */}
+        <div className="flex gap-3 items-center">
+          <button
+            onClick={onOpenCreateForm}
+            className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap"
+          >
+            New Maintenance Request
+          </button>
+          
+          <FilterPanel
+            types={["maintenancePriorities"]}
+            onFilterChange={setActiveFilters}
+          />
+          
+          <button
+            type="button"
+            onClick={openDeletedModal}
+            className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition"
+            title="View deleted requests"
+            aria-label="View deleted requests"
+          >
+            <Trash2 size={18} className="text-gray-700" />
+          </button>
+        </div>
+      </div>
+
+      {/* Cards Grid */}
+      {loading ? (
+        <p className="text-center text-gray-500 py-8">Loading...</p>
+      ) : currentTickets.length === 0 ? (
+        <p className="text-center text-gray-500 py-8">
+          {searchQuery || activeFilters.length > 0 ? "No matching requests found" : "No maintenance requests found"}
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {currentTickets.map((ticket) => (
+            <MaintenanceCard
+              key={ticket.Request_Id ?? ticket.request_id}
+              ticket={ticket}
+              mode="request"
+              onViewDetails={(ticket) => onOpenForm('assign', ticket)}
+              onDelete={setSelectedTicketForDelete}
+              isDeleting={isDeleting}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {filteredTickets.length > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+          pageSize={pageSize}
+          totalItems={filteredTickets.length}
+          onPageSizeChange={handlePageSizeChange}
+          fixed={true}
+        />
+      )}
 
       <CancelConfirmModal
         isOpen={!!selectedTicketForDelete}
