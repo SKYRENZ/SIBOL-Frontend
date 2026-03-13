@@ -349,12 +349,13 @@ const Dashboard: React.FC = () => {
       <Header />
 
       <main className="flex-1 px-6 lg:px-8 py-8 flex flex-col gap-6 mt-[10vh] h-[calc(100vh-10vh)] overflow-auto">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0">
-          <GreetingCard firstName={user?.FirstName} lastName={user?.LastName} />
-
-          <EnergyCard value={326} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 flex-shrink-0 tour-dashboard-cards">
+          <GreetingCard className="tour-greeting-card" firstName={user?.FirstName} lastName={user?.LastName}/>
+          
+          <EnergyCard className="tour-energy-card" value={326} />
 
           <FoodWasteCard
+          className="tour-foodwaste-card"
             totalWaste={totalWaste}
             isLoading={isLoadingWaste}
             wasteRange={wasteRange}
@@ -363,6 +364,7 @@ const Dashboard: React.FC = () => {
           />
 
           <StaffUsersCard
+            className="tour-staff-card"
             selectedStaffRole={selectedStaffRole}
             setSelectedStaffRole={setSelectedStaffRole}
             staffCounts={staffCounts}
@@ -371,14 +373,14 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-1">
-          <div className="w-full">
+          <div className="w-full tour-additives-panel">
             <AdditivesPanel />
           </div>
-          <div className="w-full">
+          <div className="w-full tour-alerts-panel">
             <AlertsPanel alerts={containerAlerts} />
           </div>
           
-          <div className="w-full rounded-xl border bg-white p-4 shadow-sm flex flex-col">
+          <div className="w-full rounded-xl border bg-white p-4 shadow-sm flex flex-col tour-comparison-chart">
             <div className="mb-2 flex justify-between items-center flex-wrap">
               <button className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded text-sm text-gray-600 bg-white hover:bg-gray-50">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

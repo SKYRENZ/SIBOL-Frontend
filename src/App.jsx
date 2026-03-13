@@ -4,6 +4,7 @@ import ProtectedRoute from './Components/common/ProtectedRoute';
 import FirstLoginGuard from './hooks/signup/useFirstLoginGuard';
 import { useAppDispatch } from './store/hooks';
 import { verifyToken } from './store/slices/authSlice';
+import WebTour from './Components/common/WebTour';
 
 // Lazy load page components
 const Landingpage = lazy(() => import('./Pages/Landingpage.tsx'));
@@ -26,7 +27,6 @@ const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 const SuperAdmin = lazy(() => import('./Pages/SuperAdmin.tsx'));
 const PointSystemPage = lazy(() => import('./Pages/PointSystemPage.tsx'));
 
-
 function App() {
   const dispatch = useAppDispatch();
 
@@ -37,6 +37,9 @@ function App() {
   return (
     <>
       <FirstLoginGuard />
+
+      <WebTour /> {/* for web tour*/}
+
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<Landingpage />} />
