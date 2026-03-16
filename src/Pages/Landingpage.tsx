@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Recycle, Leaf, Zap, ChevronDown, Mail, Phone, MapPin, Facebook } from 'lucide-react';
 import { getUser, isAuthenticated } from '../services/authService';
 import { getLandingRoute } from '../utils/routeUtils';
+import GameSelector from '../Components/common/GameSelector';
 
 const Landingpage: React.FC = () => {
   const navigate = useNavigate();
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [gameOpen, setGameOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -192,6 +194,12 @@ const Landingpage: React.FC = () => {
                 className="px-6 sm:px-7 md:px-8 lg:px-10 py-3 sm:py-3.5 md:py-4 bg-white text-[#5F8D4E] border-2 border-[#5F8D4E] rounded-full font-semibold text-base sm:text-lg hover:bg-[#5F8D4E] hover:text-white transition-colors shadow-lg hover:shadow-xl"
               >
                 Learn More
+              </button>
+              <button
+                onClick={() => setGameOpen(true)}
+                className="px-6 sm:px-7 md:px-8 lg:px-10 py-3 sm:py-3.5 md:py-4 bg-[#88AB8E] text-white rounded-full font-semibold text-base sm:text-lg hover:bg-[#6d8b70] transition-colors shadow-lg hover:shadow-xl"
+              >
+                🎮 Play Game
               </button>
             </div>
           </div>
@@ -586,9 +594,9 @@ const Landingpage: React.FC = () => {
       <footer className="bg-[#2D5F2E] text-white py-6 sm:py-7 md:py-8 lg:py-[30.4px] px-4 sm:px-6 md:px-8 lg:px-[22.8px]">
         <div className="max-w-7xl mx-auto text-center">
           <div className="flex items-center justify-center gap-2 sm:gap-2.5 lg:gap-[7.6px] mb-3 sm:mb-4 lg:mb-[15.2px]">
-            <img 
+            <img
               src={SibolLogoBulb}
-              alt="SIBOL Logo" 
+              alt="SIBOL Logo"
               className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 lg:h-[30.4px] lg:w-[30.4px]"
             />
             <span className="text-base sm:text-lg md:text-xl lg:text-[19px] font-bold">SIBOL</span>
@@ -598,6 +606,9 @@ const Landingpage: React.FC = () => {
           </p>
         </div>
       </footer>
+
+      {/* Game Selector Modal */}
+      <GameSelector isOpen={gameOpen} onClose={() => setGameOpen(false)} />
     </div>
   );
 };
