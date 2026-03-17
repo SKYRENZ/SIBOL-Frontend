@@ -31,7 +31,7 @@ describe('SignIN (frontend)', () => {
     localStorage.clear();
   });
 
-  it('calls auth.login and navigates to dashboard on success', async () => {
+  it('calls auth.login and navigates to admin dashboard on success', async () => {
     const mockUser = { Account_id: 1, Username: 'john.doe', Roles: 1 };
     const mockToken = 'test-token-123';
     
@@ -44,7 +44,7 @@ describe('SignIN (frontend)', () => {
       <MemoryRouter initialEntries={['/login']}>
         <Routes>
           <Route path="/login" element={<SignIN />} />
-          <Route path="/dashboard" element={<div>Dashboard Page</div>} />
+          <Route path="/admin-dashboard" element={<div>Dashboard Page</div>} />
         </Routes>
       </MemoryRouter>
     );

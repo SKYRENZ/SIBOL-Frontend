@@ -1,12 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { fetchAllowedModules } from "../services/moduleService";
 import "../tailwind.css";
 import { useAppDispatch, useAppSelector } from "../store/hooks";
 import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
+import { CircleQuestionMark } from "lucide-react";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -21,11 +21,9 @@ const allLinks = [
   { id: 3, to: "/maintenance", label: "Maintenance" },
   { id: 4, to: "/household", label: "Household" },
   { id: 5, to: "/chat-support", label: "Chat Support" },
-  { id: 6, to: "/admin", label: "Admin" },
 ];
 
 const Header: React.FC = () => {
-  const [modules, setModules] = useState<any>({ list: [], has: () => false });
   const [menuOpen, setMenuOpen] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -57,16 +55,11 @@ const Header: React.FC = () => {
     let mounted = true;
     (async () => {
       try {
-        const [normalized, unreadRows] = await Promise.all([
-          fetchAllowedModules(),
-          getNotifications({ unreadOnly: true, limit: 200 }),
-        ]);
+        const unreadRows = await getNotifications({ unreadOnly: true, limit: 200 });
         if (!mounted) return;
-        setModules(normalized);
         setUnreadCount(unreadRows.length);
       } catch (err) {
         console.error("Error loading data:", err);
-        setModules({ list: [], has: () => false });
       }
     })();
 
@@ -154,42 +147,16 @@ const Header: React.FC = () => {
   const openNotifications = () => setNotificationsOpen(true);
   const closeNotifications = () => setNotificationsOpen(false);
 
-  /* ---------------- role logic ---------------- */
-
-  const hasModule = (key: string | number) => {
-    if (!modules) return false;
-    if (typeof modules.has === "function") return modules.has(key);
-    return !!modules.list?.some(
-      (m: any) =>
-        m.key === key || m.path === key || String(m.id) === String(key)
-    );
-  };
-
-  const isAdminRole = (() => {
-    if (!user) return false;
-    const roleNum =
-      (typeof user.Roles === "number" ? user.Roles : undefined) ??
-      (typeof user.roleId === "number" ? user.roleId : undefined) ??
-      (typeof user.role === "number" ? user.role : undefined);
-    const roleStr = typeof user.role === "string" ? user.role : undefined;
-    return roleNum === 1 || roleStr === "Admin";
-  })();
-
-  const hasModule6 =
-    user && Array.isArray(user.user_modules) && user.user_modules.includes(6);
-
-  const showAdmin = isAdminRole || hasModule6 || hasModule("admin") || hasModule(1);
-
-  const links = allLinks.filter((l) => {
-    if (l.to === "/admin") return showAdmin;
-    return true;
-  });
+  const links = allLinks;
 
   /* ---------------- render ---------------- */
 
   return (
     <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
       <nav className="nav">
+        {user?.Barangay_Name && (
+          <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
+        )}
         <img
           className="nav-logo"
           src={new URL("../assets/images/collection.png", import.meta.url).href}
@@ -215,7 +182,19 @@ const Header: React.FC = () => {
                 <NavLink
                   to={link.to}
                   className={({ isActive }) =>
-                    `nav-link ${isActive ? "active" : ""}`
+                    `nav-link text-sm lg:text-base ${isActive ? "active" : ""} ${
+                      link.to === "/dashboard" ? "tour-dashboard" : ""
+                    } ${
+                      link.to === "/sibol-machines" ? "tour-sibol" : ""
+                    } ${
+                      link.to === "/maintenance" ? "tour-maintenance" : ""
+                    } ${
+                      link.to === "/household" ? "tour-household" : ""
+                    } ${
+                      link.to === "/chat-support" ? "tour-chat" : ""
+                    } ${
+                      link.to === "/admin" ? "tour-admin" : ""
+                    }`
                   }
                 >
                   {link.label}
@@ -226,12 +205,24 @@ const Header: React.FC = () => {
 
           {/* RIGHT ICONS */}
           <div className="nav-icons">
+
+            {/* TOUR GUIDE */}
+          <button
+            type="button"
+            title="Website Tour"
+            aria-label="Start Website Tour"
+            className="icon-btn tour-trigger"
+            onClick={() => window.dispatchEvent(new Event("start-tour"))}
+          >
+            <CircleQuestionMark className="icon" size={20} />
+          </button>
+
             {/* Notifications */}
             <button
               type="button"
               title="Notifications"
               aria-label="Notifications"
-              className="icon-btn relative"
+              className="icon-btn relative tour-notification"
               onClick={openNotifications}
             >
               <svg
@@ -260,7 +251,7 @@ const Header: React.FC = () => {
                 type="button"
                 title="Profile"
                 aria-label="Profile"
-                className="icon-btn"
+                className="icon-btn tour-profile"
                 onClick={() => setProfileDropdownOpen((prev) => !prev)} // toggle dropdown
               >
                 <svg

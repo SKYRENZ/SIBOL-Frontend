@@ -25,15 +25,19 @@ function asArray(payload: any): any[] {
   return [];
 }
 
-export const fetchAccounts = async (): Promise<Account[]> => {
-  const res = await api.get<AccountsResponse>('/api/admin/accounts');
+export const fetchAccounts = async (barangayId?: number): Promise<Account[]> => {
+  const res = await api.get<AccountsResponse>('/api/admin/accounts', {
+    params: { barangayId },
+  });
   const payload = res.data ?? {};
   if (payload.success === false) throw new Error(payload.error || 'Failed to fetch accounts');
   return asArray(payload.users ?? payload.data ?? payload) as Account[];
 };
 
-export const fetchPendingAccounts = async (): Promise<PendingAccount[]> => {
-  const res = await api.get<PendingAccountsResponse>('/api/admin/pending-accounts');
+export const fetchPendingAccounts = async (barangayId?: number): Promise<PendingAccount[]> => {
+  const res = await api.get<PendingAccountsResponse>('/api/admin/pending-accounts', {
+    params: { barangayId },
+  });
   const payload = res.data ?? {};
   if (payload.success === false) throw new Error(payload.error || 'Failed to fetch pending accounts');
   return asArray(payload.pendingAccounts ?? payload.data ?? payload) as PendingAccount[];

@@ -11,7 +11,6 @@ const HouseholdTabs: React.FC<HouseholdTabsProps> = ({ activeTab, onTabChange })
     { id: "leaderboard", label: "Leaderboard" },
     { id: "reward", label: "Rewards" },
     { id: "claimed", label: "Claimed Rewards" },
-    { id: "points", label: "Point System" },
   ];
 
   return <Tabs tabs={tabs} activeTab={activeTab} onTabChange={onTabChange} />;

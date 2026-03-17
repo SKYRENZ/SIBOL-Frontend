@@ -7,7 +7,6 @@ import SearchBar from "../Components/common/SearchBar";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
 import LeaderboardTab from "../Components/Household/leaderboard";
-import PointSystem from "../Components/Household/pointSystem";
 import type { Reward } from "../services/rewardService";
 
 interface RowData {
@@ -118,7 +117,7 @@ const Household: React.FC = () => {
           )}
           {activeTab === "leaderboard" && <LeaderboardTab />}
           {activeTab === "claimed" && <ClaimedRewards />}
-          {activeTab === "points" && <PointSystem />}
+
         </div>
       </div>
 
