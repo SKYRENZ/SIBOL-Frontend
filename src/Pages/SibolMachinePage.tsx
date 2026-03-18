@@ -243,18 +243,6 @@ const SibolMachinePage: React.FC = () => {
           <form onSubmit={handleMachineSubmit}>
             {modals.add && (
               <div className="space-y-4 flex flex-col items-center">
-                {/* Drum image on top */}
-                <img
-                  src={stage3DrumImage}
-                  alt="Stage 3 Drum"
-                  className="h-56 object-contain"
-                />
-
-                {/* Description below drum */}
-                <p className="text-sm text-gray-700 text-center max-w-xs">
-                  IoT-powered biogas generator that transforms food waste into renewable energy
-                </p>
-
                 {/* Area dropdown */}
                 <div className="w-full max-w-xs">
                   <FormField
@@ -270,6 +258,18 @@ const SibolMachinePage: React.FC = () => {
                     selectSize={5}
                   />
                 </div>
+
+                {/* Drum image */}
+                <img
+                  src={stage3DrumImage}
+                  alt="Stage 3 Drum"
+                  className="h-56 object-contain"
+                />
+
+                {/* Description below drum */}
+                <p className="text-sm text-gray-700 text-center max-w-xs">
+                  IoT-powered biogas generator that transforms food waste into renewable energy
+                </p>
 
                 {/* Add Machine button */}
                 <button
