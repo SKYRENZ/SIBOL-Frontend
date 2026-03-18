@@ -90,14 +90,15 @@ const GameSelector: React.FC<GameSelectorProps> = ({ isOpen, onClose }) => {
             {/* Matching Game Card */}
             <div
               onClick={() => handleGameSelect('matching')}
-              className="bg-gradient-to-br from-[#FFF9C4] to-[#FFE082] rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all transform hover:scale-105"
+              className="rounded-lg p-4 cursor-pointer hover:shadow-lg hover:shadow-green-900/30 transition-all transform hover:scale-105 border border-[#2e7d32]/40"
+              style={{ background: 'linear-gradient(135deg, #0a2e0a, #1a4a1a)' }}
             >
-              <div className="text-3xl mb-2">🎴</div>
-              <h3 className="text-lg font-bold text-[#F57F17] mb-1">Matching Game</h3>
-              <p className="text-xs text-gray-700 mb-2">
+              <div className="text-3xl mb-2">🍃</div>
+              <h3 className="text-lg font-bold text-[#00c853] mb-1">Matching Game</h3>
+              <p className="text-xs text-white/70 mb-2">
                 Flip cards to find matching food waste pairs. Test your memory!
               </p>
-              <div className="space-y-0 text-xs text-gray-600">
+              <div className="space-y-0 text-xs text-[#4caf50]/70">
                 <p>🖱️ Click to flip | 🧠 Memory & Speed Challenge</p>
               </div>
             </div>
