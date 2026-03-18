@@ -1,5 +1,6 @@
 [build]
   publish = "dist" # update if your build output is different (e.g. "dist" or "build")
+  command = "bun install && bun run build"
 
 [[redirects]]
   from = "/*"
