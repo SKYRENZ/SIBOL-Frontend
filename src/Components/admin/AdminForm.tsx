@@ -59,7 +59,6 @@ const AdminForm: React.FC<AdminFormProps> = ({
       ),
     [firstName, lastName, initialData]
   );
-  const generatedPassword = useMemo(() => Math.random().toString(36).slice(-8), []);
 
   // sync initialData to editable states when initialData changes (important when switching between edit/create)
   useEffect(() => {
@@ -83,7 +82,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
         Email: email,
         Roles: roleId,
         Username: generatedUsername,
-        Password: password || generatedPassword,
+        Password: password.trim() || undefined,
       };
       await onSubmit(payload);
       return;
@@ -170,7 +169,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Leave blank to auto-generate"
+                    placeholder="Leave blank to use default password"
                     className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
                   />
                 </div>

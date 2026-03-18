@@ -153,9 +153,9 @@ const NotificationsModal: React.FC<NotificationsModalProps> = ({
           </div>
         ) : (
           <ul className="space-y-3 max-h-[420px] overflow-y-auto">
-            {notifications.map((notification) => (
+            {notifications.map((notification, index) => (
               <li
-                  key={notification.id}
+                  key={`${notification.id}-${notification.type}-${notification.timestamp ?? ''}-${index}`}
                   className={`rounded-xl border border-gray-200 hover:bg-gray-50 cursor-pointer ${!notification.read ? "bg-blue-50" : "bg-white"}`}
                   onClick={() => onMarkRead(notification.id, notification.type)}
                 >
