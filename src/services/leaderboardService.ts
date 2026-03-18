@@ -6,6 +6,9 @@ export type LBRow = {
   Total_kg: number;
   Points?: number;
   rank?: number;
+  Image_path?: string;
+  image_path?: string;
+  avatar?: string;
 };
 
 export async function fetchLeaderboard(limit = 100): Promise<LBRow[]> {
