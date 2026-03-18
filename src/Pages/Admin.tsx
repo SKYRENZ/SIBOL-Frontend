@@ -77,7 +77,7 @@ export default function Admin() {
       .then(() => {
         setCreating(false);
         dispatch(fetchAdminData(user?.Barangay_id));
-        showSnack('Admin created.', 'success'); // ✅
+        showSnack('User created.', 'success'); // ✅
       })
       .catch((err: any) => showSnack(err?.message ?? 'Create failed', 'error')); // ✅ (removed alert)
   };
@@ -134,9 +134,20 @@ export default function Admin() {
 
   const pendingCount = pendingAccounts.length;
   const loading = status === 'loading';
+  const adminBarangayId = user?.Barangay_id ? Number(user.Barangay_id) : undefined;
+  const createRoles = useMemo(() => {
+    const picked = roles.filter((r) => {
+      const name = String(r.Roles || '').toLowerCase();
+      return (
+        name.includes('operator') ||
+        (name.includes('barangay') && (name.includes('staff') || name.includes('official')))
+      );
+    });
+    return picked.length > 0 ? picked : roles.filter((r) => Number(r.Roles_id) === 2 || Number(r.Roles_id) === 3);
+  }, [roles]);
 
   // In the Admin component
-  const initialData = useMemo(() => (editingAccount ? editingAccount : {}), [editingAccount]); // Stable for create mode
+  const initialData = useMemo(() => (editingAccount ? editingAccount : {}), [editingAccount]); // Stable for create/edit mode
 
   return (
     <>
@@ -186,6 +197,7 @@ export default function Admin() {
                 <span className="chip chip-rose ml-1 text-xs">{pendingCount}</span>
               </button>
             </nav>
+
           </div>
         </div>
 
@@ -205,6 +217,7 @@ export default function Admin() {
                     roles={roles}
                     onEdit={(a) => setEditingAccount(a)}
                     onToggleActive={onToggleActive}
+                    onCreate={() => setCreating(true)}
                   />
                 </div>
 
@@ -267,8 +280,9 @@ export default function Admin() {
                       if (creating) setCreating(false);
                       else setEditingAccount(null);
                     }}
-                    roles={roles}
+                    roles={creating ? createRoles : roles}
                     barangays={barangays}
+                    lockedBarangayId={creating ? adminBarangayId : undefined}
                   />
                 </div>
               </div>
