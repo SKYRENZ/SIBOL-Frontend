@@ -81,9 +81,9 @@ export const fetchAllMachineData = createAsyncThunk(
 
 export const createMachine = createAsyncThunk(
   'machine/createMachine',
-  async (areaId: number, { rejectWithValue }) => {
+  async ({ areaId, barangayId }: { areaId: number; barangayId?: number }, { rejectWithValue }) => {
     try {
-      const data = await machineService.createMachine(areaId);
+      const data = await machineService.createMachine(areaId, undefined, barangayId);
       return data;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create machine');
@@ -182,7 +182,13 @@ const machineSlice = createSlice({
       })
       .addCase(createMachine.fulfilled, (state, action) => {
         state.loading = false;
-        state.machines.push(action.payload);
+        // Extract machine data from response (response has success, message, machineId, machine)
+        if (action.payload && 'machine' in action.payload) {
+          state.machines.push(action.payload.machine);
+        } else if (action.payload && 'machine_id' in action.payload) {
+          // If response is already the machine object
+          state.machines.push(action.payload);
+        }
       })
       .addCase(createMachine.rejected, (state, action) => {
         state.loading = false;
