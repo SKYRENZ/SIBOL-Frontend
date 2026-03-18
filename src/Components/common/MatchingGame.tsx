@@ -1,7 +1,8 @@
 import React, { useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, Facebook } from 'lucide-react';
 import { useMatchingGame } from '../../hooks/useMatchingGame';
-import { shareToFacebook, shareToInstagram } from '../../utils/socialShare';
+import { getMidGameTemplate, getPostGameTemplate } from '../../utils/socialShare';
+import SharePreview from './SharePreview';
 import ReactDOM from 'react-dom';
 
 interface MatchingGameProps {
@@ -12,6 +13,8 @@ interface MatchingGameProps {
 const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
   const { gameState, flipCard, togglePause, resetGame } = useMatchingGame(4);
   const gameLoopRef = useRef<number>();
+  const [sharePreviewOpen, setSharePreviewOpen] = React.useState(false);
+  const [shareText, setShareText] = React.useState('');
 
   // Handle ESC key
   React.useEffect(() => {
@@ -27,14 +30,14 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen && !sharePreviewOpen) return null;
 
   const gridSize = 4;
   const cardSize = 80;
   const gap = 12;
   const gridWidth = gridSize * (cardSize + gap) - gap;
 
-  return ReactDOM.createPortal(
+  const gamePortal = isOpen ? ReactDOM.createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl">
         <div className="p-3 sm:p-4 flex flex-col" style={{ maxHeight: '95vh', overflow: 'hidden' }}>
@@ -152,6 +155,33 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
             <p className="text-gray-700">🎴 Click cards to flip | 🔍 Match pairs | 🧠 Test your memory | ESC to exit</p>
           </div>
 
+          {/* Share Buttons - always visible */}
+          <div className="flex gap-2 mt-2 justify-center">
+            <button
+              onClick={() => {
+                const text = gameState.gameOver
+                  ? getPostGameTemplate({
+                      gameName: 'Matching Game',
+                      score: gameState.score,
+                      extraStats: `${gameState.moves} moves and ${gameState.matchedPairs}/${gameState.totalPairs} pairs matched!`,
+                      isGameComplete: true
+                    })
+                  : getMidGameTemplate({
+                      gameName: 'Matching Game',
+                      score: gameState.score,
+                      extraStats: `${gameState.moves} moves and ${gameState.matchedPairs}/${gameState.totalPairs} pairs matched!`,
+                      isGameComplete: false
+                    });
+                setShareText(text);
+                setSharePreviewOpen(true);
+              }}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md"
+            >
+              <Facebook className="w-5 h-5" />
+              <span>Share</span>
+            </button>
+          </div>
+
           {/* Game Over Screen */}
           {gameState.gameOver && (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[60]">
@@ -177,29 +207,19 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
                 <div className="flex gap-2 mb-6 justify-center">
                   <button
                     onClick={() => {
-                      shareToFacebook({
+                      const text = getPostGameTemplate({
                         gameName: 'Matching Game',
                         score: gameState.score,
-                        extraStats: `with ${gameState.moves} moves!`
+                        extraStats: `${gameState.moves} moves and ${gameState.matchedPairs}/${gameState.totalPairs} pairs matched!`,
+                        isGameComplete: true
                       });
+                      setShareText(text);
+                      setSharePreviewOpen(true);
                     }}
-                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                    className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 shadow-md"
                   >
-                    <span>👍</span>
-                    <span>Facebook</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      shareToInstagram({
-                        gameName: 'Matching Game',
-                        score: gameState.score,
-                        extraStats: `with ${gameState.moves} moves!`
-                      });
-                    }}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white rounded-lg font-semibold text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
-                  >
-                    <span>📷</span>
-                    <span>Instagram</span>
+                    <Facebook className="w-5 h-5" />
+                    <span>Share</span>
                   </button>
                 </div>
 
@@ -226,6 +246,23 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
       </div>
     </div>,
     document.body
+  ) : null;
+
+  return (
+    <>
+      {gamePortal}
+      <SharePreview
+        isOpen={sharePreviewOpen}
+        onClose={() => setSharePreviewOpen(false)}
+        shareText={shareText}
+        gameName="Matching Game"
+        score={gameState.score}
+        moves={gameState.moves}
+        matchedPairs={gameState.matchedPairs}
+        totalPairs={gameState.totalPairs}
+        isGameComplete={gameState.gameOver}
+      />
+    </>
   );
 };
 

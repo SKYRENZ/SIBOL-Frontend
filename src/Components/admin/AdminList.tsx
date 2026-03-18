@@ -8,9 +8,10 @@ type AdminListProps = {
   roles?: { Roles_id: number; Roles: string }[]; // role lookup
   onEdit: (account: Account) => void;
   onToggleActive: (account: Account) => void;
+  onCreate?: () => void;
 };
 
-const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles = [], onEdit, onToggleActive }) => {
+const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles = [], onEdit, onToggleActive, onCreate }) => {
   const findBarangayName = (id?: number | null) => {
     if (!id) return '-';
     const b = barangays.find((x) => x.Barangay_id === id);
@@ -87,6 +88,17 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles =
       enablePagination={false}
       emptyMessage="No accounts"
       className="w-full"
+      customToolbar={
+        onCreate ? (
+          <button
+            type="button"
+            onClick={onCreate}
+            className="px-3 py-2 rounded-lg bg-sibol-green text-white text-sm font-medium hover:bg-sibol-green/90"
+          >
+            Create User
+          </button>
+        ) : undefined
+      }
     />
   );
 };

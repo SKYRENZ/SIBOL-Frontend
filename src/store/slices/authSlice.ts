@@ -46,7 +46,11 @@ export const login = createAsyncThunk(
       const data = await authService.login(identifier, password);
       return data;
     } catch (error: any) {
-      const errorMessage = 'Invalid username/email or password';
+      const errorMessage =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Invalid username/email or password';
       return rejectWithValue(errorMessage);
     }
   }
