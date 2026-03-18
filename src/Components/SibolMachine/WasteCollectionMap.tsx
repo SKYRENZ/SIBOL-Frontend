@@ -5,6 +5,7 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { WasteIconSVG } from './WasteIconSVG';
 import { buildOrganicPackageFeatures, buildVoronoiPackageFeatures } from '../../utils/geo';
 import { BARANGAY_176_E_PACKAGE_LABELS } from './data/barangay176EPackages';
+import { searchBoundaryGeoJSON } from '../../services/geocodeService';
 
 interface WasteCollectionMapProps {
   latitude: number;
@@ -47,19 +48,17 @@ const WasteCollectionMap: React.FC<WasteCollectionMapProps> = ({
     const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
     const fetchBoundary = async (query: string, attempt = 0): Promise<any | null> => {
-      const url = `https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&limit=1&q=${encodeURIComponent(
-        query
-      )}`;
-      const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-      if (!res.ok) {
-        if (attempt < 2 && (res.status === 429 || res.status >= 500)) {
+      try {
+        const data = await searchBoundaryGeoJSON(query, 1);
+        return data?.features?.[0] ?? null;
+      } catch (err: any) {
+        const status = Number(err?.status);
+        if (attempt < 2 && (status === 429 || status >= 500)) {
           await sleep(400 + attempt * 300);
           return fetchBoundary(query, attempt + 1);
         }
         return null;
       }
-      const data = await res.json();
-      return data?.features?.[0] ?? null;
     };
 
     const run = async () => {

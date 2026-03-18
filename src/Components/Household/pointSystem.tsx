@@ -1,6 +1,10 @@
 import { Award, TrendingUp, TrendingDown, Minus, RefreshCw, Edit3, Save, Users, Activity, History, X } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { fetchConversion, updateConversion, fetchConversionAudit } from "../../services/conversionService";
+import { getMyProfile } from "../../services/profile/profileService";
+import { normalizeBarangayId } from "../../utils/barangayData";
+import { useToast } from "../../hooks/common/useToast";
+import Toast from "../common/Toast";
 import Table from "../common/Table";
 import FormModal from "../common/FormModal";
 import FormField from "../common/FormField";
@@ -81,6 +85,7 @@ const StatCard: React.FC<{
 );
 
 const PointSystem = () => {
+  const { toasts, addToast, removeToast } = useToast();
   const [isEditable, setIsEditable] = useState(false);
   const [pointsPerKg, setPointsPerKg] = useState<number>(5);
 
@@ -99,9 +104,37 @@ const PointSystem = () => {
   const [sortBy, setSortBy] = useState<string | null>("createdAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const [barangayId, setBarangayId] = useState<number | null>(null);
+
   useEffect(() => {
     let mounted = true;
-    fetchConversion()
+
+    const loadBarangayId = async () => {
+      try {
+        const profile = await getMyProfile();
+        const resolvedBarangayId = normalizeBarangayId(
+          profile?.Barangay_id ?? profile?.barangay_id ?? profile?.Area_id ?? profile?.area_id
+        );
+        if (mounted) {
+          setBarangayId(resolvedBarangayId);
+        }
+      } catch (e) {
+        console.error("Failed to load barangay ID:", e);
+      }
+    };
+
+    loadBarangayId();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!barangayId) return;
+
+    let mounted = true;
+    fetchConversion(barangayId)
       .then((data) => {
         if (mounted && data?.pointsPerKg) setPointsPerKg(Number(data.pointsPerKg));
       })
@@ -109,7 +142,7 @@ const PointSystem = () => {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [barangayId]);
 
   useEffect(() => {
     let mounted = true;
@@ -134,7 +167,7 @@ const PointSystem = () => {
 
   const handleSave = () => {
     if (!Number.isFinite(pointsPerKg) || pointsPerKg <= 0) {
-      alert("Points must be a positive number");
+      addToast("Points must be a positive number", "error");
       return;
     }
     setIsConfirmOpen(true);
@@ -142,7 +175,7 @@ const PointSystem = () => {
 
   const confirmSave = async () => {
     if (remark.trim().length < 3) {
-      alert("Please provide a brief remark (at least 3 characters).");
+      addToast("Please provide a brief remark (at least 3 characters).", "error");
       return;
     }
     try {
@@ -154,9 +187,10 @@ const PointSystem = () => {
       setRemark("");
       const rows = await fetchConversionAudit(50);
       setAuditEntries(rows);
+      addToast("Conversion rate updated successfully", "success");
     } catch (err) {
       console.error("updateConversion", err);
-      alert("Failed to save conversion");
+      addToast("Failed to save conversion", "error");
     } finally {
       setSaveInProgress(false);
     }
@@ -269,7 +303,7 @@ const PointSystem = () => {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           <StatCard
             title="Current Rate"
             value={pointsPerKg}
@@ -283,13 +317,6 @@ const PointSystem = () => {
             subtitle="historical updates"
             icon={<Activity className="w-5 h-5" />}
             gradient="from-blue-500 to-purple-600"
-          />
-          <StatCard
-            title="Average Rate"
-            value={avg || "—"}
-            subtitle="all time average"
-            icon={<TrendingUp className="w-5 h-5" />}
-            gradient="from-orange-500 to-red-500"
           />
         </div>
 
@@ -538,6 +565,13 @@ const PointSystem = () => {
           </div>
         </div>
       </FormModal>
+
+      {/* Toast Container */}
+      <div className="fixed bottom-4 right-4 z-[9999] space-y-3 max-w-sm">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} toast={toast} onClose={removeToast} />
+        ))}
+      </div>
     </div>
   );
 };
