@@ -18,7 +18,7 @@ import {
 const allLinks = [
     { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
     { id: 2, to: "/superadmin", label: "User Management" },
-    { id: 3, to: "/point-system", label: "Point System" },
+    { id: 3, to: "/point-system", label: "Point System", adminOnly: true },
 ];
 
 /**
@@ -191,8 +191,9 @@ const SuperAdminHeader: React.FC = () => {
             }
             return l;
         })
-        .filter((l) => {
+        .filter((l: any) => {
             if (l.label === "User Management") return isSuperAdminRole || isAdminRole;
+            if (l.adminOnly) return isAdminRole;
             return true;
         });
 
