@@ -23,8 +23,7 @@ const LeaderboardTab: React.FC = () => {
     fetchLeaderboard(100)
       .then((rows: any[]) => {
         if (!mounted) return;
-        const withRank = rows.map((r, i) => ({ ...r, rank: i + 1 }));
-        setData(withRank);
+        setData(rows);
       })
       .catch(() => {
         if (mounted) setData([]);
