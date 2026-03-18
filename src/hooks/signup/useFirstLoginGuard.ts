@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAppSelector } from '../../store/hooks';
+import { getLandingRoute } from '../../utils/routeUtils';
 
 function getUserRole(user: any): number | null {
   const role =
@@ -23,10 +24,10 @@ export default function FirstLoginGuard(): null {
 
     const role = getUserRole(user);
     const isAdmin = role === 1 || role === 5;
-    const adminHome = '/superadmin';
+    const adminHome = getLandingRoute(user);
 
     if (isFirstLogin) {
-      const target = isAdmin ? adminHome : '/dashboard';
+      const target = adminHome;
       if (window.location.pathname !== target) {
         navigate(target, { replace: true });
       }
@@ -41,7 +42,7 @@ export default function FirstLoginGuard(): null {
       return () => window.removeEventListener('beforeunload', onBeforeUnload);
     }
 
-    // Redirect admin/superadmin users from /dashboard to /superadmin
+    // Redirect admin/superadmin users from /dashboard to their home route
     if (isAdmin && window.location.pathname === '/dashboard') {
       navigate(adminHome, { replace: true });
     }
