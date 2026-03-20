@@ -130,11 +130,17 @@ export function useMaintenanceForm({
     }
 
     if (mode === 'assign') {
-      userService.getOperators()
+      // Get the creator's barangay ID from initialData
+      const creatorBarangayId = initialData?.CreatorBarangayId || initialData?.creator_barangay_id;
+
+      console.log('Fetching operators for barangay:', creatorBarangayId, 'from ticket:', initialData);
+
+      userService.getOperators(creatorBarangayId)
         .then((operators) => {
           const options = (operators || [])
             .filter((op: any) => op.value && op.label)
             .map((operator: any) => ({ value: String(operator.value), label: operator.label }));
+          console.log('Operators loaded:', options.length, 'operators found');
           setAssignedOptions(options);
         })
         .catch(() => setFormError('Failed to load operators'));
@@ -223,6 +229,26 @@ export function useMaintenanceForm({
     if (!formData.issue || formData.issue.trim().length === 0) errors.issue = 'This is required';
     if (!formData.priority || String(formData.priority).trim().length === 0) errors.priority = 'This is required';
     if (!formData.dueDate || String(formData.dueDate).trim().length === 0) errors.dueDate = 'This is required';
+
+    // Additional validation for assign mode
+    if (mode === 'assign') {
+      // Check if someone is assigned
+      if (!formData.assignedTo || String(formData.assignedTo).trim().length === 0) {
+        errors.assignedTo = 'Please assign an operator';
+      }
+
+      // Check if due date is in the past
+      if (formData.dueDate) {
+        const selectedDate = new Date(formData.dueDate);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        selectedDate.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+          errors.dueDate = 'Due date cannot be in the past';
+        }
+      }
+    }
 
     if (Object.keys(errors).length > 0) {
       setFormErrors(errors);
