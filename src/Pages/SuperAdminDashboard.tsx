@@ -1,9 +1,11 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import SuperAdminHeader from '../Components/SuperAdminHeader';
 import { AppDispatch, RootState } from '../store/store';
 import { fetchSuperAdminData } from '../store/slices/superAdminSlice';
 import { MapPin, Shield, Users, TrendingUp } from 'lucide-react';
+import ChangePasswordModal from '../Components/verification/ChangePasswordModal';
+import { updateFirstLogin } from '../store/slices/authSlice';
 
 function getRoleNumber(user: any): number | null {
   const role =
@@ -22,6 +24,8 @@ export default function SuperAdminDashboard() {
   const dispatch = useDispatch<AppDispatch>();
   const { accounts, roles, barangays, status } = useSelector((state: RootState) => state.superadmin);
   const user = useSelector((state: RootState) => state.auth.user);
+  const { isAuthenticated, isFirstLogin: isFirstLoginRedux } = useSelector((state: RootState) => state.auth);
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
   const userRole = getRoleNumber(user);
   const isAdminRole = userRole === 1;
 
@@ -29,6 +33,10 @@ export default function SuperAdminDashboard() {
     if (isAdminRole) return;
     if (status === 'idle') dispatch(fetchSuperAdminData());
   }, [dispatch, status, isAdminRole]);
+
+  useEffect(() => {
+    setShowPasswordModal(Boolean(isAuthenticated && isFirstLoginRedux));
+  }, [isAuthenticated, isFirstLoginRedux]);
 
   const adminRoleIds = useMemo(() => {
     const ids = roles
@@ -207,6 +215,18 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       </div>
+
+      <ChangePasswordModal
+        open={showPasswordModal}
+        onClose={() => {
+          if (!isFirstLoginRedux) setShowPasswordModal(false);
+        }}
+        onSuccess={() => {
+          setShowPasswordModal(false);
+          dispatch(updateFirstLogin(false));
+        }}
+        isFirstLogin={isFirstLoginRedux}
+      />
     </>
   );
 }

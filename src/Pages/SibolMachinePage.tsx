@@ -4,6 +4,7 @@ import type { Machine } from '../services/machineService';
 import Tabs from '../Components/common/Tabs';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
+import Toast from '../Components/common/Toast';
 import WasteContainerTab from '../Components/SibolMachine/WasteContainerTab';
 import MachineTab from '../Components/SibolMachine/MachineTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
@@ -15,6 +16,14 @@ import "../tailwind.css";
 import { useMachines } from '../hooks/sibolMachine/useMachines';
 import { useWasteContainer } from '../hooks/wasteContainer/useWasteContainer';
 import { useUIState } from '../hooks/common/useUIState';
+import { useToast } from '../hooks/common/useToast';
+
+// Redux
+import { useAppSelector } from '../store/hooks';
+
+// Assets
+import lilyImage from '../assets/images/lili.png';
+import stage3DrumImage from '../assets/images/Stage3Drum.png';
 
 const SibolMachinePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Machines');
@@ -23,6 +32,7 @@ const SibolMachinePage: React.FC = () => {
   const [headerHeight, setHeaderHeight] = useState<number>(0);
 
   // Redux Hooks
+  const user = useAppSelector(state => state.auth.user);
   const {
     machines,
     areas,
@@ -31,6 +41,7 @@ const SibolMachinePage: React.FC = () => {
     error: machinesError,
     addMachine,
     editMachine,
+    refresh,
   } = useMachines();
 
   const {
@@ -40,6 +51,9 @@ const SibolMachinePage: React.FC = () => {
 
   // UI State Hook
   const { modals, openModal, closeModal } = useUIState();
+
+  // Toast Hook
+  const { toasts, addToast, removeToast } = useToast();
 
   // Local form state
   const [formData, setFormData] = useState({
@@ -54,7 +68,6 @@ const SibolMachinePage: React.FC = () => {
     { id: 'Machines', label: 'Machines' },
     { id: 'Process Panel', label: 'Process Panel' },
     { id: 'Waste Container', label: 'Waste Container' },
-    { id: 'Analytics', label: 'Analytics' }
   ];
 
   // Header height calculation
@@ -88,6 +101,7 @@ const SibolMachinePage: React.FC = () => {
   const handleOpenAddModal = () => {
     setFormData({ area: '', startDate: '', name: '', status: '' });
     setEditingMachine(null);
+    refresh(); // Refetch areas with barangay data
     openModal('add');
   };
 
@@ -108,6 +122,13 @@ const SibolMachinePage: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // Check if form data has changed
+  const hasFormDataChanged = editingMachine && (
+    formData.name !== editingMachine.Name ||
+    formData.area !== editingMachine.Area_id.toString() ||
+    formData.status !== (editingMachine.status_id?.toString() || '')
+  );
+
   // Handle Machine Form Submit
   const handleMachineSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,18 +143,20 @@ const SibolMachinePage: React.FC = () => {
 
       if (result.success) {
         closeModal('edit');
-        alert('Machine updated successfully!');
+        addToast('Machine updated successfully!', 'success');
       } else {
-        alert(`Failed to update machine: ${result.error}`);
+        addToast(`Failed to update machine: ${result.error}`, 'error');
       }
     } else {
-      const result = await addMachine(parseInt(formData.area));
+      // Get barangay ID from current user's barangay
+      const barangayId = user?.Barangay_id || user?.barangay_id || user?.Barangay_Name;
+      const result = await addMachine(parseInt(formData.area), barangayId ? parseInt(barangayId.toString()) : undefined);
 
       if (result.success) {
         closeModal('add');
-        alert('Machine created successfully!');
+        addToast('Machine created successfully!', 'success');
       } else {
-        alert(`Failed to create machine: ${result.error}`);
+        addToast(`Failed to create machine: ${result.error}`, 'error');
       }
     }
   };
@@ -143,10 +166,10 @@ const SibolMachinePage: React.FC = () => {
     const result = await addContainer(payload);
     if (result.success) {
       closeModal('add');
-      alert('Waste container created successfully!');
+      addToast('Waste container created successfully!', 'success');
       return true;
     } else {
-      alert(`Failed to create container: ${result.error}`);
+      addToast(`Failed to create container: ${result.error}`, 'error');
       return false;
     }
   };
@@ -213,60 +236,135 @@ const SibolMachinePage: React.FC = () => {
           onClose={() => modals.edit ? closeModal('edit') : closeModal('add')}
           title={modals.edit ? `Edit Machine #${editingMachine?.machine_id}` : 'Add Machine'}
           width="500px"
+          headerImage={modals.add ? lilyImage : undefined}
+          contentLayout="default"
         >
-          <form onSubmit={handleMachineSubmit} className="space-y-4">
-            {modals.edit && (
-              <FormField
-                label="Machine Name"
-                name="name"
-                type="text"
-                placeholder="e.g., SIBOL-M-001"
-                value={formData.name}
-                onChange={(e) => updateFormField('name', e.target.value)}
-                required
-              />
+          <form onSubmit={handleMachineSubmit}>
+            {modals.add && (
+              <div className="space-y-4 flex flex-col items-center">
+                {/* Area dropdown */}
+                <div className="w-full max-w-xs">
+                  <FormField
+                    label="Area"
+                    name="area"
+                    type="select"
+                    value={formData.area}
+                    onChange={(e) => updateFormField('area', e.target.value)}
+                    options={areas.map((area) => ({
+                      value: area.Area_id.toString(),
+                      label: area.Area_Name
+                    }))}
+                    selectSize={5}
+                  />
+                </div>
+
+                {/* Drum image */}
+                <img
+                  src={stage3DrumImage}
+                  alt="Stage 3 Drum"
+                  className="h-56 object-contain"
+                />
+
+                {/* Description below drum */}
+                <p className="text-sm text-gray-700 text-center max-w-xs">
+                  IoT-powered biogas generator that transforms food waste into renewable energy
+                </p>
+
+                {/* Add Machine button */}
+                <button
+                  type="submit"
+                  disabled={machinesLoading}
+                  className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2 rounded-full disabled:opacity-50 mt-2"
+                >
+                  {machinesLoading ? 'Saving...' : 'Add Machine'}
+                </button>
+              </div>
             )}
-            <FormField
-              label="Area"
-              name="area"
-              type="select"
-              value={formData.area}
-              onChange={(e) => updateFormField('area', e.target.value)}
-              options={areas.map((area) => ({
-                value: area.Area_id.toString(),
-                label: area.Area_Name
-              }))}
-              required
-            />
+
             {modals.edit && (
-              <FormField
-                label="Status"
-                name="status"
-                type="select"
-                value={formData.status}
-                onChange={(e) => updateFormField('status', e.target.value)}
-                options={machineStatuses.map((s) => ({ 
-                  value: s.Mach_status_id.toString(), 
-                  label: s.Status 
-                }))}
-              />
+              <div className="space-y-4">
+                <FormField
+                  label="Machine Name"
+                  name="name"
+                  type="text"
+                  placeholder="e.g., SIBOL-M-001"
+                  value={formData.name}
+                  onChange={(e) => updateFormField('name', e.target.value)}
+                />
+                <FormField
+                  label="Area"
+                  name="area"
+                  type="select"
+                  value={formData.area}
+                  onChange={(e) => updateFormField('area', e.target.value)}
+                  options={areas.map((area) => ({
+                    value: area.Area_id.toString(),
+                    label: area.Area_Name
+                  }))}
+                  selectSize={5}
+                />
+                <FormField
+                  label="Status"
+                  name="status"
+                  type="button-grid-select"
+                  value={formData.status}
+                  onChange={(e) => updateFormField('status', e.target.value)}
+                  options={machineStatuses.map((s) => ({
+                    value: s.Mach_status_id.toString(),
+                    label: s.Status
+                  }))}
+                  colorMap={Object.fromEntries(
+                    machineStatuses.map((s) => {
+                      const status = s.Status?.toLowerCase();
+                      let colors;
+                      if (status === 'active') {
+                        colors = {
+                          bg: 'bg-green-50',
+                          border: 'border-green-300',
+                          gradient: 'bg-green-100',
+                          selectedGradient: 'bg-green-500',
+                          selectedBorder: 'border-green-600'
+                        };
+                      } else if (status === 'inactive') {
+                        colors = {
+                          bg: 'bg-red-50',
+                          border: 'border-red-300',
+                          gradient: 'bg-red-100',
+                          selectedGradient: 'bg-red-500',
+                          selectedBorder: 'border-red-600'
+                        };
+                      } else if (status === 'under maintenance') {
+                        colors = {
+                          bg: 'bg-yellow-50',
+                          border: 'border-yellow-300',
+                          gradient: 'bg-yellow-100',
+                          selectedGradient: 'bg-yellow-500',
+                          selectedBorder: 'border-yellow-600'
+                        };
+                      } else {
+                        colors = {
+                          bg: 'bg-gray-50',
+                          border: 'border-gray-300',
+                          gradient: 'bg-gray-100',
+                          selectedGradient: 'bg-gray-500',
+                          selectedBorder: 'border-gray-600'
+                        };
+                      }
+                      return [s.Mach_status_id.toString(), colors];
+                    })
+                  )}
+                />
+                <div className="flex justify-center pt-2">
+                  <button
+                    type="submit"
+                    disabled={machinesLoading || !hasFormDataChanged}
+                    className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {machinesLoading ? 'Saving...' : 'Update Machine'}
+                  </button>
+                </div>
+              </div>
             )}
-            <div className="flex justify-center pt-2">
-              <button 
-                type="button" 
-                onClick={() => modals.edit ? closeModal('edit') : closeModal('add')} 
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 mr-3"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                disabled={machinesLoading} 
-                className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-lg disabled:opacity-50"
-              >
-                {machinesLoading ? 'Saving...' : (modals.edit ? 'Update Machine' : 'Add Machine')}
-              </button>
-            </div>
           </form>
         </FormModal>
       )}
@@ -286,6 +384,13 @@ const SibolMachinePage: React.FC = () => {
           />
         </FormModal>
       )}
+
+      {/* Toast Container */}
+      <div className="fixed bottom-4 right-4 z-[9999] space-y-3 max-w-sm">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} toast={toast} onClose={removeToast} />
+        ))}
+      </div>
     </div>
   );
 };

@@ -1,4 +1,4 @@
-import { fetchJson, post } from './apiClient';
+import { fetchJson, post, patch } from './apiClient';
 
 // This interface can be shared across components and hooks
 export interface WasteContainer {
@@ -60,4 +60,25 @@ export const createWasteContainer = async (containerData: CreateContainerRequest
 export const getAreaLogs = async (areaId: number): Promise<AreaLog[]> => {
   const data = await fetchJson(`/api/areas/${areaId}/logs`);
   return data?.data ?? data ?? [];
+};
+
+/**
+ * Updates a waste container's location.
+ * @param containerId - The ID of the container.
+ * @param latitude - The new latitude.
+ * @param longitude - The new longitude.
+ * @param address - The new address (optional).
+ */
+export const updateContainerLocation = async (
+  containerId: number,
+  latitude: number,
+  longitude: number,
+  address?: string
+): Promise<{ latitude: number; longitude: number; address?: string }> => {
+  const { data } = await patch(`/api/waste-containers/${containerId}/location`, {
+    latitude,
+    longitude,
+    address,
+  });
+  return (data as any)?.data ?? data;
 };

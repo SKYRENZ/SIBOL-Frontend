@@ -1,4 +1,4 @@
-import { get, put } from './apiClient';
+import { get, put, post } from './apiClient';
 
 const BASE = '/api/conversion';
 
@@ -9,8 +9,17 @@ export async function fetchConversion(barangayId: number) {
 
 /** send remark when updating */
 export async function updateConversion(pointsPerKg: number, remark: string) {
-  const { data } = await put<{ pointsPerKg: number }>(BASE, { pointsPerKg, remark });
-  return data;
+  try {
+    const { data } = await put<{ pointsPerKg: number }>(BASE, { pointsPerKg, remark });
+    return data;
+  } catch (err: any) {
+    // If the server does not accept PUT (404), try POST as a pragmatic fallback
+    if (err?.status === 404) {
+      const { data } = await post<{ pointsPerKg: number }>(BASE, { pointsPerKg, remark });
+      return data;
+    }
+    throw err;
+  }
 }
 
 // --- new helper to fetch audit history ---

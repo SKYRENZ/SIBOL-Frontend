@@ -27,8 +27,16 @@ export async function getNotifications(params?: {
   if (params?.unreadOnly) qs.set("unreadOnly", "true");
 
   const url = `/api/notifications${qs.toString() ? `?${qs.toString()}` : ""}`;
-  const res = await fetchJson(url);
-  return res?.data ?? [];
+  try {
+    const res = await fetchJson(url);
+    return res?.data ?? [];
+  } catch (error: any) {
+    if (error?.message === "Request timed out") {
+      console.warn("Notifications request timed out; continuing without notifications.");
+      return [];
+    }
+    throw error;
+  }
 }
 
 export async function markNotificationRead(id: number, type: NotificationType = "maintenance") {

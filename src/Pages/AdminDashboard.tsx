@@ -5,6 +5,9 @@ import { getMyProfile } from '../services/profile/profileService';
 import { filterAndSortByBarangay, normalizeBarangayId } from '../utils/barangayData';
 import type { Account } from '../types/adminTypes';
 import { Users, UserCog } from 'lucide-react';
+import { useAppDispatch, useAppSelector } from '../store/hooks';
+import { updateFirstLogin } from '../store/slices/authSlice';
+import ChangePasswordModal from '../Components/verification/ChangePasswordModal';
 
 const ROLE_OPERATOR = 3;
 const ROLE_HOUSEHOLD = 4;
@@ -32,11 +35,14 @@ const StatCard: React.FC<{
 };
 
 const AdminDashboard: React.FC = () => {
+  const dispatch = useAppDispatch();
+  const { isAuthenticated, isFirstLogin: isFirstLoginRedux } = useAppSelector((state) => state.auth);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [barangayId, setBarangayId] = useState<number | null>(null);
   const [barangayName, setBarangayName] = useState<string>('');
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -81,6 +87,10 @@ const AdminDashboard: React.FC = () => {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    setShowPasswordModal(Boolean(isAuthenticated && isFirstLoginRedux));
+  }, [isAuthenticated, isFirstLoginRedux]);
 
   const scopedAccounts = useMemo(
     () => filterAndSortByBarangay(accounts, barangayId),
@@ -132,6 +142,18 @@ const AdminDashboard: React.FC = () => {
           )}
         </div>
       </div>
+
+      <ChangePasswordModal
+        open={showPasswordModal}
+        onClose={() => {
+          if (!isFirstLoginRedux) setShowPasswordModal(false);
+        }}
+        onSuccess={() => {
+          setShowPasswordModal(false);
+          dispatch(updateFirstLogin(false));
+        }}
+        isFirstLogin={isFirstLoginRedux}
+      />
     </>
   );
 };

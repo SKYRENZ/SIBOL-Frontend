@@ -29,9 +29,11 @@ export const useMachines = () => {
   };
 
   // Create a new machine
-  const addMachine = async (areaId: number) => {
+  const addMachine = async (areaId: number, barangayId?: number) => {
     try {
-      await dispatch(createMachine(areaId)).unwrap();
+      await dispatch(createMachine({ areaId, barangayId })).unwrap();
+      // Refetch machines to get all fields (Area_Name, status_name, etc.)
+      await dispatch(fetchMachines()).unwrap();
       return { success: true, error: null };
     } catch (error: any) {
       return { success: false, error: error || 'Failed to create machine' };
@@ -45,6 +47,8 @@ export const useMachines = () => {
   ) => {
     try {
       await dispatch(updateMachine({ machineId, updates })).unwrap();
+      // Refetch machines to get all fields including updated status_name
+      await dispatch(fetchMachines()).unwrap();
       return { success: true, error: null };
     } catch (error: any) {
       return { success: false, error: error || 'Failed to update machine' };

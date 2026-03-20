@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Account } from '../../types/Types';
+import { Account } from '../../types/adminTypes';
 import FormModal from '../common/FormModal';
 import CustomScrollbar from '../common/CustomScrollbar';
 
@@ -14,6 +14,7 @@ type AdminFormProps = {
   // Data comes from parent (hooks live in hooks/)
   roles?: Role[];
   barangays?: Barangay[];
+  lockedBarangayId?: number;
   // show the form inside the shared FormModal
   isOpen?: boolean;
 };
@@ -36,6 +37,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
   onCancel,
   roles = [],
   barangays = [],
+  lockedBarangayId,
   isOpen = true,
 }) => {
   const inferredMode = modeProp ?? (initialData && initialData.Account_id ? 'edit' : 'create');
@@ -59,17 +61,20 @@ const AdminForm: React.FC<AdminFormProps> = ({
       ),
     [firstName, lastName, initialData]
   );
-  const generatedPassword = useMemo(() => Math.random().toString(36).slice(-8), []);
 
   // sync initialData to editable states when initialData changes (important when switching between edit/create)
   useEffect(() => {
     setFirstName(initialData.FirstName ?? '');
     setLastName(initialData.LastName ?? '');
-    setBarangayId(initialData.Barangay_id ?? '');
+    if (isCreate && lockedBarangayId !== undefined && lockedBarangayId !== null) {
+      setBarangayId(lockedBarangayId);
+    } else {
+      setBarangayId(initialData.Barangay_id ?? '');
+    }
     setEmail(initialData.Email ?? '');
     setRoleId(initialData.Roles ?? roles[0]?.Roles_id ?? 1);
     // don't overwrite password (leave blank)
-  }, [initialData, roles]);
+  }, [initialData, roles, isCreate, lockedBarangayId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,11 +84,16 @@ const AdminForm: React.FC<AdminFormProps> = ({
       const payload: AdminPayload = {
         FirstName: firstName,
         LastName: lastName,
-        Barangay_id: barangayId === '' ? undefined : barangayId,
+        Barangay_id:
+          isCreate && lockedBarangayId !== undefined && lockedBarangayId !== null
+            ? lockedBarangayId
+            : barangayId === ''
+              ? undefined
+              : barangayId,
         Email: email,
         Roles: roleId,
         Username: generatedUsername,
-        Password: password || generatedPassword,
+        Password: password.trim() || undefined,
       };
       await onSubmit(payload);
       return;
@@ -100,12 +110,16 @@ const AdminForm: React.FC<AdminFormProps> = ({
 
   const barangayName =
     (initialData.Barangay_id && barangays.find((b) => b.Barangay_id === initialData.Barangay_id)?.Barangay_Name) ?? '';
+  const isBarangayLocked = isCreate && lockedBarangayId !== undefined && lockedBarangayId !== null;
+  const lockedBarangay = isBarangayLocked
+    ? barangays.find((b) => b.Barangay_id === lockedBarangayId)
+    : undefined;
 
   return (
     <FormModal
       isOpen={isOpen}
       onClose={onCancel}
-      title={isCreate ? 'Create Admin' : 'Edit Admin'}
+      title={isCreate ? 'Create User' : 'Edit User'}
     >
       {/* constrain form height so modal inner scroll works; add right padding so content doesn't butt against the scrollbar */}
       <CustomScrollbar maxHeight="max-h-[calc(100vh-220px)]" className="pr-6 px-4">
@@ -139,14 +153,23 @@ const AdminForm: React.FC<AdminFormProps> = ({
                   <select
                     value={barangayId}
                     onChange={(e) => setBarangayId(e.target.value === '' ? '' : Number(e.target.value))}
+                    disabled={isBarangayLocked}
                     className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
                   >
-                    <option value="">Select barangay</option>
-                    {barangays.map((b) => (
-                      <option key={b.Barangay_id} value={b.Barangay_id}>
-                        {b.Barangay_Name}
+                    {isBarangayLocked ? (
+                      <option value={lockedBarangayId}>
+                        {lockedBarangay?.Barangay_Name ?? `Barangay ${lockedBarangayId}`}
                       </option>
-                    ))}
+                    ) : (
+                      <>
+                        <option value="">Select barangay</option>
+                        {barangays.map((b) => (
+                          <option key={b.Barangay_id} value={b.Barangay_id}>
+                            {b.Barangay_Name}
+                          </option>
+                        ))}
+                      </>
+                    )}
                   </select>
                 </div>
 
@@ -170,7 +193,7 @@ const AdminForm: React.FC<AdminFormProps> = ({
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Leave blank to auto-generate"
+                    placeholder="Leave blank to use default password"
                     className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
                   />
                 </div>

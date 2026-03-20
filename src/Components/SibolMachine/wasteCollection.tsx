@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import ReactDOM from 'react-dom';
 import SearchBar from "../common/SearchBar";
-import { X, MapPin, Calendar, Trash2, History, Weight, List, Table, FileDown, Printer, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MapPin, Calendar, Trash2, History, Weight, List, Table, FileDown, Printer, Sparkles, ChevronLeft, ChevronRight, Edit3 } from "lucide-react";
 import WasteCollectionMap from "./WasteCollectionMap";
+import EditLocationModal from "./EditLocationModal";
 import Map, { Source, Layer, Marker, NavigationControl, MapRef } from "react-map-gl/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import bbox from '@turf/bbox';
@@ -11,6 +12,7 @@ import InfoModal from '../common/InfoModal';
 import CustomScrollbar from '../common/CustomScrollbar';
 import AddWasteContainerForm from './AddWasteContainerForm';
 import FormModal from '../common/FormModal';
+import Toast from '../common/Toast';
 import { buildOrganicPackageFeatures, buildVoronoiPackageFeatures } from '../../utils/geo';
 import { BARANGAY_176_E_PACKAGE_LABELS } from './data/barangay176EPackages';
 
@@ -19,7 +21,12 @@ import { useWasteContainer } from '../../hooks/wasteContainer/useWasteContainer'
 import { useUIState } from '../../hooks/common/useUIState';
 import { useSearchFilter } from '../../hooks/common/useSearchFilter';
 import { useExport } from '../../hooks/common/useExport';
+import { useToast } from '../../hooks/common/useToast';
+
+// Services
+import { updateContainerLocation } from '../../services/wasteContainerService';
 import type { WasteContainer } from "../../services/wasteContainerService";
+import { searchBoundaryGeoJSON } from '../../services/geocodeService';
 
 export interface WasteCollectionTabProps {
   parentSearchTerm?: string;
@@ -46,6 +53,8 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
   const [showContainersModal, setShowContainersModal] = useState(false);
   const [pendingSelectId, setPendingSelectId] = useState<number | null>(null);
   const [is3DMode, setIs3DMode] = useState(true);
+  const [showEditLocationModal, setShowEditLocationModal] = useState(false);
+  const [editingLocationId, setEditingLocationId] = useState<number | null>(null);
 
   // ✅ 1. Redux State & Actions (via custom hook)
   const {
@@ -72,6 +81,9 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
 
   // ✅ 4. Export Logic (reusable)
   const { exportToPDF, exportToExcel } = useExport();
+
+  // ✅ 5. Toast Hook
+  const { toasts, addToast, removeToast } = useToast();
 
   // Sync parent search term
   React.useEffect(() => {
@@ -126,25 +138,19 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
       const cached = getCachedBoundary(query);
       if (cached) return cached;
 
-      const url = `https://nominatim.openstreetmap.org/search?format=geojson&polygon_geojson=1&limit=1&q=${encodeURIComponent(
-        query
-      )}`;
-      const res = await fetch(url, {
-        headers: {
-          'Accept-Language': 'en',
-        },
-      });
-      if (!res.ok) {
-        if (attempt < 2 && (res.status === 429 || res.status >= 500)) {
+      try {
+        const data = await searchBoundaryGeoJSON(query, 1);
+        const feature = data?.features?.[0] ?? null;
+        if (feature) setCachedBoundary(query, feature);
+        return feature;
+      } catch (err: any) {
+        const status = Number(err?.status);
+        if (attempt < 2 && (status === 429 || status >= 500)) {
           await sleep(400 + attempt * 300);
           return fetchBoundary(query, attempt + 1);
         }
         return null;
       }
-      const data = await res.json();
-      const feature = data?.features?.[0] ?? null;
-      if (feature) setCachedBoundary(query, feature);
-      return feature;
     };
 
     const run = async () => {
@@ -252,11 +258,27 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
         setPendingSelectId(result.data.container_id);
       }
       refresh();
-      alert('Container created successfully!');
+      addToast('Container created successfully!', 'success');
       return true;
     } else {
-      alert(`Failed: ${result.error}`);
+      addToast(`Failed: ${result.error}`, 'error');
       return false;
+    }
+  };
+
+  // Handle edit location save
+  const handleSaveLocation = async (latitude: number, longitude: number, address: string) => {
+    if (!editingLocationId) return;
+
+    try {
+      await updateContainerLocation(editingLocationId, latitude, longitude, address);
+      refresh();
+      addToast('Container location updated successfully!', 'success');
+      setShowEditLocationModal(false);
+      setEditingLocationId(null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update location';
+      addToast(message, 'error');
     }
   };
 
@@ -646,9 +668,9 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
 
           {filteredData
             .filter((item) => Number.isFinite(Number(item.latitude)) && Number.isFinite(Number(item.longitude)))
-            .map((item) => (
+            .map((item, index) => (
               <Marker
-                key={item.container_id}
+                key={`marker-${item.container_id ?? 'unknown'}-${index}`}
                 longitude={Number(item.longitude)}
                 latitude={Number(item.latitude)}
                 anchor="bottom"
@@ -714,12 +736,12 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
           {containers.length === 0 ? (
             <p className="text-sm text-gray-500">No containers available.</p>
           ) : (
-            <div className="space-y-3">
-              {containers.map((container) => {
+            <CustomScrollbar className="space-y-3 pr-1" maxHeight="max-h-[65vh]">
+              {containers.map((container, index) => {
                 const statusText = (container as any).status_label ?? container.status;
                 return (
                   <div
-                    key={container.container_id}
+                    key={`container-${container.container_id ?? 'unknown'}-${index}`}
                     className="flex items-center gap-4 p-3 rounded-xl border border-gray-100 bg-white shadow-sm"
                   >
                     <div className="w-10 h-10 rounded-lg bg-[#e7f4ec] flex items-center justify-center">
@@ -750,7 +772,7 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                   </div>
                 );
               })}
-            </div>
+            </CustomScrollbar>
           )}
         </div>
       </FormModal>
@@ -759,35 +781,50 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
       {selectedContainer && ReactDOM.createPortal(
         <div className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="relative w-[90%] sm:w-[80%] md:w-[70%] lg:w-[50%] max-h-[85vh] bg-white rounded-3xl shadow-2xl flex flex-col overflow-hidden">
-            <div className="px-8 py-6 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white relative overflow-hidden">
+            <div className="px-8 py-6 bg-gradient-to-r from-[#355842] to-[#4a7c5d] text-white">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-              <div className="relative flex items-center gap-4">
-                <div className="relative bg-white/20 p-3 rounded-2xl backdrop-blur-sm">
-                  <img src="/images/lili.png" alt="Lili" className="w-14 h-14 rounded-full object-cover" />
-                  <div className="absolute -top-1 -right-1 bg-white/90 rounded-full p-1 shadow-sm">
-                    <Weight size={14} className="text-[#355842]" />
+              <div className="relative flex items-start justify-between">
+                <div className="flex items-start gap-4 flex-1">
+                  <div className="relative bg-white/20 p-3 rounded-2xl backdrop-blur-sm flex-shrink-0">
+                    <img src="/images/lili.png" alt="Container" className="w-14 h-14 rounded-full object-cover bg-gray-300" />
+                    <div className="absolute -top-1 -right-1 bg-white/90 rounded-full p-1 shadow-sm">
+                      <Weight size={14} className="text-[#355842]" />
+                    </div>
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-2xl font-bold mb-1">{selectedContainer.container_name}</h2>
+                    <p className="text-white/90 text-sm">{selectedContainer.area_name}</p>
+                    {selectedContainer.full_address && (
+                      <p className="text-white/80 text-xs mt-1">{selectedContainer.full_address}</p>
+                    )}
                   </div>
                 </div>
-                <div className="flex-1">
-                  <h2 className="text-2xl font-bold mb-1">{selectedContainer.container_name}</h2>
-                  <p className="text-white/90 text-sm">{selectedContainer.area_name}</p>
-                  {selectedContainer.full_address && (
-                    <p className="text-white/80 text-xs mt-1 truncate">{selectedContainer.full_address}</p>
-                  )}
-                </div>
 
-                {/* status shown below in the Details cards; remove duplicate header badge */}
+                {/* Edit and Close Buttons */}
+                <div className="flex items-center gap-2 flex-shrink-0 ml-4">
+                  <button
+                    onClick={() => {
+                      setShowEditLocationModal(true);
+                      setEditingLocationId(selectedContainer.container_id);
+                    }}
+                    className="text-white hover:bg-white/20 transition-colors rounded-full p-2 hover:scale-110"
+                    aria-label="Edit location"
+                    title="Edit Location"
+                  >
+                    <Edit3 size={24} />
+                  </button>
+                  <button
+                    onClick={() => selectContainer(null)}
+                    className="text-white hover:bg-white/20 transition-colors rounded-full p-2 hover:scale-110"
+                    aria-label="Close details"
+                    title="Close"
+                  >
+                    <X size={24} />
+                  </button>
+                </div>
               </div>
             </div>
-
-            <button
-              onClick={() => selectContainer(null)}
-              className="absolute top-5 right-5 text-white hover:bg-white/20 transition-colors z-20 rounded-full p-2"
-              aria-label="Close details"
-            >
-              <X size={24} />
-            </button>
 
             <CustomScrollbar className="p-6 bg-white" maxHeight="max-h-[70vh]">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
@@ -836,8 +873,8 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                   <div className="space-y-3 max-h-48 overflow-y-auto pr-2 border-l-2 border-gray-200/80 ml-2">
                     {logsLoading ? (<p className="text-sm text-gray-500 text-center">Loading logs...</p>)
                       : logs.length > 0 ? (
-                        logs.map((log) => (
-                          <div key={log.input_id} className="relative pl-6">
+                        logs.map((log, index) => (
+                          <div key={`timeline-${log.input_id ?? 'unknown'}-${index}`} className="relative pl-6">
                             <div className="absolute left-[-7px] top-1.5 w-3 h-3 bg-gray-300 rounded-full border-2 border-white"></div>
                             <p className="text-sm font-medium text-gray-700 flex items-center gap-2">
                               <Weight size={14} />
@@ -872,8 +909,8 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
                           {logsLoading ? (
                             <tr><td colSpan={4} className="text-center p-4 text-gray-500">Loading logs...</td></tr>
                           ) : logs.length > 0 ? (
-                            logs.map(log => (
-                              <tr key={log.input_id} className="border-b last:border-b-0 hover:bg-gray-50">
+                            logs.map((log, index) => (
+                              <tr key={`table-${log.input_id ?? 'unknown'}-${index}`} className="border-b last:border-b-0 hover:bg-gray-50">
                                 <td className="px-4 py-2 text-gray-800">{log.date}</td>
                                 <td className="px-4 py-2 text-gray-800">{log.time}</td>
                                 <td className="px-4 py-2 font-medium text-gray-800">{Number(log.weight).toFixed(2)}</td>
@@ -907,6 +944,30 @@ const WasteCollectionTab: React.FC<WasteCollectionTabProps> = ({ parentSearchTer
             </CustomScrollbar>
           </div>
         </div>,
+        document.body
+      )}
+
+      {/* Toast Container */}
+      <div className="fixed bottom-4 right-4 z-[9999] space-y-3 max-w-sm">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} toast={toast} onClose={removeToast} />
+        ))}
+      </div>
+
+      {/* Edit Location Modal */}
+      {selectedContainer && showEditLocationModal && ReactDOM.createPortal(
+        <EditLocationModal
+          isOpen={showEditLocationModal}
+          onClose={() => {
+            setShowEditLocationModal(false);
+            setEditingLocationId(null);
+          }}
+          onSave={handleSaveLocation}
+          currentLat={selectedContainer.latitude}
+          currentLon={selectedContainer.longitude}
+          currentAddress={selectedContainer.full_address || ''}
+          containerName={selectedContainer.container_name}
+        />,
         document.body
       )}
     </div>
