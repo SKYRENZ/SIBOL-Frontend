@@ -4,6 +4,7 @@ export interface Account {
   Roles?: number;
   IsActive?: 0 | 1 | boolean;
   Points?: number;
+  credit_score?: number;
   FirstName?: string;
   LastName?: string;
   Area_id?: number;
@@ -12,6 +13,7 @@ export interface Account {
   Pending_id?: number;
   Barangay_id?: number;
   Barangay_Name?: string;
+  Profile_image_path?: string;
 }
 
 export interface Role {

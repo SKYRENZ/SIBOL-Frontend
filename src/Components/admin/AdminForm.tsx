@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Account } from '../../types/adminTypes';
 import FormModal from '../common/FormModal';
 import CustomScrollbar from '../common/CustomScrollbar';
+import CreditScoreGauge from '../common/CreditScoreGauge';
 
 type Role = { Roles_id: number; Roles: string };
 type Barangay = { Barangay_id: number; Barangay_Name: string };
@@ -61,6 +62,32 @@ const AdminForm: React.FC<AdminFormProps> = ({
       ),
     [firstName, lastName, initialData]
   );
+
+  // Form data object for change detection
+  const formData = {
+    FirstName: firstName,
+    LastName: lastName,
+    Barangay: barangayId,
+    Email: email,
+    Username: generatedUsername,
+    Roles: roleId
+  };
+
+  // Change detection function
+  const hasChanges = () => {
+    if (isCreate) {
+      // In create mode, check if any field has content
+      return firstName.trim() !== '' || lastName.trim() !== '' || email.trim() !== '' || password.trim() !== '';
+    }
+    // In edit mode, check if any field differs from initial data
+    return (
+      formData.FirstName !== initialData.FirstName ||
+      formData.LastName !== initialData.LastName ||
+      formData.Barangay !== initialData.Barangay_id ||
+      formData.Email !== initialData.Email ||
+      formData.Roles !== initialData.Roles
+    );
+  };
 
   // sync initialData to editable states when initialData changes (important when switching between edit/create)
   useEffect(() => {
@@ -127,34 +154,34 @@ const AdminForm: React.FC<AdminFormProps> = ({
           {/* For create mode: editable fields (all except username) */}
           {isCreate ? (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-sm font-medium mb-1">First Name</label>
+                  <label className="block text-xs font-medium mb-0.5">First Name</label>
                   <input
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm"
                     placeholder="First name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Last Name</label>
+                  <label className="block text-xs font-medium mb-0.5">Last Name</label>
                   <input
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm"
                     placeholder="Last name"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Barangay</label>
+                  <label className="block text-xs font-medium mb-0.5">Barangay</label>
                   <select
                     value={barangayId}
                     onChange={(e) => setBarangayId(e.target.value === '' ? '' : Number(e.target.value))}
                     disabled={isBarangayLocked}
-                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm"
                   >
                     {isBarangayLocked ? (
                       <option value={lockedBarangayId}>
@@ -174,97 +201,185 @@ const AdminForm: React.FC<AdminFormProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
+                  <label className="block text-xs font-medium mb-0.5">Email</label>
                   <input
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm"
                     placeholder="email@example.com"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Username (auto)</label>
-                  <div className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green">{generatedUsername}</div>
+                  <label className="block text-xs font-medium mb-0.5">Username (auto)</label>
+                  <div className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm">{generatedUsername}</div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium mb-1">Password</label>
+                  <label className="block text-xs font-medium mb-0.5">Password</label>
                   <input
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Leave blank to use default password"
-                    className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+                    placeholder="Leave blank to use default"
+                    className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium mb-0.5">Role</label>
+                  <select
+                    value={roleId}
+                    onChange={(e) => setRoleId(Number(e.target.value))}
+                    className="w-full border rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm"
+                  >
+                    {roles.map((r) => (
+                      <option
+                        key={r.Roles_id}
+                        value={r.Roles_id}
+                        style={{ background: 'transparent', color: 'inherit' }}
+                      >
+                        {r.Roles}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
             </>
           ) : (
-            /* Edit / view mode: display-only fields */
+            /* Edit / view mode: Profile Image + Credit Score (left) + User Info (right) */
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">First Name</label>
-                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-                    {initialData.FirstName ?? '-'}
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {/* LEFT COLUMN: Profile Image + Credit Score (for operators only) */}
+                <div className="md:col-span-1">
+                  {/* Profile Image + Credit Score Integrated - Only for Operators (Role = 3) */}
+                  {initialData.Roles === 3 ? (
+                    <div className="flex flex-col items-center justify-center mt-8">
+                      <div className="relative">
+                        {/* Credit Score Gauge as Background */}
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <CreditScoreGauge score={Number(initialData.credit_score)} size="md" showLabel={false} />
+                        </div>
+                        {/* Profile Image in Center */}
+                        <div className="relative z-10 w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg">
+                          {initialData.Profile_image_path ? (
+                            <img
+                              src={initialData.Profile_image_path}
+                              alt={`${initialData.FirstName} ${initialData.LastName}`}
+                              className="w-20 h-20 rounded-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
+                              <span className="text-gray-600 text-xs font-medium">No image</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      {/* Status Label Below */}
+                      {initialData.credit_score !== undefined && initialData.credit_score !== null && !isNaN(Number(initialData.credit_score)) && (
+                        <div className="mt-4">
+                          <CreditScoreGauge score={Number(initialData.credit_score)} size="sm" showLabel={true} />
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Regular Profile Image for non-operators */
+                    <div className="rounded-lg p-3 flex flex-col items-center justify-center min-h-[140px]">
+                      <div className="mb-2">
+                        {initialData.Profile_image_path ? (
+                          <img
+                            src={initialData.Profile_image_path}
+                            alt={`${initialData.FirstName} ${initialData.LastName}`}
+                            className="w-24 h-24 rounded-full object-cover border-3 border-sibol-green shadow-md"
+                          />
+                        ) : (
+                          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-3 border-gray-200 shadow-md">
+                            <span className="text-gray-600 text-xs font-medium">No image</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Last Name</label>
-                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-                    {initialData.LastName ?? '-'}
-                  </div>
-                </div>
+                {/* RIGHT COLUMN: User Info (single column) */}
+                <div className="md:col-span-2">
+                  <div className="space-y-2">
+                    {/* First Name */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">First Name</label>
+                      <div className="w-full border border-gray-200 rounded px-2 py-1.5 bg-gray-50 text-gray-800 text-sm">
+                        {initialData.FirstName ?? '-'}
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Barangay</label>
-                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{barangayName || '-'}</div>
-                </div>
+                    {/* Last Name */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">Last Name</label>
+                      <div className="w-full border border-gray-200 rounded px-2 py-1.5 bg-gray-50 text-gray-800 text-sm">
+                        {initialData.LastName ?? '-'}
+                      </div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Email</label>
-                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">{initialData.Email ?? '-'}</div>
-                </div>
+                    {/* Barangay */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">Barangay</label>
+                      <div className="w-full border border-gray-200 rounded px-2 py-1.5 bg-gray-50 text-gray-800 text-sm">{barangayName || '-'}</div>
+                    </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-1">Username</label>
-                  <div className="w-full border rounded px-3 py-2 bg-gray-100 text-gray-800">
-                    {initialData.Username ?? '-'}
+                    {/* Email */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">Email</label>
+                      <div className="w-full border border-gray-200 rounded px-2 py-1.5 bg-gray-50 text-gray-800 text-sm">{initialData.Email ?? '-'}</div>
+                    </div>
+
+                    {/* Username */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">Username</label>
+                      <div className="w-full border border-gray-200 rounded px-2 py-1.5 bg-gray-50 text-gray-800 text-sm">
+                        {initialData.Username ?? '-'}
+                      </div>
+                    </div>
+
+                    {/* Role */}
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-0.5">Role</label>
+                      <select
+                        value={roleId}
+                        onChange={(e) => setRoleId(Number(e.target.value))}
+                        className="w-full border border-gray-200 rounded px-2 py-1.5 bg-transparent text-sibol-green text-sm font-medium hover:border-sibol-green transition"
+                      >
+                        {roles.map((r) => (
+                          <option
+                            key={r.Roles_id}
+                            value={r.Roles_id}
+                            style={{ background: 'transparent', color: 'inherit' }}
+                          >
+                            {r.Roles}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
             </>
           )}
 
-          {/* Editable: Role */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Role</label>
-            <select
-              value={roleId}
-              onChange={(e) => setRoleId(Number(e.target.value))}
-              className="w-full border rounded px-3 py-2 bg-transparent text-sibol-green"
+          {/* Buttons - Right aligned */}
+          <div className="flex gap-3 items-center justify-end mt-4 pt-4">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="px-3 py-1.5 bg-gray-200 text-gray-800 text-sm rounded hover:bg-gray-300 font-medium transition"
             >
-              {roles.map((r) => (
-                <option
-                  key={r.Roles_id}
-                  value={r.Roles_id}
-                  // browsers limit <option> styling; set inline to help where supported
-                  style={{ background: 'transparent', color: 'inherit' }}
-                >
-                  {r.Roles}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-2">
-            <button type="submit" className="btn btn-primary">
-              {isCreate ? 'Create' : 'Update'}
-            </button>
-            <button type="button" onClick={onCancel} className="btn btn-outline">
               Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={!hasChanges()}
+              className="px-3 py-1.5 bg-[#355842] text-white text-sm rounded hover:bg-[#2e4a36] font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCreate ? 'Create' : 'Update'}
             </button>
           </div>
         </form>
