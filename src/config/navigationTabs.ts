@@ -6,6 +6,7 @@
 export interface Tab {
   id: string;
   label: string;
+  icon: string;
 }
 
 export interface NavigationTabsConfig {
@@ -14,19 +15,19 @@ export interface NavigationTabsConfig {
 
 const navigationTabs: NavigationTabsConfig = {
   household: [
-    { id: "leaderboard", label: "Leaderboard" },
-    { id: "reward", label: "Rewards" },
-    { id: "claimed", label: "Claimed Rewards" },
+    { id: "leaderboard", label: "Leaderboard", icon: "Trophy" },
+    { id: "reward", label: "Rewards", icon: "Gift" },
+    { id: "claimed", label: "Claimed Rewards", icon: "CheckCircle" },
   ],
   maintenance: [
-    { id: "Request Maintenance", label: "Request Maintenance" },
-    { id: "Pending Maintenance", label: "Pending Maintenance" },
-    { id: "Complete Maintenance", label: "Complete Maintenance" },
+    { id: "Request Maintenance", label: "Request", icon: "Plus" },
+    { id: "Pending Maintenance", label: "Pending", icon: "Clock" },
+    { id: "Complete Maintenance", label: "Completed", icon: "CheckCircle2" },
   ],
   "sibol-machines": [
-    { id: "Machines", label: "Machines" },
-    { id: "Process Panel", label: "Process Panel" },
-    { id: "Waste Container", label: "Waste Container" },
+    { id: "Machines", label: "Machines", icon: "Cpu" },
+    { id: "Process Panel", label: "Process Panel", icon: "Sliders" },
+    { id: "Waste Container", label: "Waste Container", icon: "Trash2" },
   ],
 };
 

@@ -6,7 +6,18 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
-import { CircleQuestionMark } from "lucide-react";
+import {
+  CircleQuestionMark,
+  Trophy,
+  Gift,
+  CheckCircle,
+  Plus,
+  Clock,
+  CheckCircle2,
+  Cpu,
+  Sliders,
+  Trash2,
+} from "lucide-react";
 import navigationTabs from "../config/navigationTabs";
 import {
   getNotifications,
@@ -15,6 +26,19 @@ import {
   type NotificationItem,
   type NotificationType,
 } from "../services/notificationService";
+
+// Icon mapping
+const iconMap: { [key: string]: React.ComponentType<{ size: number; className: string }> } = {
+  Trophy,
+  Gift,
+  CheckCircle,
+  Plus,
+  Clock,
+  CheckCircle2,
+  Cpu,
+  Sliders,
+  Trash2,
+};
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -217,6 +241,7 @@ const Header: React.FC = () => {
                   >
                     <NavLink
                       to={link.to}
+                      state={location.pathname === link.to ? { activeTab: location.state?.activeTab } : undefined}
                       className={({ isActive }) =>
                         `nav-link text-sm lg:text-base ${isActive ? "active" : ""} ${
                           link.to === "/dashboard" ? "tour-dashboard" : ""
@@ -239,19 +264,26 @@ const Header: React.FC = () => {
                     {/* DROPDOWN MENU - only show on desktop and when hovered */}
                     {hasDropdown && hoveredNavItem === link.id && (
                       <div className="nav-dropdown">
-                        {navigationTabs[configKey!]?.map((tab) => (
-                          <button
-                            key={tab.id}
-                            onClick={() => {
-                              navigate(link.to, { state: { activeTab: tab.id } });
-                              setHoveredNavItem(null);
-                              setMenuOpen(false);
-                            }}
-                            className="nav-dropdown-item"
-                          >
-                            {tab.label}
-                          </button>
-                        ))}
+                        {navigationTabs[configKey!]?.map((tab) => {
+                          const isActive = location.state?.activeTab === tab.id;
+                          const IconComponent = iconMap[tab.icon];
+                          return (
+                            <button
+                              key={tab.id}
+                              onClick={() => {
+                                navigate(link.to, { state: { activeTab: tab.id } });
+                                setHoveredNavItem(null);
+                                setMenuOpen(false);
+                              }}
+                              className={`nav-dropdown-item ${isActive ? "nav-dropdown-item-active" : ""}`}
+                            >
+                              {IconComponent && (
+                                <IconComponent size={16} className="nav-dropdown-icon" />
+                              )}
+                              <span>{tab.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </li>
