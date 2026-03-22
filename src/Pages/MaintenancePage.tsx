@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useAppSelector } from "../store/hooks";
+import { useLocation } from "react-router-dom";
 import Header from "../Components/Header";
-import Tabs from "../Components/common/Tabs";
 import { RequestMaintenance } from "../Components/maintenance/RequestMaintenance";
 import { PendingMaintenance } from "../Components/maintenance/PendingMaintenance";
 import { CompletedMaintenance } from "../Components/maintenance/CompletedMaintenance";
@@ -10,9 +10,12 @@ import * as maintenanceService from "../services/maintenanceService";
 import type { MaintenanceTicket } from "../types/maintenance";
 
 const MaintenancePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("Request Maintenance");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>(
+    (location.state?.activeTab as string) || "Request Maintenance"
+  );
   const [createdByAccountId, setCreatedByAccountId] = useState<number | null>(null);
-  
+
   // State for the modal, lifted up to this parent component
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [formMode, setFormMode] = useState<'create' | 'assign' | 'pending' | 'completed'>('create');
@@ -21,6 +24,13 @@ const MaintenancePage: React.FC = () => {
 
   // ✅ Read user from Redux instead of localStorage
   const reduxUser = useAppSelector((state) => state.auth.user);
+
+  // Update activeTab when location.state changes
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab as string);
+    }
+  }, [location.state?.activeTab]);
 
   useEffect(() => {
     // derive account id from redux user; do NOT default to 1 (avoid accidental wrong actor)
@@ -116,15 +126,6 @@ const MaintenancePage: React.FC = () => {
     }
   };
 
-  const tabsConfig = useMemo(
-    () => [
-      { id: "Request Maintenance", label: "Request Maintenance" },
-      { id: "Pending Maintenance", label: "Pending Maintenance" },
-      { id: "Complete Maintenance", label: "Complete Maintenance" },
-    ],
-    []
-  );
-
   const handleOpenCompletedForm = (_mode: 'completed', ticket: MaintenanceTicket) => {
     // ✅ open as completed, not pending
     handleOpenForm('completed', ticket);
@@ -162,19 +163,7 @@ const MaintenancePage: React.FC = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <div className="w-full bg-white shadow-sm">
-        <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
-        <div
-          className="subheader sticky z-30 w-full bg-white px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12 py-4 shadow-sm"
-          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
-        >
-          <div className="max-w-screen-2xl mx-auto">
-            <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
-        </div>
-      </div>
-
-      <main className="w-full px-4 sm:px-6 py-6 sm:py-8">
+      <main className="w-full px-4 sm:px-6 py-6 sm:py-8" style={{ paddingTop: 'var(--header-height-2xl)' }}>
         <div className="max-w-screen-2xl mx-auto space-y-6">
           <div className="overflow-x-auto">
             {renderActiveTab()}
