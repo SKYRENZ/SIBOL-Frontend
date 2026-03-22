@@ -330,6 +330,7 @@ input:-webkit-autofill:active {
   .nav-dropdown-item {
     @apply w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#e8f0e8] transition font-sans border-none bg-transparent cursor-pointer flex items-center gap-2;
     border-left: 3px solid transparent;
+    border-radius: 0;
   }
 
   .nav-dropdown-item-active {
