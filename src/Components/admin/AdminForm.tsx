@@ -251,54 +251,18 @@ const AdminForm: React.FC<AdminFormProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 {/* LEFT COLUMN: Profile Image + Credit Score (for operators only) */}
                 <div className="md:col-span-1">
-                  {/* Profile Image + Credit Score Integrated - Only for Operators (Role = 3) */}
-                  {initialData.Roles === 3 ? (
-                    <div className="flex flex-col items-center justify-center mt-8">
-                      <div className="relative">
-                        {/* Credit Score Gauge as Background */}
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <CreditScoreGauge score={Number(initialData.credit_score)} size="md" showLabel={false} />
-                        </div>
-                        {/* Profile Image in Center */}
-                        <div className="relative z-10 w-24 h-24 rounded-full bg-white flex items-center justify-center shadow-lg">
-                          {initialData.Profile_image_path ? (
-                            <img
-                              src={initialData.Profile_image_path}
-                              alt={`${initialData.FirstName} ${initialData.LastName}`}
-                              className="w-20 h-20 rounded-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center">
-                              <span className="text-gray-600 text-xs font-medium">No image</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      {/* Status Label Below */}
-                      {initialData.credit_score !== undefined && initialData.credit_score !== null && !isNaN(Number(initialData.credit_score)) && (
-                        <div className="mt-4">
-                          <CreditScoreGauge score={Number(initialData.credit_score)} size="sm" showLabel={true} />
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Regular Profile Image for non-operators */
-                    <div className="rounded-lg p-3 flex flex-col items-center justify-center min-h-[140px]">
-                      <div className="mb-2">
-                        {initialData.Profile_image_path ? (
-                          <img
-                            src={initialData.Profile_image_path}
-                            alt={`${initialData.FirstName} ${initialData.LastName}`}
-                            className="w-24 h-24 rounded-full object-cover border-3 border-sibol-green shadow-md"
-                          />
-                        ) : (
-                          <div className="w-24 h-24 rounded-full bg-gradient-to-br from-gray-200 to-gray-300 flex items-center justify-center border-3 border-gray-200 shadow-md">
-                            <span className="text-gray-600 text-xs font-medium">No image</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
+                  <div className="flex flex-col items-center justify-center mt-4">
+                    <CreditScoreGauge
+                      score={Number(initialData.credit_score)}
+                      size="md"
+                      showLabel={initialData.Roles === 3}
+                      showScore={initialData.Roles === 3}
+                      showGauge={initialData.Roles === 3}
+                      integratedAvatar={true}
+                      avatarSrc={initialData.Profile_image_path ?? undefined}
+                      avatarAlt={`${initialData.FirstName ?? ''} ${initialData.LastName ?? ''}`.trim() || 'User profile'}
+                    />
+                  </div>
                 </div>
 
                 {/* RIGHT COLUMN: User Info (single column) */}
