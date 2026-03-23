@@ -113,7 +113,7 @@ const Landingpage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-white snap-y snap-mandatory overflow-y-scroll h-screen">
+    <div className="bg-white dark:bg-white snap-y snap-mandatory overflow-y-auto h-screen">
       <LandingHeader logoSrc={SibolWordLogo} />
       <HeroSection trashBgSrc={TrashBG} onOpenGame={() => setGameOpen(true)} />
       <FeaturesSection slides={carouselSlides} />

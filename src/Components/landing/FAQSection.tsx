@@ -14,16 +14,16 @@ const FAQSection: React.FC<FAQSectionProps> = ({ faqs }) => {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
 
   return (
-    <section className="py-12 sm:py-14 md:py-20 lg:py-24 px-4 sm:px-6 md:px-8 lg:px-12 bg-gray-50 snap-start scroll-mt-16">
-      <div className="max-w-4xl mx-auto">
-        <h2 className="text-2xl sm:text-3xl md:text-4xl text-black font-bold text-center mb-2 sm:mb-3">
+    <section className="h-screen min-h-[600px] max-h-[1080px] px-4 sm:px-6 md:px-8 py-16 sm:py-20 bg-gray-50 snap-start flex items-center justify-center">
+      <div className="max-w-4xl mx-auto w-full">
+        <h2 className="text-2xl sm:text-3xl md:text-4xl text-black font-bold text-center mb-3 md:mb-4">
           Frequently Asked Questions
         </h2>
-        <p className="text-gray-600 text-center mb-6 sm:mb-8 md:mb-10 text-sm sm:text-base">
+        <p className="text-gray-600 text-center mb-8 md:mb-10 text-sm sm:text-base">
           Find answers to common questions about SIBOL
         </p>
 
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           {faqs.map((faq, index) => (
             <div
               key={index}
