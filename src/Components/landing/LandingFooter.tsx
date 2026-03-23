@@ -6,7 +6,10 @@ interface LandingFooterProps {
 
 const LandingFooter: React.FC<LandingFooterProps> = ({ logoSrc }) => {
   return (
-    <footer className="bg-[#2D5F2E] text-white py-6 md:py-8 px-4 sm:px-6">
+    <footer
+      className="bg-[#2D5F2E] text-white py-6 md:py-8 px-4 sm:px-6"
+      style={{ scrollSnapAlign: 'end', scrollSnapStop: 'normal' }}
+    >
       <div className="max-w-7xl mx-auto text-center">
         <div className="flex items-center justify-center gap-2 mb-3">
           <img

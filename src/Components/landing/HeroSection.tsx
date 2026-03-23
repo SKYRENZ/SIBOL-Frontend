@@ -11,7 +11,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ trashBgSrc, onOpenGame }) => 
 
   return (
     <section className="h-screen min-h-[600px] max-h-[1080px] px-4 sm:px-6 md:px-8 lg:px-12 relative overflow-hidden flex items-center bg-white snap-start pt-16">
-      <div className="absolute right-0 bottom-0 top-auto h-[50%] sm:h-[55%] md:h-[60%] lg:h-[65%] w-auto z-0">
+      <div className="absolute right-0 bottom-0 top-auto h-[50%] sm:h-[55%] md:h-[60%] lg:h-[65%] w-auto z-0 hidden sm:block">
         <img
           src={trashBgSrc}
           alt="Food Waste"
