@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Facebook } from 'lucide-react';
+import emailjs from '@emailjs/browser';
 
 const ContactSection: React.FC = () => {
   const [formData, setFormData] = useState({
@@ -8,6 +9,19 @@ const ContactSection: React.FC = () => {
     subject: '',
     message: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Initialize EmailJS with public key from env
+  React.useEffect(() => {
+    const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+    if (publicKey) {
+      emailjs.init(publicKey);
+    } else {
+      console.error('EmailJS public key is not configured');
+    }
+  }, []);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setFormData({
@@ -16,10 +30,50 @@ const ContactSection: React.FC = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', formData);
-    // Add your form submission logic here
+    setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    try {
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
+
+      if (!serviceId || !templateId) {
+        throw new Error('EmailJS credentials are not configured');
+      }
+
+      // Send email using EmailJS
+      await emailjs.send(
+        serviceId,
+        templateId,
+        {
+          to_email: 'sibol.ucc@gmail.com',
+          from_name: formData.name,
+          from_email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+        }
+      );
+
+      setSuccessMessage('Message sent successfully!');
+      setFormData({ name: '', email: '', subject: '', message: '' });
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (error) {
+      setErrorMessage('Failed to send message. Please try again.');
+      console.error('Email error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    // Open Gmail compose window
+    window.open(`https://mail.google.com/mail/?view=cm&to=sibol.ucc@gmail.com`, '_blank');
   };
 
   return (
@@ -54,8 +108,12 @@ const ContactSection: React.FC = () => {
               </div>
               <div>
                 <div className="font-medium mb-1 text-sm md:text-base">Email</div>
-                <a href="mailto:sibol@gmail.com" className="text-white/90 hover:text-white text-xs md:text-sm">
-                  sibol@gmail.com
+                <a
+                  href="mailto:sibol.ucc@gmail.com"
+                  onClick={handleEmailClick}
+                  className="text-white/90 hover:text-white text-xs md:text-sm transition-colors"
+                >
+                  sibol.ucc@gmail.com
                 </a>
               </div>
             </div>
@@ -74,7 +132,7 @@ const ContactSection: React.FC = () => {
           </div>
 
           {/* Social Links */}
-          <div className="flex gap-4 mt-6">
+          <div className="flex items-center gap-4 mt-6">
             <a
               href="https://www.facebook.com/profile.php?id=61586997429108"
               target="_blank"
@@ -84,12 +142,34 @@ const ContactSection: React.FC = () => {
             >
               <Facebook className="h-5 w-5" />
             </a>
-          </div>
+            <div>
+              <div className="font-medium mb-1 text-sm md:text-base">Facebook</div>
+                <a
+                  href="https://www.facebook.com/profile.php?id=61586997429108"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-white/90 hover:text-white transition-colors duration-200 font-medium text-sm"
+                >
+                  SIBOL
+                </a>
+              </div>
+            </div>
         </div>
 
         {/* Contact Form */}
         <div className="bg-white rounded-2xl p-6 md:p-7 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
+            {successMessage && (
+              <div className="p-3 bg-green-100 text-green-700 rounded-lg text-sm">
+                {successMessage}
+              </div>
+            )}
+            {errorMessage && (
+              <div className="p-3 bg-red-100 text-red-700 rounded-lg text-sm">
+                {errorMessage}
+              </div>
+            )}
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-4">
               <input
                 type="text"
@@ -133,9 +213,10 @@ const ContactSection: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full px-6 py-3 bg-[#2D5F2E] text-white rounded-lg hover:bg-[#234A23] transition-colors duration-200 font-medium text-sm md:text-base"
+              disabled={loading}
+              className="w-full px-6 py-3 bg-[#2D5F2E] text-white rounded-lg hover:bg-[#234A23] disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium text-sm md:text-base"
             >
-              SEND MESSAGE
+              {loading ? 'SENDING...' : 'SEND MESSAGE'}
             </button>
           </form>
         </div>

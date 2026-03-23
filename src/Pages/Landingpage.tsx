@@ -48,7 +48,7 @@ const Landingpage: React.FC = () => {
       emoji: '🌱',
       title: 'Smart Food Waste Collection',
       subtitle: 'From Kitchen Waste to Clean Energy',
-      description: 'SIBOL gathers and processes household food waste from the pilot barangay, preparing it for anaerobic digestion. Every scrap collected becomes part of a sustainable energy cycle.'
+      description: 'SIBOL gathers and processes household food waste from the pilot barangay, preparing it for anaerobic digestion. Every scrap and food waste collected becomes part of a sustainable energy cycle.'
     },
     {
       src: Photo2,

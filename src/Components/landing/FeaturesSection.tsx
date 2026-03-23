@@ -137,15 +137,13 @@ const FeaturesSection: React.FC<FeaturesSectionProps> = ({ slides }) => {
           </div>
 
           {/* Carousel Dots */}
-          <div className="flex justify-center gap-1.5 mt-6 sm:mt-8">
+          <div className="flex justify-center gap-2 mt-6 sm:mt-8">
             {slides.map((_, index) => (
               <button
                 key={index}
                 onClick={() => goToSlide(index)}
-                className={`h-2 rounded-full transition-all duration-300 ${
-                  index === currentSlide
-                    ? 'bg-[#2D5F2E] dark:bg-[#2D5F2E] w-6 sm:w-8 shadow-md'
-                    : 'bg-gray-400 dark:bg-gray-400 w-2 hover:bg-gray-500 dark:hover:bg-gray-500 hover:w-4'
+                className={`carousel-dot ${
+                  index === currentSlide ? 'active' : 'inactive'
                 }`}
                 aria-label={`Go to slide ${index + 1}`}
               />
