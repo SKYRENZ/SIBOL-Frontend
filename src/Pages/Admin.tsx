@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { AppDispatch, RootState } from '../store/store';
 import {
   fetchAdminData,
@@ -20,6 +21,7 @@ import SnackBar from '../Components/common/SnackBar'; // ✅ add
 
 export default function Admin() {
   const dispatch = useDispatch<AppDispatch>();
+  const [searchParams] = useSearchParams();
   const {
     accounts,
     pendingAccounts,
@@ -39,7 +41,23 @@ export default function Admin() {
 
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
+
+  // Get tab from query parameter or default to 'list'
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'list' | 'approval'>(() => {
+    if (tabParam === 'list' || tabParam === 'approval') {
+      return tabParam;
+    }
+    return 'list';
+  });
+
+  // Update activeTab when query parameter changes
+  useEffect(() => {
+    if (tabParam === 'list' || tabParam === 'approval') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
 
@@ -155,51 +173,6 @@ export default function Admin() {
       <div className="w-full bg-white">
         {/* spacer to avoid header overlap */}
         <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
-
-        {/* SUBHEADER */}
-        <div
-          className="subheader sticky z-30 w-full bg-white px-4 sm:px-6 py-3 sm:py-4 shadow-sm"
-          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
-        >
-          <div className="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-            {/* Tabs */}
-            <nav
-              className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-5"
-              role="tablist"
-              aria-label="Admin tabs"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'list'}
-                onClick={() => setActiveTab('list')}
-                className={`text-lg sm:text-xl px-3 sm:px-4 py-2 font-medium bg-transparent transition-colors duration-150
-                ${activeTab === 'list'
-                    ? 'text-sibol-green font-semibold underline underline-offset-4'
-                    : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'
-                  }`}
-              >
-                List of Accounts
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'approval'}
-                onClick={() => setActiveTab('approval')}
-                className={`flex items-center gap-2 text-lg sm:text-xl px-3 sm:px-4 py-2 font-medium bg-transparent transition-colors duration-150
-                ${activeTab === 'approval'
-                    ? 'text-sibol-green font-semibold underline underline-offset-4'
-                    : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'
-                  }`}
-              >
-                User Approval
-                <span className="chip chip-rose ml-1 text-xs">{pendingCount}</span>
-              </button>
-            </nav>
-
-          </div>
-        </div>
 
         {/* MAIN CONTENT */}
         <div className="w-full bg-white mt-3">

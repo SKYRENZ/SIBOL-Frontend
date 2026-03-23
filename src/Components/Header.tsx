@@ -6,6 +6,7 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
+import NavDropdown from "./common/NavDropdown";
 import {
   CircleQuestionMark,
   Trophy,
@@ -262,30 +263,18 @@ const Header: React.FC = () => {
                     </NavLink>
 
                     {/* DROPDOWN MENU - only show on desktop and when hovered */}
-                    {hasDropdown && hoveredNavItem === link.id && (
-                      <div className="nav-dropdown">
-                        {navigationTabs[configKey!]?.map((tab) => {
-                          const isActive = location.state?.activeTab === tab.id;
-                          const IconComponent = iconMap[tab.icon];
-                          return (
-                            <button
-                              key={tab.id}
-                              onClick={() => {
-                                navigate(link.to, { state: { activeTab: tab.id } });
-                                setHoveredNavItem(null);
-                                setMenuOpen(false);
-                              }}
-                              className={`nav-dropdown-item ${isActive ? "nav-dropdown-item-active" : ""}`}
-                            >
-                              {IconComponent && (
-                                <IconComponent size={16} className="nav-dropdown-icon" />
-                              )}
-                              <span>{tab.label}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                    <NavDropdown
+                      items={navigationTabs[configKey!] || []}
+                      currentPath={link.to}
+                      isHovered={Boolean(hasDropdown && hoveredNavItem === link.id)}
+                      iconMap={iconMap}
+                      activeTabId={location.state?.activeTab as string}
+                      onSelect={(item) => {
+                        navigate(link.to, { state: { activeTab: item.id } });
+                        setHoveredNavItem(null);
+                        setMenuOpen(false);
+                      }}
+                    />
                   </li>
                 );
               })}
