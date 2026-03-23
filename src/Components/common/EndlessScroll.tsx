@@ -17,14 +17,17 @@ const EndlessScroll: React.FC<EndlessScrollProps> = ({
   threshold = 100,
   className = '',
 }) => {
-  const [isIntersecting, setIsIntersecting] = useState(false);
+  const [hasSeenBottom, setHasSeenBottom] = useState(false);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const targetRef = useRef<HTMLDivElement>(null);
 
   const handleIntersection = useCallback((entries: IntersectionObserverEntry[]) => {
     const [entry] = entries;
-    if (entry.isIntersecting && hasMore && !loading) {
-      onLoadMore();
+    if (entry.isIntersecting) {
+      setHasSeenBottom(true);
+      if (hasMore && !loading) {
+        onLoadMore();
+      }
     }
   }, [hasMore, loading, onLoadMore]);
 
@@ -68,7 +71,7 @@ const EndlessScroll: React.FC<EndlessScrollProps> = ({
           )}
         </div>
       )}
-      {!hasMore && !loading && children && (
+      {!hasMore && !loading && (React.Children.count(children) === 0 || hasSeenBottom) && (
         <div className="flex justify-center py-8 text-gray-500 text-sm">
           No more accounts
         </div>
