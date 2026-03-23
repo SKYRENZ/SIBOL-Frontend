@@ -238,9 +238,11 @@ const CreditScoreGauge: React.FC<CreditScoreGaugeProps> = ({
 
             {showGauge && showScore && (
               <div
-                className={`absolute ${config.scoreBubble} rounded-full bg-white border-2 text-center font-bold ${statusInfo.textColor} shadow-md flex items-center justify-center`}
+                className={`absolute ${config.scoreBubble} rounded-full bg-white text-center font-bold ${statusInfo.textColor} shadow-md flex items-center justify-center`}
                 style={{
-                  borderColor: statusInfo.color,
+                  borderWidth: '6px',
+                  borderStyle: 'solid',
+                  borderColor: '#059669',
                   left: dotX - config.scoreBubbleOffset,
                   top: dotY - config.scoreBubbleOffset,
                 }}
