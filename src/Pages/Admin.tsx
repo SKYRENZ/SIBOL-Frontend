@@ -16,8 +16,7 @@ import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
 import { Account } from '../types/adminTypes';
 import SuperAdminHeader from '../Components/SuperAdminHeader';
-import Pagination from '../Components/common/Pagination';
-import SnackBar from '../Components/common/SnackBar'; // ✅ add
+import SnackBar from '../Components/common/SnackBar';
 
 export default function Admin() {
   const dispatch = useDispatch<AppDispatch>();
@@ -58,20 +57,38 @@ export default function Admin() {
     }
   }, [tabParam]);
 
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const pageSize = 10;
 
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(accounts.length / pageSize) || 1),
-    [accounts.length, pageSize]
-  );
+  // Initialize allAccounts with fetched accounts
+  useEffect(() => {
+    if (accounts.length > 0) {
+      setAllAccounts(accounts);
+    }
+  }, [accounts]);
 
-  const paginatedAccounts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return accounts.slice(start, start + pageSize);
-  }, [accounts, currentPage, pageSize]);
+  // Update hasMore based on whether we have more accounts to show
+  useEffect(() => {
+    const totalShown = Math.min(currentPage * pageSize, allAccounts.length);
+    setHasMore(totalShown < allAccounts.length);
+  }, [currentPage, allAccounts.length]);
 
-  useEffect(() => setCurrentPage((prev) => Math.min(prev, totalPages)), [totalPages]);
+  const loadMoreAccounts = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    
+    // Simulate loading delay
+    setTimeout(() => {
+      setCurrentPage(prev => prev + 1);
+      setLoadingMore(false);
+    }, 1000);
+  };
+
+  // Get the accounts to display (paginated for infinite scroll)
+  const displayedAccounts = allAccounts.slice(0, currentPage * pageSize);
 
   // ✅ snackbar state (page-level, so it persists even when modals close)
   const [snackKey, setSnackKey] = useState(0);
@@ -185,27 +202,15 @@ export default function Admin() {
               <>
                 <div className="overflow-x-auto">
                   <AdminList
-                    accounts={paginatedAccounts}
+                    accounts={displayedAccounts}
                     barangays={barangays}
                     roles={roles}
                     onEdit={(a) => setEditingAccount(a)}
                     onToggleActive={onToggleActive}
                     onCreate={() => setCreating(true)}
-                  />
-                </div>
-
-                <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    pageSize={pageSize}
-                    totalItems={accounts.length} // UPDATE to use `accounts.length`
-                    onPageSizeChange={(newSize) => {
-                      setPageSize(newSize);
-                      setCurrentPage(1);
-                    }}
-                    fixed={false}
+                    hasMore={hasMore}
+                    loading={loadingMore}
+                    onLoadMore={loadMoreAccounts}
                   />
                 </div>
               </>
