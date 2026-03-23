@@ -7,6 +7,8 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
+import NavDropdown from "./common/NavDropdown";
+import navigationTabs from "../config/navigationTabs";
 import {
     getNotifications,
     markAllNotificationsRead,
@@ -14,6 +16,18 @@ import {
     type NotificationItem,
     type NotificationType,
 } from "../services/notificationService";
+import {
+    CheckCircle,
+    CheckCircle2,
+    ListTodo,
+} from "lucide-react";
+
+// Icon mapping
+const iconMap: { [key: string]: React.ComponentType<{ size: number; className: string }> } = {
+    CheckCircle,
+    CheckCircle2,
+    ListTodo,
+};
 
 const allLinks = [
     { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
@@ -36,8 +50,10 @@ const SuperAdminHeader: React.FC = () => {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [hoveredNavItem, setHoveredNavItem] = useState<number | null>(null);
 
     const profileRef = useRef<HTMLDivElement | null>(null);
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -146,6 +162,20 @@ const SuperAdminHeader: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Close nav dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(e.target as Node)
+            ) {
+                setHoveredNavItem(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const toggleMenu = () => setMenuOpen((prev) => !prev);
     const openNotifications = () => setNotificationsOpen(true);
     const closeNotifications = () => setNotificationsOpen(false);
@@ -226,20 +256,45 @@ const SuperAdminHeader: React.FC = () => {
                 </button>
 
                 <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
-                    <ul className="nav-links">
-                        {links.map((link) => (
-                            <li key={link.to}>
-                                <NavLink
-                                    to={link.to}
-                                    className={({ isActive }) =>
-                                        `nav-link ${isActive ? "active" : ""}`
-                                    }
-                                >
-                                    {link.label}
-                                </NavLink>
-                            </li>
-                        ))}
-                    </ul>
+                    <div className="nav-links-wrapper" ref={dropdownRef}>
+                        <ul className="nav-links">
+                            {links.map((link) => {
+                                // Check if this link has a dropdown configuration
+                                const hasDropdown = link.label === "User Management" && navigationTabs["admin"];
+
+                                return (
+                                    <li
+                                        key={link.to}
+                                        onMouseEnter={() => hasDropdown && setHoveredNavItem(link.id)}
+                                        onMouseLeave={() => hasDropdown && setHoveredNavItem(null)}
+                                        className="relative group"
+                                    >
+                                        <NavLink
+                                            to={link.to}
+                                            className={({ isActive }) =>
+                                                `nav-link ${isActive ? "active" : ""}`
+                                            }
+                                        >
+                                            {link.label}
+                                        </NavLink>
+
+                                        {/* DROPDOWN MENU - only show on desktop and when hovered */}
+                                        <NavDropdown
+                                            items={navigationTabs["admin"] || []}
+                                            currentPath={link.to}
+                                            isHovered={Boolean(hasDropdown && hoveredNavItem === link.id)}
+                                            iconMap={iconMap}
+                                            onSelect={(item) => {
+                                                navigate(`${link.to}?tab=${item.id}`);
+                                                setHoveredNavItem(null);
+                                                setMenuOpen(false);
+                                            }}
+                                        />
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
 
                     {/* RIGHT ICONS */}
                     <div className="nav-icons">

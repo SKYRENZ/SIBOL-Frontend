@@ -29,6 +29,10 @@ const navigationTabs: NavigationTabsConfig = {
     { id: "Process Panel", label: "Process Panel", icon: "Sliders" },
     { id: "Waste Container", label: "Waste Container", icon: "Trash2" },
   ],
+  admin: [
+    { id: "list", label: "List of Accounts", icon: "ListTodo" },
+    { id: "approval", label: "User Approval", icon: "CheckCircle2" },
+  ],
 };
 
 export default navigationTabs;

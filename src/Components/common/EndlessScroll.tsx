@@ -59,13 +59,18 @@ const EndlessScroll: React.FC<EndlessScrollProps> = ({
           {loading ? (
             <div className="flex items-center gap-2 text-gray-500">
               <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-              <span>Loading more machines...</span>
+              <span>Loading more accounts...</span>
             </div>
           ) : (
             <div className="text-gray-400 text-sm">
               Scroll down to load more
             </div>
           )}
+        </div>
+      )}
+      {!hasMore && !loading && children && (
+        <div className="flex justify-center py-8 text-gray-500 text-sm">
+          No more accounts
         </div>
       )}
     </div>
