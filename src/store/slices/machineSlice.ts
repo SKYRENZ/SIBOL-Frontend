@@ -83,7 +83,7 @@ export const createMachine = createAsyncThunk(
   'machine/createMachine',
   async ({ areaId, barangayId }: { areaId: number; barangayId?: number }, { rejectWithValue }) => {
     try {
-      const data = await machineService.createMachine(areaId, undefined, barangayId);
+      const data = await machineService.createMachine(areaId);
       return data;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to create machine');
@@ -96,7 +96,7 @@ export const updateMachine = createAsyncThunk(
   async (
     { machineId, updates }: { 
       machineId: number; 
-      updates: { name?: string; areaId?: number; status?: number } 
+      updates: { name?: string; areaId?: number; status?: number; operatorId?: number | null } 
     },
     { rejectWithValue }
   ) => {

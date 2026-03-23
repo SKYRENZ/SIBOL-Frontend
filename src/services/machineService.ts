@@ -1,4 +1,5 @@
 import { fetchJson } from './apiClient';
+import { Operator } from './operatorService';
 
 export interface Machine {
   machine_id: number;
@@ -7,6 +8,11 @@ export interface Machine {
   Area_Name: string;
   status_id: number | null;
   status_name: string | null;
+  operator_id: number | null;
+  operator_username?: string | null;
+  operator_account_id?: number | null;
+  operator_name?: string | null;
+  operator_profile_picture?: string | null;
   Updated_at?: string | null;
   updated_at?: string | null;
   Updated_by?: string | number | null;
@@ -37,9 +43,10 @@ export interface Area {
 }
 
 export interface UpdateMachineRequest {
-  name: string;
-  areaId: number;
+  name?: string;
+  areaId?: number;
   status?: number;
+  operatorId?: number | null;
 }
 
 // Get all machines
@@ -86,4 +93,10 @@ export const createArea = async (areaName: string, fullAddress: string): Promise
         body: JSON.stringify({ areaName, fullAddress }),
     });
     return data;
+};
+
+// Get operators for machine assignment
+export const getAllOperators = async (): Promise<Operator[]> => {
+  const data = await fetchJson('/api/operators');  
+  return data ?? [];
 };
