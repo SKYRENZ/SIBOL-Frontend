@@ -128,41 +128,101 @@ const MaintenanceForm: React.FC<MaintenanceFormProps> = (props) => {
         />
       </div>
 
-      <FormField
-        label={
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">
           <span className="flex items-center gap-2">
             <span>Priority</span>
             <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
           </span>
-        }
-        name="priority"
-        type="select"
-        value={formData.priority}
-        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
-        options={priorityOptions}
-      />
+        </label>
+        <select
+          name="priority"
+          value={formData.priority}
+          onChange={(e) => {
+            setFormData({ ...formData, priority: e.target.value });
+            if (formErrors.priority) {
+              const newErrors = { ...formErrors };
+              delete newErrors.priority;
+              setFormErrors(newErrors);
+            }
+          }}
+          className={`w-full px-3 py-2 rounded-md focus:outline-none ${
+            formErrors.priority
+              ? 'border-red-500 ring-1 ring-red-200'
+              : 'border border-gray-300 focus:ring-2 focus:ring-[#355842]'
+          }`}
+        >
+          <option value="">Select priority</option>
+          {priorityOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {formErrors.priority && (
+          <p className="mt-1 text-xs text-red-600">{formErrors.priority}</p>
+        )}
+      </div>
 
-      <DatePicker
-        label={
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">
           <span className="flex items-center gap-2">
             <span>Due Date</span>
             <span className="text-[#2E523A] text-sm font-medium">(Editable)</span>
           </span>
-        }
-        name="dueDate"
-        value={formData.dueDate}
-        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-      />
+        </label>
+        <div className={formErrors.dueDate ? 'ring-1 ring-red-200 rounded-md' : ''}>
+          <DatePicker
+            label=""
+            name="dueDate"
+            value={formData.dueDate}
+            onChange={(e) => {
+              setFormData({ ...formData, dueDate: e.target.value });
+              if (formErrors.dueDate) {
+                const newErrors = { ...formErrors };
+                delete newErrors.dueDate;
+                setFormErrors(newErrors);
+              }
+            }}
+          />
+        </div>
+        {formErrors.dueDate && (
+          <p className="mt-1 text-xs text-red-600">{formErrors.dueDate}</p>
+        )}
+      </div>
 
-      <FormField
-        label="Assign To *"
-        name="assignedTo"
-        type="select"
-        value={formData.assignedTo}
-        onChange={(e) => setFormData({ ...formData, assignedTo: e.target.value })}
-        options={assignedOptions}
-        required
-      />
+      <div className="space-y-1">
+        <label className="block text-sm font-medium text-gray-700">
+          Assign To *
+        </label>
+        <select
+          name="assignedTo"
+          value={formData.assignedTo}
+          onChange={(e) => {
+            setFormData({ ...formData, assignedTo: e.target.value });
+            if (formErrors.assignedTo) {
+              const newErrors = { ...formErrors };
+              delete newErrors.assignedTo;
+              setFormErrors(newErrors);
+            }
+          }}
+          className={`w-full px-3 py-2 rounded-md focus:outline-none ${
+            formErrors.assignedTo
+              ? 'border-red-500 ring-1 ring-red-200'
+              : 'border border-gray-300 focus:ring-2 focus:ring-[#355842]'
+          }`}
+        >
+          <option value="">Select operator</option>
+          {assignedOptions.map((opt) => (
+            <option key={opt.value} value={opt.value}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+        {formErrors.assignedTo && (
+          <p className="mt-1 text-xs text-red-600">{formErrors.assignedTo}</p>
+        )}
+      </div>
     </div>
   ) : null;
 
