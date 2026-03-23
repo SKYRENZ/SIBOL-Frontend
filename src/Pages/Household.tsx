@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Header from "../Components/Header";
 import AddRewardModal from "../Components/Household/addReward";
 import EditRewardModal from "../Components/Household/editReward";
-import HouseholdTabs from "../Components/Household/tabs";
 import SearchBar from "../Components/common/SearchBar";
 import ClaimedRewards from "../Components/Household/claimedReward";
 import RewardTab from "../Components/Household/reward";
@@ -19,12 +19,22 @@ interface RowData {
 }
 
 const Household: React.FC = () => {
-  const [activeTab, setActiveTab] = useState("reward");
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>(
+    (location.state?.activeTab as string) || "reward"
+  );
   const [refreshKey, setRefreshKey] = useState(0);
-  
+
   useEffect(() => {
     console.log("Household mounted");
   }, []);
+
+  // Update activeTab when location.state changes
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab as string);
+    }
+  }, [location.state?.activeTab]);
 
   useEffect(() => {
     console.log("activeTab ->", activeTab);
@@ -72,22 +82,9 @@ const Household: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      {/* Sub Navigation Bar */}
-      <div className="w-full bg-white shadow-sm">
-        <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
-        <div
-          className="subheader sticky top-[60px] z-30 w-full bg-white px-6 py-4 shadow-sm"
-          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
-        >
-          <div className="max-w-screen-2xl mx-auto">
-            <HouseholdTabs activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
-        </div>
-      </div>
 
       {/* Main Content */}
-      <div className="w-full px-6 py-8">
+      <div className="w-full px-6 py-8" style={{ paddingTop: 'var(--header-height-2xl)' }}>
         <div className="max-w-screen-2xl mx-auto">
           {activeTab === "reward" && (
             <div className="flex items-center justify-between gap-4 mb-6">

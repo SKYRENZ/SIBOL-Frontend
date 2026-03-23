@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from '../Components/Header';
 import type { Machine } from '../services/machineService';
 import type { Operator } from '../services/operatorService';
-import Tabs from '../Components/common/Tabs';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
 import Toast from '../Components/common/Toast';
@@ -28,10 +28,12 @@ import lilyImage from '../assets/images/lili.png';
 import stage3DrumImage from '../assets/images/Stage3Drum.png';
 
 const SibolMachinePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Machines');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>(
+    (location.state?.activeTab as string) || 'Machines'
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
 
   // Redux Hooks
   const user = useAppSelector(state => state.auth.user);
@@ -57,6 +59,13 @@ const SibolMachinePage: React.FC = () => {
   // Toast Hook
   const { toasts, addToast, removeToast } = useToast();
 
+  // Update activeTab when location.state changes
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab as string);
+    }
+  }, [location.state?.activeTab]);
+
   // Local form state
   const [formData, setFormData] = useState({
     area: '',
@@ -67,29 +76,6 @@ const SibolMachinePage: React.FC = () => {
   });
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
   const [operators, setOperators] = useState<Operator[]>([]);
-
-  const tabsConfig = [
-    { id: 'Machines', label: 'Machines' },
-    { id: 'Process Panel', label: 'Process Panel' },
-    { id: 'Waste Container', label: 'Waste Container' },
-  ];
-
-  // Header height calculation
-  useEffect(() => {
-    const update = () => {
-      const headerEl = document.querySelector('header.header') as HTMLElement | null;
-      if (!headerEl) {
-        setHeaderHeight(0);
-        return;
-      }
-      const style = getComputedStyle(headerEl);
-      const isFixed = style.position === 'fixed' || style.position === 'sticky';
-      setHeaderHeight(isFixed ? Math.ceil(headerEl.getBoundingClientRect().height) : 0);
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
 
   // Reset pagination on tab change
   useEffect(() => {
@@ -222,20 +208,8 @@ const SibolMachinePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <div className="w-full bg-white border-b">
-        <div style={{ height: `calc(${headerHeight}px)` }} aria-hidden />
-        <div
-          className="subheader sticky z-10 w-full bg-white px-6"
-          style={{ top: `calc(${headerHeight}px)` }}
-        >
-          <div className="max-w-screen-2xl mx-auto py-3">
-            <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
-        </div>
-      </div>
 
-      <div className="w-full px-6 py-8">
+      <div className="w-full px-6 py-8" style={{ paddingTop: 'var(--header-height-2xl)' }}>
         <div className="max-w-screen-2xl mx-auto">
           {renderContent()}
         </div>
