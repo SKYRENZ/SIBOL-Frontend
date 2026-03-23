@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Recycle, Zap } from 'lucide-react';
+import React, { useRef, useState } from 'react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 interface CarouselSlide {
   src: string;
@@ -16,13 +16,40 @@ interface FeaturesSectionProps {
 
 const FeaturesSection: React.FC<FeaturesSectionProps> = ({ slides }) => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const mainImageRef = useRef<HTMLImageElement | null>(null);
+
+  const animateMainImage = (direction: 'next' | 'prev') => {
+    const imageEl = mainImageRef.current;
+
+    if (!imageEl) return;
+
+    imageEl.animate(
+      [
+        {
+          opacity: 0.35,
+          transform: `translateX(${direction === 'next' ? '22px' : '-22px'}) scale(0.98)`
+        },
+        {
+          opacity: 1,
+          transform: 'translateX(0) scale(1)'
+        }
+      ],
+      {
+        duration: 420,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+        fill: 'both'
+      }
+    );
+  };
 
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % slides.length);
+    requestAnimationFrame(() => animateMainImage('next'));
   };
 
   const prevSlide = () => {
     setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+    requestAnimationFrame(() => animateMainImage('prev'));
   };
 
   const goToSlide = (index: number) => {
@@ -30,7 +57,7 @@ const FeaturesSection: React.FC<FeaturesSectionProps> = ({ slides }) => {
   };
 
   return (
-    <section className="py-8 sm:py-10 md:py-12 lg:py-10 px-3 sm:px-5 md:px-6 bg-[#E8F5E9] dark:bg-[#E8F5E9] snap-start scroll-mt-16">
+    <section id="features-section" className="py-8 sm:py-10 md:py-12 lg:py-10 px-3 sm:px-5 md:px-6 bg-[#E8F5E9] dark:bg-[#E8F5E9] snap-start scroll-mt-16">
       <div className="max-w-6xl mx-auto">
         <h2 className="mt-4 sm:mt-6 text-lg sm:text-xl md:text-2xl font-bold text-center text-gray-900 dark:text-gray-900 mb-2">
           Check Our Features
@@ -54,6 +81,7 @@ const FeaturesSection: React.FC<FeaturesSectionProps> = ({ slides }) => {
             {/* Main/Center card with text overlay */}
             <div className="relative w-[240px] sm:w-[340px] md:w-[440px] lg:w-[500px] h-[130px] sm:h-[170px] md:h-[210px] lg:h-[240px] rounded-[20px] sm:rounded-[24px] md:rounded-[28px] overflow-hidden shadow-2xl z-20 transition-all duration-500">
               <img
+                ref={mainImageRef}
                 src={slides[currentSlide].src}
                 alt={slides[currentSlide].alt}
                 className="w-full h-full object-cover"
@@ -84,17 +112,17 @@ const FeaturesSection: React.FC<FeaturesSectionProps> = ({ slides }) => {
               {/* Navigation Arrows */}
               <button
                 onClick={prevSlide}
-                className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-white/90 dark:bg-white/90 hover:bg-white dark:hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 z-30"
+                className="absolute left-2 sm:left-3 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 p-0 bg-[#2D5F2E] hover:bg-[#234A23] rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 z-30"
                 aria-label="Previous slide"
               >
-                <Recycle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-800 dark:text-gray-800" />
+                <ArrowLeft size={16} strokeWidth={2.75} color="#ffffff" />
               </button>
               <button
                 onClick={nextSlide}
-                className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 bg-white/90 dark:bg-white/90 hover:bg-white dark:hover:bg-white rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 z-30"
+                className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8 p-0 bg-[#2D5F2E] hover:bg-[#234A23] rounded-full flex items-center justify-center shadow-xl transition-all duration-300 hover:scale-110 z-30"
                 aria-label="Next slide"
               >
-                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-800 dark:text-gray-800" />
+                <ArrowRight size={16} strokeWidth={2.75} color="#ffffff" />
               </button>
             </div>
 

@@ -40,8 +40,8 @@ const HeroSection: React.FC<HeroSectionProps> = ({ trashBgSrc, onOpenGame }) => 
             </button>
             <button
               onClick={() => {
-                const howItWorksSection = document.getElementById('how-it-works');
-                howItWorksSection?.scrollIntoView({ behavior: 'smooth' });
+                const featuresSection = document.getElementById('features-section');
+                featuresSection?.scrollIntoView({ behavior: 'smooth' });
               }}
               className="px-5 sm:px-6 md:px-7 lg:px-8 py-2.5 sm:py-3 md:py-3.5 bg-white text-[#5F8D4E] border-2 border-[#5F8D4E] rounded-full font-semibold text-sm sm:text-base hover:bg-[#5F8D4E] hover:text-white transition-colors shadow-lg hover:shadow-xl"
             >
