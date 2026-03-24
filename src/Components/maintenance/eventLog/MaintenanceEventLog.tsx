@@ -213,6 +213,9 @@ const MaintenanceEventLog: React.FC<MaintenanceEventLogProps> = ({
 
     // Events as bookmarks (+ nested remarks/attachments if provided by API)
     events.forEach((event) => {
+      // Hide MESSAGE event bookmark in web timeline (keep notifications behavior)
+      if (String(event.Event_type || "").toUpperCase() === "MESSAGE") return;
+
       items.push({
         kind: "event",
         key: `event-${event.Event_Id}`,

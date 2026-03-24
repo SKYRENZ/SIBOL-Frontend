@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { AppDispatch, RootState } from '../store/store';
 import {
   fetchAdminData,
@@ -15,11 +16,11 @@ import AdminForm from '../Components/admin/AdminForm';
 import UserApproval from '../Components/admin/UserApproval';
 import { Account } from '../types/adminTypes';
 import SuperAdminHeader from '../Components/SuperAdminHeader';
-import Pagination from '../Components/common/Pagination';
-import SnackBar from '../Components/common/SnackBar'; // ✅ add
+import SnackBar from '../Components/common/SnackBar';
 
 export default function Admin() {
   const dispatch = useDispatch<AppDispatch>();
+  const [searchParams] = useSearchParams();
   const {
     accounts,
     pendingAccounts,
@@ -39,21 +40,55 @@ export default function Admin() {
 
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [creating, setCreating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'list' | 'approval'>('list');
+
+  // Get tab from query parameter or default to 'list'
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState<'list' | 'approval'>(() => {
+    if (tabParam === 'list' || tabParam === 'approval') {
+      return tabParam;
+    }
+    return 'list';
+  });
+
+  // Update activeTab when query parameter changes
+  useEffect(() => {
+    if (tabParam === 'list' || tabParam === 'approval') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [allAccounts, setAllAccounts] = useState<Account[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(5);
+  const pageSize = 10;
 
-  const totalPages = useMemo(
-    () => Math.max(1, Math.ceil(accounts.length / pageSize) || 1),
-    [accounts.length, pageSize]
-  );
+  // Initialize allAccounts with fetched accounts
+  useEffect(() => {
+    if (accounts.length > 0) {
+      setAllAccounts(accounts);
+    }
+  }, [accounts]);
 
-  const paginatedAccounts = useMemo(() => {
-    const start = (currentPage - 1) * pageSize;
-    return accounts.slice(start, start + pageSize);
-  }, [accounts, currentPage, pageSize]);
+  // Update hasMore based on whether we have more accounts to show
+  useEffect(() => {
+    const totalShown = Math.min(currentPage * pageSize, allAccounts.length);
+    setHasMore(totalShown < allAccounts.length);
+  }, [currentPage, allAccounts.length]);
 
-  useEffect(() => setCurrentPage((prev) => Math.min(prev, totalPages)), [totalPages]);
+  const loadMoreAccounts = async () => {
+    if (loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    
+    // Simulate loading delay
+    setTimeout(() => {
+      setCurrentPage(prev => prev + 1);
+      setLoadingMore(false);
+    }, 1000);
+  };
+
+  // Get the accounts to display (paginated for infinite scroll)
+  const displayedAccounts = allAccounts.slice(0, currentPage * pageSize);
 
   // ✅ snackbar state (page-level, so it persists even when modals close)
   const [snackKey, setSnackKey] = useState(0);
@@ -152,57 +187,12 @@ export default function Admin() {
   return (
     <>
       <SuperAdminHeader />
-      <div className="w-full bg-white">
+      <div className="w-full">
         {/* spacer to avoid header overlap */}
         <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
 
-        {/* SUBHEADER */}
-        <div
-          className="subheader sticky z-30 w-full bg-white px-4 sm:px-6 py-3 sm:py-4 shadow-sm"
-          style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
-        >
-          <div className="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-            {/* Tabs */}
-            <nav
-              className="flex flex-wrap items-center justify-center sm:justify-start gap-3 sm:gap-5"
-              role="tablist"
-              aria-label="Admin tabs"
-            >
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'list'}
-                onClick={() => setActiveTab('list')}
-                className={`text-lg sm:text-xl px-3 sm:px-4 py-2 font-medium bg-transparent transition-colors duration-150
-                ${activeTab === 'list'
-                    ? 'text-sibol-green font-semibold underline underline-offset-4'
-                    : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'
-                  }`}
-              >
-                List of Accounts
-              </button>
-
-              <button
-                type="button"
-                role="tab"
-                aria-selected={activeTab === 'approval'}
-                onClick={() => setActiveTab('approval')}
-                className={`flex items-center gap-2 text-lg sm:text-xl px-3 sm:px-4 py-2 font-medium bg-transparent transition-colors duration-150
-                ${activeTab === 'approval'
-                    ? 'text-sibol-green font-semibold underline underline-offset-4'
-                    : 'text-sibol-green/70 hover:font-semibold hover:text-sibol-green'
-                  }`}
-              >
-                User Approval
-                <span className="chip chip-rose ml-1 text-xs">{pendingCount}</span>
-              </button>
-            </nav>
-
-          </div>
-        </div>
-
         {/* MAIN CONTENT */}
-        <div className="w-full bg-white mt-3">
+        <div className="w-full mt-3">
           <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
 
             {loading && <div className="text-sm text-gray-600">Loading...</div>}
@@ -212,27 +202,15 @@ export default function Admin() {
               <>
                 <div className="overflow-x-auto">
                   <AdminList
-                    accounts={paginatedAccounts}
+                    accounts={displayedAccounts}
                     barangays={barangays}
                     roles={roles}
                     onEdit={(a) => setEditingAccount(a)}
                     onToggleActive={onToggleActive}
                     onCreate={() => setCreating(true)}
-                  />
-                </div>
-
-                <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    pageSize={pageSize}
-                    totalItems={accounts.length} // UPDATE to use `accounts.length`
-                    onPageSizeChange={(newSize) => {
-                      setPageSize(newSize);
-                      setCurrentPage(1);
-                    }}
-                    fixed={false}
+                    hasMore={hasMore}
+                    loading={loadingMore}
+                    onLoadMore={loadMoreAccounts}
                   />
                 </div>
               </>

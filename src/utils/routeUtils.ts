@@ -4,5 +4,6 @@ export function getLandingRoute(user?: any): string {
 
   if (roleNum === 5) return '/superadmin-dashboard';
   if (roleNum === 1) return '/admin-dashboard';
+  if (roleNum === 3) return '/operator-emergency';
   return '/dashboard';
 }

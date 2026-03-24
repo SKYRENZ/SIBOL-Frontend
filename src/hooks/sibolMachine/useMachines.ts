@@ -43,11 +43,11 @@ export const useMachines = () => {
   // Update existing machine
   const editMachine = async (
     machineId: number,
-    updates: { name?: string; areaId?: number; status?: number }
+    updates: { name?: string; areaId?: number; status?: number; operatorId?: number | null }
   ) => {
     try {
       await dispatch(updateMachine({ machineId, updates })).unwrap();
-      // Refetch machines to get all fields including updated status_name
+      // Refetch machines to get all fields including updated status_name and operator info
       await dispatch(fetchMachines()).unwrap();
       return { success: true, error: null };
     } catch (error: any) {

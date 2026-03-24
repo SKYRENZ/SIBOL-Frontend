@@ -1,5 +1,4 @@
 import React from 'react';
-import Pagination from '../common/Pagination';
 
 import type { Machine } from '../../services/machineService';
 
@@ -7,13 +6,6 @@ interface MachineTabProps {
   machines: Machine[];
   loading: boolean;
   error: string | null;
-  pagination: {
-    currentPage: number;
-    pageSize: number;
-    totalItems: number;
-    onPageChange: (page: number) => void;
-    onPageSizeChange: (size: number) => void;
-  };
   onEdit: (machine: Machine) => void;
   onAdd: () => void;
   filterTypes?: string[]; // ✅ Added
@@ -23,15 +15,10 @@ const MachineTab: React.FC<MachineTabProps> = ({
   machines,
   loading, 
   error, 
-  pagination, 
   onEdit,
   onAdd,
 }) => {
   const stage3DrumImage = new URL('../../assets/images/Stage3Drum.png', import.meta.url).href;
-  const totalPages = Math.max(1, Math.ceil(machines.length / pagination.pageSize));
-  const currentPage = Math.min(Math.max(1, pagination.currentPage), totalPages);
-  const startIndex = (currentPage - 1) * pagination.pageSize;
-  const paginatedMachines = machines.slice(startIndex, startIndex + pagination.pageSize);
 
   const getStatusBadgeClass = (statusName?: string) => {
     const status = statusName?.toLowerCase();
@@ -83,9 +70,8 @@ const MachineTab: React.FC<MachineTabProps> = ({
           No machines found. Click &apos;Add Machine&apos; to create one.
         </div>
       ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginatedMachines.map((machine) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {machines.map((machine) => (
                 <div
                   key={machine.machine_id}
                   className={`border-2 rounded-xl p-4 shadow-lg hover:shadow-2xl transition-all duration-300 bg-white hover:scale-105 cursor-pointer ${getCardBorderClass(machine.status_name)}`}
@@ -94,7 +80,7 @@ const MachineTab: React.FC<MachineTabProps> = ({
                     <img
                       src={stage3DrumImage}
                       alt="Stage 3 Drum"
-                      className="w-28 h-28 object-contain flex-shrink-0"
+                      className="w-32 h-32 object-contain flex-shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-sm text-gray-500">Machine #{machine.machine_id}</p>
@@ -105,37 +91,51 @@ const MachineTab: React.FC<MachineTabProps> = ({
                           <span className="font-medium text-gray-800">Area: </span>
                           {machine.Area_Name || `Area ${machine.Area_id}`}
                         </p>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-800">Operator: </span>
+                          {machine.operator_name ? (
+                            machine.operator_profile_picture ? (
+                              <div className="flex items-center gap-2">
+                                <img
+                                  src={machine.operator_profile_picture}
+                                  alt={machine.operator_name}
+                                  className="w-6 h-6 rounded-full object-cover border border-gray-300"
+                                />
+                                <span className="text-gray-600">{machine.operator_name}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 rounded-full bg-gray-300 border border-gray-400 flex items-center justify-center">
+                                  <span className="text-xs text-gray-600 font-medium">
+                                    {machine.operator_name.charAt(0).toUpperCase()}
+                                  </span>
+                                </div>
+                                <span className="text-gray-600">{machine.operator_name}</span>
+                              </div>
+                            )
+                          ) : (
+                            <span className="text-gray-500">N/A</span>
+                          )}
+                        </div>
                         <p>
                           <span className={`px-2 py-1 text-xs rounded-full capitalize ${getStatusBadgeClass(machine.status_name)}`}>
                             {machine.status_name || 'No Status'}
                           </span>
                         </p>
                       </div>
-
-                      <button
-                        onClick={() => onEdit(machine)}
-                        className="w-full bg-[#2E523A] hover:bg-[#3b6b4c] text-white px-4 py-2 rounded-full text-xs font-medium transition-all duration-200 focus:outline-none"
-                      >
-                        Edit
-                      </button>
+                      <div className="mt-4">
+                        <button
+                          onClick={() => onEdit(machine)}
+                          className="w-full px-4 py-2 text-sm font-medium text-white bg-green-700 rounded-full hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                        >
+                          Edit
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               ))}
             </div>
-
-            <div className="fixed bottom-0 left-0 right-0 z-10">
-              <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={pagination.onPageChange}
-                pageSize={pagination.pageSize}
-                totalItems={machines.length}
-                onPageSizeChange={pagination.onPageSizeChange}
-                fixed={false}
-              />
-            </div>
-          </>
         )}
     </div>
   );

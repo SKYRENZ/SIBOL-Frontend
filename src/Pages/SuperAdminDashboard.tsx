@@ -79,7 +79,7 @@ export default function SuperAdminDashboard() {
   return (
     <>
       <SuperAdminHeader />
-      <div className="w-full bg-white">
+      <div className="w-full">
         {/* spacer to avoid header overlap */}
         <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
 

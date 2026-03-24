@@ -6,7 +6,20 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
-import { CircleQuestionMark } from "lucide-react";
+import NavDropdown from "./common/NavDropdown";
+import {
+  CircleQuestionMark,
+  Trophy,
+  Gift,
+  CheckCircle,
+  Plus,
+  Clock,
+  CheckCircle2,
+  Cpu,
+  Sliders,
+  Trash2,
+} from "lucide-react";
+import navigationTabs from "../config/navigationTabs";
 import {
   getNotifications,
   markAllNotificationsRead,
@@ -14,6 +27,19 @@ import {
   type NotificationItem,
   type NotificationType,
 } from "../services/notificationService";
+
+// Icon mapping
+const iconMap: { [key: string]: React.ComponentType<{ size: number; className: string }> } = {
+  Trophy,
+  Gift,
+  CheckCircle,
+  Plus,
+  Clock,
+  CheckCircle2,
+  Cpu,
+  Sliders,
+  Trash2,
+};
 
 const allLinks = [
   { id: 1, to: "/dashboard", label: "Dashboard" },
@@ -33,8 +59,10 @@ const Header: React.FC = () => {
   const [profileModalOpen, setProfileModalOpen] = useState(false);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false); // <-- added
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [hoveredNavItem, setHoveredNavItem] = useState<number | null>(null);
 
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -143,6 +171,20 @@ const Header: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // close nav dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setHoveredNavItem(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const toggleMenu = () => setMenuOpen((prev) => !prev);
   const openNotifications = () => setNotificationsOpen(true);
   const closeNotifications = () => setNotificationsOpen(false);
@@ -154,14 +196,18 @@ const Header: React.FC = () => {
   return (
     <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
       <nav className="nav">
-        {user?.Barangay_Name && (
-          <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
-        )}
-        <img
-          className="nav-logo"
-          src={new URL("../assets/images/collection.png", import.meta.url).href}
-          alt="SIBOL"
-        />
+        {/* LEFT SECTION: Barangay + Logo */}
+        <div className="flex items-center gap-2 mr-12">
+          {user?.Barangay_Name && (
+            <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide">{user.Barangay_Name}</span>
+          )}
+
+          <img
+            className="nav-logo"
+            src={new URL("../assets/images/collection.png", import.meta.url).href}
+            alt="SIBOL"
+          />
+        </div>
 
         <button
           type="button"
@@ -175,36 +221,74 @@ const Header: React.FC = () => {
           <span />
         </button>
 
+        {/* MIDDLE SECTION: Navigation Links */}
         <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
-          <ul className="nav-links">
-            {links.map((link) => (
-              <li key={link.to}>
-                <NavLink
-                  to={link.to}
-                  className={({ isActive }) =>
-                    `nav-link text-sm lg:text-base ${isActive ? "active" : ""} ${
-                      link.to === "/dashboard" ? "tour-dashboard" : ""
-                    } ${
-                      link.to === "/sibol-machines" ? "tour-sibol" : ""
-                    } ${
-                      link.to === "/maintenance" ? "tour-maintenance" : ""
-                    } ${
-                      link.to === "/household" ? "tour-household" : ""
-                    } ${
-                      link.to === "/chat-support" ? "tour-chat" : ""
-                    } ${
-                      link.to === "/admin" ? "tour-admin" : ""
-                    }`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
+          <div className="nav-links-wrapper" ref={dropdownRef}>
+            <ul className="nav-links">
+              {links.map((link) => {
+                // Get the config key for this navigation item
+                const configKey =
+                  link.to === "/household"
+                    ? "household"
+                    : link.to === "/maintenance"
+                      ? "maintenance"
+                      : link.to === "/sibol-machines"
+                        ? "sibol-machines"
+                        : null;
 
-          {/* RIGHT ICONS */}
-          <div className="nav-icons">
+                const hasDropdown = configKey && navigationTabs[configKey];
+
+                return (
+                  <li
+                    key={link.to}
+                    onMouseEnter={() => hasDropdown && setHoveredNavItem(link.id)}
+                    onMouseLeave={() => hasDropdown && setHoveredNavItem(null)}
+                    className="relative group"
+                  >
+                    <NavLink
+                      to={link.to}
+                      state={location.pathname === link.to ? { activeTab: location.state?.activeTab } : undefined}
+                      className={({ isActive }) =>
+                        `nav-link text-sm lg:text-base ${isActive ? "active" : ""} ${
+                          link.to === "/dashboard" ? "tour-dashboard" : ""
+                        } ${
+                          link.to === "/sibol-machines" ? "tour-sibol" : ""
+                        } ${
+                          link.to === "/maintenance" ? "tour-maintenance" : ""
+                        } ${
+                          link.to === "/household" ? "tour-household" : ""
+                        } ${
+                          link.to === "/chat-support" ? "tour-chat" : ""
+                        } ${
+                          link.to === "/admin" ? "tour-admin" : ""
+                        }`
+                      }
+                    >
+                      {link.label}
+                    </NavLink>
+
+                    {/* DROPDOWN MENU - only show on desktop and when hovered */}
+                    <NavDropdown
+                      items={navigationTabs[configKey!] || []}
+                      currentPath={link.to}
+                      isHovered={Boolean(hasDropdown && hoveredNavItem === link.id)}
+                      iconMap={iconMap}
+                      activeTabId={location.state?.activeTab as string}
+                      onSelect={(item) => {
+                        navigate(link.to, { state: { activeTab: item.id } });
+                        setHoveredNavItem(null);
+                        setMenuOpen(false);
+                      }}
+                    />
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        </div>
+
+        {/* RIGHT SECTION: Icons */}
+        <div className="nav-icons">
 
             {/* TOUR GUIDE */}
           <button
@@ -296,7 +380,6 @@ const Header: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
       </nav>
 
       <NotificationsModal

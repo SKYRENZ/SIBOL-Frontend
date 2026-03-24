@@ -137,6 +137,9 @@
 ========================================================== */
 :root {
   --sibol-green: #2E523A;
+  --header-height-3xl: 112px;
+  --header-height-2xl: 96px;
+  --header-height-xl: 80px;
   --header-height-lg: 72px;
   --header-height-md: 68px;
   --header-height-sm: 64px;
@@ -241,6 +244,19 @@ input:-webkit-autofill:active {
    COMPONENTS 
 ========================================================== */
 @layer components {
+  /* Carousel indicator dots - override global button styles */
+  .carousel-dot {
+    @apply h-1 rounded-full transition-all duration-300 p-0 border-none;
+  }
+
+  .carousel-dot.active {
+    @apply bg-[#2D5F2E] w-10;
+  }
+
+  .carousel-dot.inactive {
+    @apply bg-gray-400 w-5 hover:bg-gray-500 hover:w-7;
+  }
+
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 font-sans;
   }
@@ -298,8 +314,17 @@ input:-webkit-autofill:active {
   .menu-toggle span { @apply block w-[18px] h-[2px] bg-white rounded-full transition; }
 
   .nav-links { @apply flex gap-[36px] list-none m-0 p-0; }
-  .nav-icons { @apply flex items-center gap-[28px]; }
+  .nav-links li { position: relative; }
+  .nav-links li:has(.nav-dropdown)::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 0.5rem;
+  }
   .nav-menu { @apply flex items-center gap-[36px]; }
+  .nav-icons { @apply flex items-center gap-[28px] ml-auto; }
 
   .nav-link {
     @apply text-[#d1d1d1] text-lg font-normal no-underline transition-colors font-sans;
@@ -307,12 +332,41 @@ input:-webkit-autofill:active {
   .nav-link:hover { @apply text-white; }
   .nav-link.active { @apply font-normal text-white border-b-2 border-white pb-1; }
 
+  /* Navigation dropdown menu */
+  .nav-dropdown {
+    @apply absolute top-full left-0 mt-2 bg-white shadow-lg border border-gray-100 z-50 overflow-hidden min-w-[170px];
+    animation: slideDown 0.2s ease forwards;
+    border-radius: 0 8px 8px 8px;
+  }
+
+  .nav-dropdown-item {
+    @apply w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-[#e8f0e8] transition font-sans border-none bg-transparent cursor-pointer flex items-center gap-2;
+    border-left: 3px solid transparent;
+    border-radius: 0;
+  }
+
+  .nav-dropdown-item-active {
+    @apply bg-[#D9EBD9] text-sibol-green font-semibold;
+    border-left-color: #2E523A;
+    border-radius: 0;
+  }
+
+  .nav-dropdown-icon {
+    @apply flex-shrink-0;
+  }
+
   .icon { @apply w-6 h-6 text-white cursor-pointer transition-opacity; }
   .icon:hover { @apply opacity-80; }
+
+  /* Content padding to account for fixed header */
+  .pt-header {
+    padding-top: var(--header-height-lg);
+  }
 
   /* RESPONSIVE */
   @media (max-width: 1024px) {
     :root { --header-height: var(--header-height-md); }
+    .pt-header { padding-top: var(--header-height-md); }
     .header { padding: 14px 34px; }
     .nav-links { @apply gap-3 text-[17px]; }
     .nav-icons { @apply gap-[26px]; }
@@ -323,6 +377,7 @@ input:-webkit-autofill:active {
 
   @media (max-width: 768px) {
     :root { --header-height: var(--header-height-sm); }
+    .pt-header { padding-top: var(--header-height-sm); }
     .nav { @apply flex-wrap gap-4 justify-between; }
     .menu-toggle { @apply flex; }
     .nav-menu { @apply w-full bg-[#2c4b31] rounded-xl flex-col gap-4 p-3 hidden; animation: slideDown 0.2s ease forwards; }
@@ -337,6 +392,7 @@ input:-webkit-autofill:active {
 
   @media (max-width: 480px) {
     :root { --header-height: var(--header-height-xs); }
+    .pt-header { padding-top: var(--header-height-xs); }
     .header { padding: 12px 22px; }
     .nav { @apply flex-wrap gap-3; }
     .nav-links { @apply w-full flex-col gap-2 text-xs; }

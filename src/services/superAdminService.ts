@@ -58,3 +58,31 @@ export const fetchBarangays = async (): Promise<Barangay[]> => {
   const payload = res.data ?? {};
   return asArray(payload.barangays ?? payload.data ?? payload) as Barangay[];
 };
+
+export const fetchAvailableBarangays = async (): Promise<{ barangayId: number; barangayName: string }[]> => {
+  const res = await api.get('/api/superadmin/barangays/available');
+  const payload = res.data ?? {};
+  if (payload.success === false) throw new Error(payload.error || 'Failed to fetch available barangays');
+  return asArray(payload.available ?? payload.data ?? payload);
+};
+
+export const fetchInactiveBarangays = async (): Promise<Barangay[]> => {
+  const res = await api.get('/api/superadmin/barangays/inactive');
+  const payload = res.data ?? {};
+  if (payload.success === false) throw new Error(payload.error || 'Failed to fetch inactive barangays');
+  return asArray(payload.barangays ?? payload.data ?? payload) as Barangay[];
+};
+
+export const activateBarangay = async (barangayId: number): Promise<any> => {
+  const res = await api.post(`/api/superadmin/barangays/${barangayId}/activate`);
+  const payload = (res.data as any) ?? {};
+  if (payload.success === false) throw new Error(payload.error || 'Failed to activate barangay');
+  return payload.barangay ?? payload.data ?? payload;
+};
+
+export const deactivateBarangay = async (barangayId: number): Promise<any> => {
+  const res = await api.patch(`/api/superadmin/barangays/${barangayId}/deactivate`);
+  const payload = (res.data as any) ?? {};
+  if (payload.success === false) throw new Error(payload.error || 'Failed to deactivate barangay');
+  return payload;
+};

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import Header from '../Components/Header';
 import type { Machine } from '../services/machineService';
-import Tabs from '../Components/common/Tabs';
+import type { Operator } from '../services/operatorService';
 import FormModal from '../Components/common/FormModal';
 import FormField from '../Components/common/FormField';
 import Toast from '../Components/common/Toast';
@@ -10,6 +11,7 @@ import MachineTab from '../Components/SibolMachine/MachineTab';
 import AddWasteContainerForm from '../Components/SibolMachine/AddWasteContainerForm';
 import ProcessPanelTab from '../Components/SibolMachine/ProcessPanelTab';
 import type { CreateContainerRequest } from '../services/wasteContainerService';
+import { getAllOperators } from '../services/machineService';
 import "../tailwind.css";
 
 // Custom Hooks
@@ -26,10 +28,12 @@ import lilyImage from '../assets/images/lili.png';
 import stage3DrumImage from '../assets/images/Stage3Drum.png';
 
 const SibolMachinePage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState('Machines');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>(
+    (location.state?.activeTab as string) || 'Machines'
+  );
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
-  const [headerHeight, setHeaderHeight] = useState<number>(0);
 
   // Redux Hooks
   const user = useAppSelector(state => state.auth.user);
@@ -55,37 +59,23 @@ const SibolMachinePage: React.FC = () => {
   // Toast Hook
   const { toasts, addToast, removeToast } = useToast();
 
+  // Update activeTab when location.state changes
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab as string);
+    }
+  }, [location.state?.activeTab]);
+
   // Local form state
   const [formData, setFormData] = useState({
     area: '',
     startDate: '',
     name: '',
     status: '',
+    operator: '',
   });
   const [editingMachine, setEditingMachine] = useState<Machine | null>(null);
-
-  const tabsConfig = [
-    { id: 'Machines', label: 'Machines' },
-    { id: 'Process Panel', label: 'Process Panel' },
-    { id: 'Waste Container', label: 'Waste Container' },
-  ];
-
-  // Header height calculation
-  useEffect(() => {
-    const update = () => {
-      const headerEl = document.querySelector('header.header') as HTMLElement | null;
-      if (!headerEl) {
-        setHeaderHeight(0);
-        return;
-      }
-      const style = getComputedStyle(headerEl);
-      const isFixed = style.position === 'fixed' || style.position === 'sticky';
-      setHeaderHeight(isFixed ? Math.ceil(headerEl.getBoundingClientRect().height) : 0);
-    };
-    update();
-    window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
-  }, []);
+  const [operators, setOperators] = useState<Operator[]>([]);
 
   // Reset pagination on tab change
   useEffect(() => {
@@ -99,7 +89,7 @@ const SibolMachinePage: React.FC = () => {
 
   // Open Add Modal
   const handleOpenAddModal = () => {
-    setFormData({ area: '', startDate: '', name: '', status: '' });
+    setFormData({ area: '', startDate: '', name: '', status: '', operator: '' });
     setEditingMachine(null);
     refresh(); // Refetch areas with barangay data
     openModal('add');
@@ -113,8 +103,21 @@ const SibolMachinePage: React.FC = () => {
       startDate: '',
       name: machine.Name,
       status: machine.status_id?.toString() || '',
+      operator: machine.operator_id?.toString() || '',
     });
+    // Load operators for selection
+    loadOperators();
     openModal('edit');
+  };
+
+  // Load operators
+  const loadOperators = async () => {
+    try {
+      const operatorsData = await getAllOperators();
+      setOperators(operatorsData);
+    } catch (error) {
+      console.error('Failed to load operators:', error);
+    }
   };
 
   // Update form field
@@ -126,7 +129,8 @@ const SibolMachinePage: React.FC = () => {
   const hasFormDataChanged = editingMachine && (
     formData.name !== editingMachine.Name ||
     formData.area !== editingMachine.Area_id.toString() ||
-    formData.status !== (editingMachine.status_id?.toString() || '')
+    formData.status !== (editingMachine.status_id?.toString() || '') ||
+    formData.operator !== (editingMachine.operator_id?.toString() || '')
   );
 
   // Handle Machine Form Submit
@@ -139,6 +143,7 @@ const SibolMachinePage: React.FC = () => {
         name: formData.name?.trim() || editingMachine.Name,
         areaId: parseInt(formData.area),
         status: formData.status ? parseInt(formData.status) : undefined,
+        operatorId: formData.operator ? parseInt(formData.operator) : null,
       });
 
       if (result.success) {
@@ -184,13 +189,6 @@ const SibolMachinePage: React.FC = () => {
             error={machinesError}
             onEdit={handleEditMachine}
             onAdd={handleOpenAddModal}
-            pagination={{
-              currentPage,
-              pageSize,
-              totalItems: machines.length,
-              onPageChange: setCurrentPage,
-              onPageSizeChange: handlePageSizeChange,
-            }}
             filterTypes={['machine-status', 'area']}
           />
         );
@@ -210,20 +208,8 @@ const SibolMachinePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       <Header />
-      
-      <div className="w-full bg-white border-b">
-        <div style={{ height: `calc(${headerHeight}px)` }} aria-hidden />
-        <div
-          className="subheader sticky z-10 w-full bg-white px-6"
-          style={{ top: `calc(${headerHeight}px)` }}
-        >
-          <div className="max-w-screen-2xl mx-auto py-3">
-            <Tabs tabs={tabsConfig} activeTab={activeTab} onTabChange={setActiveTab} />
-          </div>
-        </div>
-      </div>
 
-      <div className="w-full px-6 py-8">
+      <div className="w-full px-6 py-8" style={{ paddingTop: 'var(--header-height-2xl)' }}>
         <div className="max-w-screen-2xl mx-auto">
           {renderContent()}
         </div>
@@ -282,83 +268,104 @@ const SibolMachinePage: React.FC = () => {
             )}
 
             {modals.edit && (
-              <div className="space-y-4">
-                <FormField
-                  label="Machine Name"
-                  name="name"
-                  type="text"
-                  placeholder="e.g., SIBOL-M-001"
-                  value={formData.name}
-                  onChange={(e) => updateFormField('name', e.target.value)}
-                />
-                <FormField
-                  label="Area"
-                  name="area"
-                  type="select"
-                  value={formData.area}
-                  onChange={(e) => updateFormField('area', e.target.value)}
-                  options={areas.map((area) => ({
-                    value: area.Area_id.toString(),
-                    label: area.Area_Name
-                  }))}
-                  selectSize={5}
-                />
-                <FormField
-                  label="Status"
-                  name="status"
-                  type="button-grid-select"
-                  value={formData.status}
-                  onChange={(e) => updateFormField('status', e.target.value)}
-                  options={machineStatuses.map((s) => ({
-                    value: s.Mach_status_id.toString(),
-                    label: s.Status
-                  }))}
-                  colorMap={Object.fromEntries(
-                    machineStatuses.map((s) => {
-                      const status = s.Status?.toLowerCase();
-                      let colors;
-                      if (status === 'active') {
-                        colors = {
-                          bg: 'bg-green-50',
-                          border: 'border-green-300',
-                          gradient: 'bg-green-100',
-                          selectedGradient: 'bg-green-500',
-                          selectedBorder: 'border-green-600'
-                        };
-                      } else if (status === 'inactive') {
-                        colors = {
-                          bg: 'bg-red-50',
-                          border: 'border-red-300',
-                          gradient: 'bg-red-100',
-                          selectedGradient: 'bg-red-500',
-                          selectedBorder: 'border-red-600'
-                        };
-                      } else if (status === 'under maintenance') {
-                        colors = {
-                          bg: 'bg-yellow-50',
-                          border: 'border-yellow-300',
-                          gradient: 'bg-yellow-100',
-                          selectedGradient: 'bg-yellow-500',
-                          selectedBorder: 'border-yellow-600'
-                        };
-                      } else {
-                        colors = {
-                          bg: 'bg-gray-50',
-                          border: 'border-gray-300',
-                          gradient: 'bg-gray-100',
-                          selectedGradient: 'bg-gray-500',
-                          selectedBorder: 'border-gray-600'
-                        };
-                      }
-                      return [s.Mach_status_id.toString(), colors];
-                    })
-                  )}
-                />
-                <div className="flex justify-center pt-2">
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 gap-6">
+                  <div className="space-y-4">
+                    <FormField
+                      label="Machine Name"
+                      name="name"
+                      type="text"
+                      placeholder="e.g., SIBOL-M-001"
+                      value={formData.name}
+                      onChange={(e) => updateFormField('name', e.target.value)}
+                    />
+                    <FormField
+                      label="Area"
+                      name="area"
+                      type="select"
+                      value={formData.area}
+                      onChange={(e) => updateFormField('area', e.target.value)}
+                      options={areas.map((area) => ({
+                        value: area.Area_id.toString(),
+                        label: area.Area_Name
+                      }))}
+                      selectSize={5}
+                    />
+                  </div>
+                  <div className="space-y-4">
+                    <FormField
+                      label="Assigned Operator"
+                      name="operator"
+                      type="select"
+                      value={formData.operator}
+                      onChange={(e) => updateFormField('operator', e.target.value)}
+                      options={[
+                        { value: '', label: 'No Operator Assigned' },
+                        ...operators.map((operator) => ({
+                          value: operator.Account_id.toString(),
+                          label: `${operator.First_name || operator.Username} ${operator.Last_name || ''}`.trim() || operator.Username
+                        }))
+                      ]}
+                      selectSize={5}
+                    />
+                    <FormField
+                      label="Status"
+                      name="status"
+                      type="button-grid-select"
+                      value={formData.status}
+                      onChange={(e) => updateFormField('status', e.target.value)}
+                      options={machineStatuses.map((s) => ({
+                        value: s.Mach_status_id.toString(),
+                        label: s.Status
+                      }))}
+                      colorMap={Object.fromEntries(
+                        machineStatuses.map((s) => {
+                          const status = s.Status?.toLowerCase();
+                          let colors;
+                          if (status === 'active') {
+                            colors = {
+                              bg: 'bg-green-50',
+                              border: 'border-green-300',
+                              gradient: 'bg-green-100',
+                              selectedGradient: 'bg-green-500',
+                              selectedBorder: 'border-green-600'
+                            };
+                          } else if (status === 'inactive') {
+                            colors = {
+                              bg: 'bg-red-50',
+                              border: 'border-red-300',
+                              gradient: 'bg-red-100',
+                              selectedGradient: 'bg-red-500',
+                              selectedBorder: 'border-red-600'
+                            };
+                          } else if (status === 'under maintenance') {
+                            colors = {
+                              bg: 'bg-yellow-50',
+                              border: 'border-yellow-300',
+                              gradient: 'bg-yellow-100',
+                              selectedGradient: 'bg-yellow-500',
+                              selectedBorder: 'border-yellow-600'
+                            };
+                          } else {
+                            colors = {
+                              bg: 'bg-gray-50',
+                              border: 'border-gray-300',
+                              gradient: 'bg-gray-100',
+                              selectedGradient: 'bg-gray-500',
+                              selectedBorder: 'border-gray-600'
+                            };
+                          }
+                          return [s.Mach_status_id.toString(), colors];
+                        })
+                      )}
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-center pt-6">
                   <button
                     type="submit"
                     disabled={machinesLoading || !hasFormDataChanged}
-                    className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-2.5 rounded-full disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-[#2E523A] hover:bg-[#3b6b4c] text-white font-medium px-8 py-3 rounded-full disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
                   >
                     {machinesLoading ? 'Saving...' : 'Update Machine'}
                   </button>

@@ -7,6 +7,8 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import ConfirmationModal from "./common/ConfirmationModal";
 import NotificationsModal from "./common/NotificationsModal";
 import ProfileModal from "./common/ProfileModal";
+import NavDropdown from "./common/NavDropdown";
+import navigationTabs from "../config/navigationTabs";
 import {
     getNotifications,
     markAllNotificationsRead,
@@ -14,11 +16,24 @@ import {
     type NotificationItem,
     type NotificationType,
 } from "../services/notificationService";
+import {
+    CheckCircle,
+    CheckCircle2,
+    ListTodo,
+} from "lucide-react";
+
+// Icon mapping
+const iconMap: { [key: string]: React.ComponentType<{ size: number; className: string }> } = {
+    CheckCircle,
+    CheckCircle2,
+    ListTodo,
+};
 
 const allLinks = [
     { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
     { id: 2, to: "/superadmin", label: "User Management" },
-    { id: 3, to: "/point-system", label: "Point System", adminOnly: true },
+    { id: 3, to: "/barangay-management", label: "Barangay Management" },
+    { id: 4, to: "/point-system", label: "Point System", adminOnly: true },
 ];
 
 /**
@@ -36,8 +51,10 @@ const SuperAdminHeader: React.FC = () => {
     const [profileModalOpen, setProfileModalOpen] = useState(false);
     const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [hoveredNavItem, setHoveredNavItem] = useState<number | null>(null);
 
     const profileRef = useRef<HTMLDivElement | null>(null);
+    const dropdownRef = useRef<HTMLDivElement | null>(null);
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -146,6 +163,20 @@ const SuperAdminHeader: React.FC = () => {
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    // Close nav dropdown on outside click
+    useEffect(() => {
+        const handleClickOutside = (e: MouseEvent) => {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(e.target as Node)
+            ) {
+                setHoveredNavItem(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
     const toggleMenu = () => setMenuOpen((prev) => !prev);
     const openNotifications = () => setNotificationsOpen(true);
     const closeNotifications = () => setNotificationsOpen(false);
@@ -193,6 +224,7 @@ const SuperAdminHeader: React.FC = () => {
         })
         .filter((l: any) => {
             if (l.label === "User Management") return isSuperAdminRole || isAdminRole;
+            if (l.label === "Barangay Management") return isSuperAdminRole;
             if (l.adminOnly) return isAdminRole;
             return true;
         });
@@ -202,16 +234,19 @@ const SuperAdminHeader: React.FC = () => {
     return (
         <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
             <nav className="nav">
-                {/* Barangay label */}
-                {user?.Barangay_Name && (
-                    <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
-                )}
-                {/* Logo */}
-                <img
-                    className="nav-logo"
-                    src={new URL("../assets/images/collection.png", import.meta.url).href}
-                    alt="SIBOL"
-                />
+                {/* LEFT SECTION: Barangay + Logo */}
+                <div className="flex items-center gap-2 mr-12">
+                    {/* Barangay - Show for Admin only, not SuperAdmin */}
+                    {user?.Barangay_Name && !isSuperAdminRole && (
+                        <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide">{user.Barangay_Name}</span>
+                    )}
+
+                    <img
+                        className="nav-logo"
+                        src={new URL("../assets/images/collection.png", import.meta.url).href}
+                        alt="SIBOL"
+                    />
+                </div>
 
                 <button
                     type="button"
@@ -225,24 +260,51 @@ const SuperAdminHeader: React.FC = () => {
                     <span />
                 </button>
 
+                {/* MIDDLE SECTION: Navigation Links */}
                 <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
-                    <ul className="nav-links">
-                        {links.map((link) => (
-                            <li key={link.to}>
-                                <NavLink
-                                    to={link.to}
-                                    className={({ isActive }) =>
-                                        `nav-link ${isActive ? "active" : ""}`
-                                    }
-                                >
-                                    {link.label}
-                                </NavLink>
-                            </li>
-                        ))}
-                    </ul>
+                    <div className="nav-links-wrapper" ref={dropdownRef}>
+                        <ul className="nav-links">
+                            {links.map((link) => {
+                                // Check if this link has a dropdown configuration
+                                const hasDropdown = link.label === "User Management" && navigationTabs["admin"] && !isSuperAdminRole;
 
-                    {/* RIGHT ICONS */}
-                    <div className="nav-icons">
+                                return (
+                                    <li
+                                        key={link.to}
+                                        onMouseEnter={() => hasDropdown && setHoveredNavItem(link.id)}
+                                        onMouseLeave={() => hasDropdown && setHoveredNavItem(null)}
+                                        className="relative group"
+                                    >
+                                        <NavLink
+                                            to={link.to}
+                                            className={({ isActive }) =>
+                                                `nav-link ${isActive ? "active" : ""}`
+                                            }
+                                        >
+                                            {link.label}
+                                        </NavLink>
+
+                                        {/* DROPDOWN MENU - only show on desktop and when hovered */}
+                                        <NavDropdown
+                                            items={navigationTabs["admin"] || []}
+                                            currentPath={link.to}
+                                            isHovered={Boolean(hasDropdown && hoveredNavItem === link.id)}
+                                            iconMap={iconMap}
+                                            onSelect={(item) => {
+                                                navigate(`${link.to}?tab=${item.id}`);
+                                                setHoveredNavItem(null);
+                                                setMenuOpen(false);
+                                            }}
+                                        />
+                                    </li>
+                                );
+                            })}
+                        </ul>
+                    </div>
+                </div>
+
+                {/* RIGHT SECTION: Icons */}
+                <div className="nav-icons">
                         {/* Notifications */}
                         <button
                             type="button"
@@ -322,7 +384,6 @@ const SuperAdminHeader: React.FC = () => {
                             )}
                         </div>
                     </div>
-                </div>
             </nav>
 
             <NotificationsModal
