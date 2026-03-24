@@ -1,0 +1,10 @@
+export { default as LandingHeader } from './LandingHeader';
+export { default as HeroSection } from './HeroSection';
+export { default as FeaturesSection } from './FeaturesSection';
+export { default as DecorativeWave } from './DecorativeWave';
+export { default as WhatIsSibolSection } from './WhatIsSibolSection';
+export { default as EnvironmentalImpactSection } from './EnvironmentalImpactSection';
+export { default as WhyFoodWasteMattersSection } from './WhyFoodWasteMattersSection';
+export { default as FAQSection } from './FAQSection';
+export { default as ContactSection } from './ContactSection';
+export { default as LandingFooter } from './LandingFooter';
