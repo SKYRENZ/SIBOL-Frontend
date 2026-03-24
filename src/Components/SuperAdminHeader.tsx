@@ -32,7 +32,8 @@ const iconMap: { [key: string]: React.ComponentType<{ size: number; className: s
 const allLinks = [
     { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
     { id: 2, to: "/superadmin", label: "User Management" },
-    { id: 3, to: "/point-system", label: "Point System", adminOnly: true },
+    { id: 3, to: "/barangay-management", label: "Barangay Management" },
+    { id: 4, to: "/point-system", label: "Point System", adminOnly: true },
 ];
 
 /**
