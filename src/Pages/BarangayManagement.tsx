@@ -137,6 +137,11 @@ const BarangayManagement: React.FC = () => {
         b.barangayName.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
+    // Limit available barangays to first 200 if no search term
+    const displayedAvailableBarangays = searchTerm
+        ? filteredAvailableBarangays
+        : filteredAvailableBarangays.slice(0, 200);
+
     return (
         <>
             <SuperAdminHeader />
@@ -177,7 +182,7 @@ const BarangayManagement: React.FC = () => {
                                         : 'text-gray-500 border-transparent hover:text-sibol-green'
                                 }`}
                             >
-                                Available Barangays ({availableBarangays.length})
+                                Available Barangays ({searchTerm ? filteredAvailableBarangays.length : displayedAvailableBarangays.length}/{availableBarangays.length})
                             </button>
                         </div>
 
@@ -272,54 +277,63 @@ const BarangayManagement: React.FC = () => {
 
                         {/* Available Barangays Table */}
                         {!loading && activeTab === 'available' && (
-                            <div className="relative w-full rounded-xl border border-[#00001A4D] bg-white shadow-sm overflow-hidden">
-                                <table className="w-full text-sm">
-                                    <thead className="bg-[#355E3B] text-white">
-                                        <tr>
-                                            <th className="px-4 py-3 text-left font-semibold">Barangay ID</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Barangay Name</th>
-                                            <th className="px-4 py-3 text-left font-semibold">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-[#00001A4D]">
-                                        {filteredAvailableBarangays.length === 0 ? (
+                            <>
+                                {/* Info message when not searching */}
+                                {!searchTerm && displayedAvailableBarangays.length === 200 && (
+                                    <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-700">
+                                        Showing first 200 barangays. Use the search bar to find specific barangays.
+                                    </div>
+                                )}
+
+                                <div className="relative w-full rounded-xl border border-[#00001A4D] bg-white shadow-sm overflow-hidden">
+                                    <table className="w-full text-sm">
+                                        <thead className="bg-[#355E3B] text-white">
                                             <tr>
-                                                <td colSpan={3} className="text-center py-8 text-gray-500">
-                                                    {searchTerm
-                                                        ? 'No matching barangays found'
-                                                        : 'No available barangays. All barangays have been activated.'}
-                                                </td>
+                                                <th className="px-4 py-3 text-left font-semibold">Barangay ID</th>
+                                                <th className="px-4 py-3 text-left font-semibold">Barangay Name</th>
+                                                <th className="px-4 py-3 text-left font-semibold">Actions</th>
                                             </tr>
-                                        ) : (
-                                            filteredAvailableBarangays.map((barangay) => (
-                                                <tr key={barangay.barangayId} className="hover:bg-gray-50">
-                                                    <td className="px-4 py-3 text-sm text-sibol-green font-medium">
-                                                        {barangay.barangayId}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm text-gray-900">
-                                                        {barangay.barangayName}
-                                                    </td>
-                                                    <td className="px-4 py-3 text-sm">
-                                                        <button
-                                                            onClick={() =>
-                                                                handleActivate(
-                                                                    barangay.barangayId,
-                                                                    barangay.barangayName
-                                                                )
-                                                            }
-                                                            disabled={actionLoading}
-                                                            className="inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold rounded-full border bg-sibol-green text-white border-sibol-green/70 hover:bg-sibol-green/90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sibol-green/40 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-                                                        >
-                                                            <FaPlus size={12} />
-                                                            Activate
-                                                        </button>
+                                        </thead>
+                                        <tbody className="divide-y divide-[#00001A4D]">
+                                            {displayedAvailableBarangays.length === 0 ? (
+                                                <tr>
+                                                    <td colSpan={3} className="text-center py-8 text-gray-500">
+                                                        {searchTerm
+                                                            ? 'No matching barangays found'
+                                                            : 'No available barangays. All barangays have been activated.'}
                                                     </td>
                                                 </tr>
-                                            ))
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                            ) : (
+                                                displayedAvailableBarangays.map((barangay) => (
+                                                    <tr key={barangay.barangayId} className="hover:bg-gray-50">
+                                                        <td className="px-4 py-3 text-sm text-sibol-green font-medium">
+                                                            {barangay.barangayId}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm text-gray-900">
+                                                            {barangay.barangayName}
+                                                        </td>
+                                                        <td className="px-4 py-3 text-sm">
+                                                            <button
+                                                                onClick={() =>
+                                                                    handleActivate(
+                                                                        barangay.barangayId,
+                                                                        barangay.barangayName
+                                                                    )
+                                                                }
+                                                                disabled={actionLoading}
+                                                                className="inline-flex items-center gap-1 px-3 py-1 text-sm font-semibold rounded-full border bg-sibol-green text-white border-sibol-green/70 hover:bg-sibol-green/90 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-sibol-green/40 hover:shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+                                                            >
+                                                                <FaPlus size={12} />
+                                                                Activate
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>
