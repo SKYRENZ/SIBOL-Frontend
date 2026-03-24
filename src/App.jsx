@@ -26,6 +26,7 @@ const ChatSupport = lazy(() => import('./Pages/ChatSupport.tsx'));
 const NotificationsPage = lazy(() => import('./Pages/NotificationsPage.tsx'));
 const SuperAdmin = lazy(() => import('./Pages/SuperAdmin.tsx'));
 const PointSystemPage = lazy(() => import('./Pages/PointSystemPage.tsx'));
+const OperatorEmergency = lazy(() => import('./Pages/OperatorEmergency.tsx'));
 
 function App() {
   const dispatch = useAppDispatch();
@@ -58,6 +59,7 @@ function App() {
           <Route path="/household" element={<Household />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
+          <Route path="/operator-emergency" element={<OperatorEmergency />} />
         </Route>
 
         {/* Admin Only Routes */}
