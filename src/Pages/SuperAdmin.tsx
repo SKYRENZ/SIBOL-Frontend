@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+    import { useEffect, useMemo, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
 import {
@@ -12,7 +12,6 @@ import AdminList from '../Components/admin/AdminList';
 import AdminForm from '../Components/admin/AdminForm';
 import { Account } from '../types/adminTypes';
 import SuperAdminHeader from '../Components/SuperAdminHeader';
-import Pagination from '../Components/common/Pagination';
 import SnackBar from '../Components/common/SnackBar';
 
 function getRoleNumber(user: any): number | null {
@@ -52,21 +51,6 @@ export default function SuperAdmin() {
 
     const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [creating, setCreating] = useState(false);
-    const [currentPage, setCurrentPage] = useState(1);
-    const [pageSize, setPageSize] = useState(5);
-
-    const totalPages = useMemo(
-        () => Math.max(1, Math.ceil(accounts.length / pageSize) || 1),
-        [accounts.length, pageSize]
-    );
-
-    const paginatedAccounts = useMemo(() => {
-        const start = (currentPage - 1) * pageSize;
-        return accounts.slice(start, start + pageSize);
-    }, [accounts, currentPage, pageSize]);
-
-
-    useEffect(() => setCurrentPage((prev) => Math.min(prev, totalPages)), [totalPages]);
 
     // snackbar state
     const [snackKey, setSnackKey] = useState(0);
@@ -131,23 +115,6 @@ export default function SuperAdmin() {
 
                 {!isAdminRole ? (
                     <>
-                        {/* SUBHEADER */}
-                        <div
-                            className="subheader sticky z-30 w-full bg-white px-4 sm:px-6 py-3 sm:py-4 shadow-sm"
-                            style={{ top: 'calc(var(--header-height, 72px) + 8px)' }}
-                        >
-                            <div className="max-w-screen-2xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-0">
-                                <h2 className="text-lg sm:text-xl font-semibold text-sibol-green">User Management</h2>
-                                <button
-                                    type="button"
-                                    onClick={() => setCreating(true)}
-                                    className="px-4 py-2 rounded-lg bg-sibol-green text-white text-sm font-medium hover:bg-sibol-green/90"
-                                >
-                                    Create Admin
-                                </button>
-                            </div>
-                        </div>
-
                         {/* MAIN CONTENT */}
                         <div className="w-full bg-white mt-3">
                             <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -158,26 +125,13 @@ export default function SuperAdmin() {
                                 <>
                                     <div className="overflow-x-auto">
                                         <AdminList
-                                            accounts={paginatedAccounts}
+                                            accounts={accounts}
                                             barangays={barangays}
                                             roles={roles}
                                             onEdit={(a) => setEditingAccount(a)}
                                             onToggleActive={onToggleActive}
-                                        />
-                                    </div>
-
-                                    <div className="mt-4 sm:mt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
-                                        <Pagination
-                                            currentPage={currentPage}
-                                            totalPages={totalPages}
-                                            onPageChange={setCurrentPage}
-                                            pageSize={pageSize}
-                                            totalItems={accounts.length}
-                                            onPageSizeChange={(newSize) => {
-                                                setPageSize(newSize);
-                                                setCurrentPage(1);
-                                            }}
-                                            fixed={false}
+                                            onCreate={() => setCreating(true)}
+                                            adminOnly={true}
                                         />
                                     </div>
                                 </>
@@ -196,7 +150,7 @@ export default function SuperAdmin() {
 
                                         {/* Panel */}
                                         <div
-                                            className="relative w-full max-w-md sm:max-w-2xl bg-white rounded-2xl shadow-xl 
+                                            className="relative w-full max-w-md sm:max-w-2xl bg-white rounded-2xl shadow-xl
                 p-5 sm:p-8 text-sm text-[#3D5341] overflow-y-auto"
                                             style={{
                                                 maxHeight: 'calc(100vh - var(--header-height, 72px) - 20px)',
