@@ -109,14 +109,14 @@ export default function SuperAdmin() {
     return (
         <>
             <SuperAdminHeader />
-            <div className="w-full bg-white">
+            <div className="w-full">
                 {/* spacer to avoid header overlap */}
                 <div style={{ height: 'calc(var(--header-height, 72px) + 8px)' }} aria-hidden />
 
                 {!isAdminRole ? (
                     <>
                         {/* MAIN CONTENT */}
-                        <div className="w-full bg-white mt-3">
+                        <div className="w-full mt-3">
                             <div className="max-w-screen-2xl mx-auto px-4 sm:px-6 lg:px-8">
 
                                 {loading && <div className="text-sm text-gray-600">Loading...</div>}

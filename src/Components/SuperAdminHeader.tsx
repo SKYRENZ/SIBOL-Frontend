@@ -224,6 +224,7 @@ const SuperAdminHeader: React.FC = () => {
         })
         .filter((l: any) => {
             if (l.label === "User Management") return isSuperAdminRole || isAdminRole;
+            if (l.label === "Barangay Management") return isSuperAdminRole;
             if (l.adminOnly) return isAdminRole;
             return true;
         });
