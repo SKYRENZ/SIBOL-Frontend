@@ -16,12 +16,13 @@ type AdminListProps = {
   hasMore?: boolean;
   loading?: boolean;
   onLoadMore?: () => void;
+  adminOnly?: boolean;
 };
 
-const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles = [], onEdit, onToggleActive, onCreate, hasMore = false, loading = false, onLoadMore }) => {
+const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles = [], onEdit, onToggleActive, onCreate, hasMore = false, loading = false, onLoadMore, adminOnly = false }) => {
   const [viewMode, setViewMode] = useState<'table' | 'card'>('table');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedRole, setSelectedRole] = useState<'household' | 'barangay-staff' | 'operator'>('household');
+  const [selectedRole, setSelectedRole] = useState<'household' | 'barangay-staff' | 'operator' | 'admin'>(adminOnly ? 'admin' : 'household');
 
   const findBarangayName = (account: any) => {
     // Prefer preloaded barangays lookup
@@ -76,19 +77,24 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles =
     return accounts.filter(account => {
       const roleName = findRoleName(account);
       const barangayName = findBarangayName(account);
-      const matchesSearch = searchTerm === '' || 
+      const matchesSearch = searchTerm === '' ||
         getUsername(account).toLowerCase().includes(searchTerm.toLowerCase()) ||
         barangayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
         roleName.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesRole = 
-        (selectedRole === 'household' && roleName.toLowerCase().includes('household')) ||
-        (selectedRole === 'barangay-staff' && roleName.toLowerCase().includes('barangay')) ||
-        (selectedRole === 'operator' && roleName.toLowerCase().includes('operator'));
+      let matchesRole: boolean;
+      if (adminOnly) {
+        matchesRole = roleName.toLowerCase().includes('admin');
+      } else {
+        matchesRole =
+          (selectedRole === 'household' && roleName.toLowerCase().includes('household')) ||
+          (selectedRole === 'barangay-staff' && roleName.toLowerCase().includes('barangay')) ||
+          (selectedRole === 'operator' && roleName.toLowerCase().includes('operator'));
+      }
 
       return matchesSearch && matchesRole;
     });
-  }, [accounts, searchTerm, selectedRole]);
+  }, [accounts, searchTerm, selectedRole, adminOnly]);
 
   const AccountCard: React.FC<{ account: Account }> = ({ account }) => (
     <div className="bg-white border border-[#00001A4D] rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
@@ -143,44 +149,46 @@ const AdminList: React.FC<AdminListProps> = ({ accounts, barangays = [], roles =
 
   return (
     <div className="w-full">
-      {/* Role Selection Tabs */}
-      <div className="flex justify-center mb-4">
-        <div className="flex flex-wrap gap-2">
-          <button
-            onClick={() => setSelectedRole('household')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-              selectedRole === 'household'
-                ? 'bg-gradient-to-r from-sibol-green to-green-500 text-white shadow-lg border border-sibol-green/60'
-                : 'bg-gray-100 text-gray-700 hover:bg-green-50 border border-gray-200'
-            }`}
-          >
-            <img src={householdIcon} alt="Household" className="w-5 h-5" />
-            Household
-          </button>
-          <button
-            onClick={() => setSelectedRole('barangay-staff')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-              selectedRole === 'barangay-staff'
-                ? 'bg-gradient-to-r from-sibol-green to-green-500 text-white shadow-lg border border-sibol-green/60'
-                : 'bg-gray-100 text-gray-700 hover:bg-green-50 border border-gray-200'
-            }`}
-          >
-            <img src={barangayStaffIcon} alt="Barangay Staff" className="w-5 h-5" />
-            Barangay Staff
-          </button>
-          <button
-            onClick={() => setSelectedRole('operator')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-              selectedRole === 'operator'
-                ? 'bg-gradient-to-r from-sibol-green to-green-500 text-white shadow-lg border border-sibol-green/60'
-                : 'bg-gray-100 text-gray-700 hover:bg-green-50 border border-gray-200'
-            }`}
-          >
-            <img src={operatorIcon} alt="Operator" className="w-5 h-5" />
-            Operator
-          </button>
+      {/* Role Selection Tabs - Hidden in admin-only mode */}
+      {!adminOnly && (
+        <div className="flex justify-center mb-4">
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedRole('household')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                selectedRole === 'household'
+                  ? 'bg-gradient-to-r from-sibol-green to-green-500 text-white shadow-lg border border-sibol-green/60'
+                  : 'bg-gray-100 text-gray-700 hover:bg-green-50 border border-gray-200'
+              }`}
+            >
+              <img src={householdIcon} alt="Household" className="w-5 h-5" />
+              Household
+            </button>
+            <button
+              onClick={() => setSelectedRole('barangay-staff')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                selectedRole === 'barangay-staff'
+                  ? 'bg-gradient-to-r from-sibol-green to-green-500 text-white shadow-lg border border-sibol-green/60'
+                  : 'bg-gray-100 text-gray-700 hover:bg-green-50 border border-gray-200'
+              }`}
+            >
+              <img src={barangayStaffIcon} alt="Barangay Staff" className="w-5 h-5" />
+              Barangay Staff
+            </button>
+            <button
+              onClick={() => setSelectedRole('operator')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                selectedRole === 'operator'
+                  ? 'bg-gradient-to-r from-sibol-green to-green-500 text-white shadow-lg border border-sibol-green/60'
+                  : 'bg-gray-100 text-gray-700 hover:bg-green-50 border border-gray-200'
+              }`}
+            >
+              <img src={operatorIcon} alt="Operator" className="w-5 h-5" />
+              Operator
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Search Bar and Controls */}
       <div className="flex justify-between items-center mb-4 gap-4">

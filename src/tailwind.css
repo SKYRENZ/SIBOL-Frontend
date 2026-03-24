@@ -323,9 +323,8 @@ input:-webkit-autofill:active {
     right: 0;
     height: 0.5rem;
   }
-  .nav-links-wrapper { @apply relative; }
-  .nav-icons { @apply flex items-center gap-[28px]; }
   .nav-menu { @apply flex items-center gap-[36px]; }
+  .nav-icons { @apply flex items-center gap-[28px] ml-auto; }
 
   .nav-link {
     @apply text-[#d1d1d1] text-lg font-normal no-underline transition-colors font-sans;

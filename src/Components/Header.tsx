@@ -196,14 +196,18 @@ const Header: React.FC = () => {
   return (
     <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
       <nav className="nav">
-        {user?.Barangay_Name && (
-          <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
-        )}
-        <img
-          className="nav-logo"
-          src={new URL("../assets/images/collection.png", import.meta.url).href}
-          alt="SIBOL"
-        />
+        {/* LEFT SECTION: Barangay + Logo */}
+        <div className="flex items-center gap-2 mr-12">
+          {user?.Barangay_Name && (
+            <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide">{user.Barangay_Name}</span>
+          )}
+
+          <img
+            className="nav-logo"
+            src={new URL("../assets/images/collection.png", import.meta.url).href}
+            alt="SIBOL"
+          />
+        </div>
 
         <button
           type="button"
@@ -217,6 +221,7 @@ const Header: React.FC = () => {
           <span />
         </button>
 
+        {/* MIDDLE SECTION: Navigation Links */}
         <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
           <div className="nav-links-wrapper" ref={dropdownRef}>
             <ul className="nav-links">
@@ -280,9 +285,10 @@ const Header: React.FC = () => {
               })}
             </ul>
           </div>
+        </div>
 
-          {/* RIGHT ICONS */}
-          <div className="nav-icons">
+        {/* RIGHT SECTION: Icons */}
+        <div className="nav-icons">
 
             {/* TOUR GUIDE */}
           <button
@@ -374,7 +380,6 @@ const Header: React.FC = () => {
               )}
             </div>
           </div>
-        </div>
       </nav>
 
       <NotificationsModal

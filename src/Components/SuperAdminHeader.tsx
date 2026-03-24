@@ -32,7 +32,8 @@ const iconMap: { [key: string]: React.ComponentType<{ size: number; className: s
 const allLinks = [
     { id: 1, to: "/superadmin-dashboard", label: "Dashboard" },
     { id: 2, to: "/superadmin", label: "User Management" },
-    { id: 3, to: "/point-system", label: "Point System", adminOnly: true },
+    { id: 3, to: "/barangay-management", label: "Barangay Management" },
+    { id: 4, to: "/point-system", label: "Point System", adminOnly: true },
 ];
 
 /**
@@ -223,6 +224,7 @@ const SuperAdminHeader: React.FC = () => {
         })
         .filter((l: any) => {
             if (l.label === "User Management") return isSuperAdminRole || isAdminRole;
+            if (l.label === "Barangay Management") return isSuperAdminRole;
             if (l.adminOnly) return isAdminRole;
             return true;
         });
@@ -232,16 +234,19 @@ const SuperAdminHeader: React.FC = () => {
     return (
         <header className={`header ${isFirstLogin ? "pointer-events-none opacity-50" : ""}`}>
             <nav className="nav">
-                {/* Barangay label */}
-                {user?.Barangay_Name && (
-                    <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide mr-4">{user.Barangay_Name}</span>
-                )}
-                {/* Logo */}
-                <img
-                    className="nav-logo"
-                    src={new URL("../assets/images/collection.png", import.meta.url).href}
-                    alt="SIBOL"
-                />
+                {/* LEFT SECTION: Barangay + Logo */}
+                <div className="flex items-center gap-2 mr-12">
+                    {/* Barangay - Show for Admin only, not SuperAdmin */}
+                    {user?.Barangay_Name && !isSuperAdminRole && (
+                        <span className="text-xl font-bold text-white whitespace-nowrap tracking-wide">{user.Barangay_Name}</span>
+                    )}
+
+                    <img
+                        className="nav-logo"
+                        src={new URL("../assets/images/collection.png", import.meta.url).href}
+                        alt="SIBOL"
+                    />
+                </div>
 
                 <button
                     type="button"
@@ -255,12 +260,13 @@ const SuperAdminHeader: React.FC = () => {
                     <span />
                 </button>
 
+                {/* MIDDLE SECTION: Navigation Links */}
                 <div className={`nav-menu ${menuOpen ? "open" : ""}`}>
                     <div className="nav-links-wrapper" ref={dropdownRef}>
                         <ul className="nav-links">
                             {links.map((link) => {
                                 // Check if this link has a dropdown configuration
-                                const hasDropdown = link.label === "User Management" && navigationTabs["admin"];
+                                const hasDropdown = link.label === "User Management" && navigationTabs["admin"] && !isSuperAdminRole;
 
                                 return (
                                     <li
@@ -295,9 +301,10 @@ const SuperAdminHeader: React.FC = () => {
                             })}
                         </ul>
                     </div>
+                </div>
 
-                    {/* RIGHT ICONS */}
-                    <div className="nav-icons">
+                {/* RIGHT SECTION: Icons */}
+                <div className="nav-icons">
                         {/* Notifications */}
                         <button
                             type="button"
@@ -377,7 +384,6 @@ const SuperAdminHeader: React.FC = () => {
                             )}
                         </div>
                     </div>
-                </div>
             </nav>
 
             <NotificationsModal
