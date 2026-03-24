@@ -39,7 +39,6 @@ export const stage4Data: StagePopupData = {
   selectedMachine: "Sibol Machine 145",
   stageImage,
   stageAccent: "#4B9B6B",
-  toggleDisplay: "0",
 };
 
 const Stage4Popup: React.FC = () => {

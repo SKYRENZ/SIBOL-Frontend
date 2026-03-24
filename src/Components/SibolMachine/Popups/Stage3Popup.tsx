@@ -44,8 +44,7 @@ export const stage3Data: StagePopupData = {
     "Lily says: “The Stage 3 anaerobic digestion for Sibol Machine 135 is processing smoothly.”",
   selectedMachine: "Sibol Machine 135",
   stageImage,
-  stageAccent: "#4F8F66",
-  toggleDisplay: "0",
+  stageAccent: "#2E523A",
 };
 
 interface Stage3PopupProps {
@@ -74,7 +73,6 @@ const Stage3Popup: React.FC<Stage3PopupProps> = ({
       sensors={sensors ?? stage3Data.sensors}
       onMachinePickerOpen={onMachinePickerOpen}
       onAdditivesHistoryOpen={onAdditivesHistoryOpen}
-      onRefreshSensors={onRefreshSensors}
       onSensorsHistoryOpen={onSensorsHistoryOpen}
       onWasteInputHistoryOpen={onWasteInputHistoryOpen}
       className={className}
