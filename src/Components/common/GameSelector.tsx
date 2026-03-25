@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { X } from 'lucide-react';
+import { Lock, X } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import WasteGame from './WasteGame';
 import MatchingGame from './MatchingGame';
+import liliIcon from '../../assets/images/lili.png';
 
 interface GameSelectorProps {
   isOpen: boolean;
@@ -11,12 +12,18 @@ interface GameSelectorProps {
 
 type GameType = 'selector' | 'wasteCatcher' | 'matching';
 
+const WASTE_CATCHER_LOCKED = true;
+const WASTE_CATCHER_LOCK_NOTE = 'Temporarily unavailable while we tune gameplay fixes.';
+
 const GameSelector: React.FC<GameSelectorProps> = ({ isOpen, onClose }) => {
   const [selectedGame, setSelectedGame] = useState<GameType>('selector');
 
   if (!isOpen) return null;
 
   const handleGameSelect = (game: GameType) => {
+    if (game === 'wasteCatcher' && WASTE_CATCHER_LOCKED) {
+      return;
+    }
     setSelectedGame(game);
   };
 
@@ -25,7 +32,7 @@ const GameSelector: React.FC<GameSelectorProps> = ({ isOpen, onClose }) => {
   };
 
   // Show WasteGame
-  if (selectedGame === 'wasteCatcher') {
+  if (selectedGame === 'wasteCatcher' && !WASTE_CATCHER_LOCKED) {
     return (
       <WasteGame
         isOpen={true}
@@ -75,7 +82,12 @@ const GameSelector: React.FC<GameSelectorProps> = ({ isOpen, onClose }) => {
             {/* Waste Catcher Card */}
             <div
               onClick={() => handleGameSelect('wasteCatcher')}
-              className="bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] rounded-lg p-4 cursor-pointer hover:shadow-lg transition-all transform hover:scale-105"
+              className={`relative rounded-lg p-4 transition-all transform bg-gradient-to-br from-[#E8F5E9] to-[#C8E6C9] ${
+                WASTE_CATCHER_LOCKED
+                  ? 'cursor-not-allowed opacity-90'
+                  : 'cursor-pointer hover:shadow-lg hover:scale-105'
+              }`}
+              aria-disabled={WASTE_CATCHER_LOCKED}
             >
               <div className="text-3xl mb-2">🗑️</div>
               <h3 className="text-lg font-bold text-[#2D5F2E] mb-1">Waste Catcher</h3>
@@ -85,6 +97,18 @@ const GameSelector: React.FC<GameSelectorProps> = ({ isOpen, onClose }) => {
               <div className="space-y-0 text-xs text-gray-600">
                 <p>✨ WASD or Arrow Keys | ⚡ Progressive Difficulty</p>
               </div>
+
+              {WASTE_CATCHER_LOCKED && (
+                <div className="absolute inset-0 rounded-lg bg-black/30 border border-[#2D5F2E]/20 backdrop-blur-[1px] flex items-center justify-center">
+                  <div className="px-3 py-2 rounded-md bg-white/95 text-[#2D5F2E] shadow-sm border border-[#2D5F2E]/20 flex items-center gap-2 text-xs font-semibold">
+                    <Lock className="w-4 h-4" />
+                    <span>Locked</span>
+                  </div>
+                  <p className="absolute bottom-2 left-2 right-2 text-[10px] text-center text-[#1f3b20] font-medium">
+                    {WASTE_CATCHER_LOCK_NOTE}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Matching Game Card */}
@@ -93,7 +117,13 @@ const GameSelector: React.FC<GameSelectorProps> = ({ isOpen, onClose }) => {
               className="rounded-lg p-4 cursor-pointer hover:shadow-lg hover:shadow-green-900/30 transition-all transform hover:scale-105 border border-[#2e7d32]/40"
               style={{ background: 'linear-gradient(135deg, #0a2e0a, #1a4a1a)' }}
             >
-              <div className="text-3xl mb-2">🍃</div>
+              <div className="mb-2">
+                <img
+                  src={liliIcon}
+                  alt="Lili mascot"
+                  className="w-14 h-14 object-contain"
+                />
+              </div>
               <h3 className="text-lg font-bold text-[#00c853] mb-1">Matching Game</h3>
               <p className="text-xs text-white/70 mb-2">
                 Flip cards to find matching food waste pairs. Test your memory!

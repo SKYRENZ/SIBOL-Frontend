@@ -32,6 +32,24 @@ export const ShareCard = React.forwardRef<HTMLDivElement, ShareCardProps>(
           className="block w-[1200px] h-auto object-cover z-0" 
         />
 
+        {/* Promo website link */}
+        <div
+          className="absolute z-10 text-center"
+          style={{
+            left: '50%',
+            bottom: '6.5%',
+            transform: 'translateX(-50%)',
+            fontSize: '26px',
+            fontWeight: 700,
+            letterSpacing: '0.08em',
+            color: '#9ef7c8',
+            textShadow: '0 0 14px rgba(0, 200, 83, 0.35)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          https://sibolsprout.netlify.app/
+        </div>
+
         {/* DETAILS OVERLAY in the dark box on the right */}
         {/* Based on common landscape split UI: left ~50%, right ~45% box */}
         <div 
