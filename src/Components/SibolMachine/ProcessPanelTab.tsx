@@ -529,8 +529,8 @@ const ProcessPanelTab: React.FC = () => {
               className="w-full w-[940px] max-w-[940px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible mx-auto"
             />
             
-            {/* Overlay Indicators inside the card visually */}
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex justify-center gap-2 z-[100]">
+            {/* Stage Indicators outside the modal */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex justify-center gap-2 z-[100]">
               {stages.map((stage, index) => (
                 <button
                   key={stage.id}

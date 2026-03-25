@@ -132,7 +132,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   return (
     <div
       className={cn(
-        "relative isolate flex flex-col justify-between w-full max-w-[820px] min-h-[540px] rounded-[26px] border border-[#E0E9E2] bg-white px-6 pt-5 pb-10 shadow-[0_28px_70px_-32px_rgba(40,70,52,0.35)] transition-all duration-500 ease-[cubic-bezier(.16,.84,.44,1)] md:px-8 md:pt-6 md:pb-12",
+        "relative isolate flex flex-col justify-between w-full max-w-[940px] h-[590px] rounded-[26px] border border-[#E0E9E2] bg-white px-6 pt-4 pb-6 shadow-[0_28px_70px_-32px_rgba(40,70,52,0.35)] transition-all duration-500 ease-[cubic-bezier(.16,.84,.44,1)] md:px-8 md:pt-5 md:pb-6",
         className
       )}
     >
@@ -148,7 +148,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
 
     <div className="flex flex-col h-full">
       {/* Header Section with stable height - fixes inconsistency between stages with/without summaries */}
-      <div className="text-center relative overflow-visible z-[55] min-h-[90px] md:min-h-[110px] flex flex-col justify-center">
+      <div className="text-center relative overflow-visible z-[55] min-h-[60px] md:min-h-[70px] flex flex-col justify-center">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#356245]">Stage {stageNumber}</p>
         <div className="mt-1 flex items-center justify-center gap-3 relative z-[60]">
           <h2 className="text-xl font-semibold text-[#1F3527] md:text-2xl">{stageName}</h2>
@@ -173,9 +173,9 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       </div>
 
 
-      <div className="mt-2 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px]">
+      <div className="mt-1 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px]">
         <aside className="space-y-3">
-          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-4 py-3 shadow-sm min-h-[110px]">
+          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-4 py-3 shadow-sm h-[175px]">
             <div className="space-y-2">
               <div>
                 <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">On</span>
@@ -266,7 +266,7 @@ const SupportCardContent: React.FC<{
 }> = ({ card, accent, onAdditivesHistoryOpen }) => {
   if (card.type === "additives") {
     return (
-      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[110px] overflow-visible">
+      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden flex flex-col">
         {onAdditivesHistoryOpen && (
           <button
             type="button"
@@ -277,10 +277,10 @@ const SupportCardContent: React.FC<{
             View All
           </button>
         )}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between shrink-0">
           <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
         </div>
-        <div className="mt-2 space-y-2 overflow-visible">
+        <div className="mt-2 space-y-2 overflow-y-auto pr-1 flex-grow">
           {card.items.map((item) => (
             <div key={item.name} className="flex items-center justify-between gap-3">
               <div>
@@ -303,7 +303,7 @@ const SupportCardContent: React.FC<{
 
   if (card.type === "gauge") {
     return (
-      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[110px] overflow-visible">
+      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
         <div className="mt-2 flex flex-col items-center gap-1.5">
           <CircularGauge percent={card.percent} accent={accent} />
@@ -317,7 +317,7 @@ const SupportCardContent: React.FC<{
   }
 
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[110px] overflow-visible">
+    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden">
       <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       <div className="mt-4 flex flex-col items-center gap-3">
         <CounterDisplay value={card.value} />
@@ -329,7 +329,7 @@ const SupportCardContent: React.FC<{
 
 const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: () => void }> = ({ card, onHistoryOpen }) => {
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[110px] overflow-visible">
+    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden flex flex-col">
       {onHistoryOpen && (
         <button
           type="button"
@@ -340,10 +340,10 @@ const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: ()
           View All
         </button>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between shrink-0">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       </div>
-      <div className="mt-1 overflow-visible">
+      <div className="mt-1 overflow-y-auto pr-1 flex-grow">
         {card.item ? (
           <div className="space-y-1">
             <p className="text-xs text-[#5B7462]">{card.item.date}</p>
@@ -361,11 +361,11 @@ const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: ()
 };
 
 const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image, accent }) => (
-  <div className="relative h-[8rem] w-[8rem] max-w-full md:h-32 md:w-32">
+  <div className="relative h-[9rem] w-[9rem] max-w-full md:h-44 md:w-44">
     <div className="absolute inset-0 rounded-full border border-[#D2E2D7] bg-[#F7FBF8]" />
     <CircularArrows accent={accent} />
-    <div className="absolute inset-[14px] flex items-center justify-center rounded-full bg-white shadow-[0_18px_38px_-22px_rgba(46,82,58,0.55)] md:inset-[16px]">
-      <img src={image} alt="Stage illustration" className="max-h-20 w-auto md:max-h-[5.5rem]" />
+    <div className="absolute inset-[16px] flex items-center justify-center rounded-full bg-white shadow-[0_18px_38px_-22px_rgba(46,82,58,0.55)] md:inset-[20px]">
+      <img src={image} alt="Stage illustration" className="max-h-24 w-auto md:max-h-[8rem]" />
     </div>
   </div>
 );
@@ -376,7 +376,7 @@ const SensorsCard: React.FC<{
   onSensorsHistoryOpen?: () => void;
 }> = ({ sensors, accent, onSensorsHistoryOpen }) => {
   return (
-    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[110px] overflow-visible z-20">
+    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[175px] overflow-hidden z-20 flex flex-col">
       {/* sensor-level refresh removed: stage-level refresh is used instead */}
 
       {typeof onSensorsHistoryOpen === 'function' && (
@@ -391,10 +391,10 @@ const SensorsCard: React.FC<{
         </button>
       )}
 
-      <div className="flex items-center justify-between flex-wrap">
+      <div className="flex items-center justify-between flex-wrap shrink-0">
         <h3 className="text-sm font-semibold text-[#2E523A]">Sensors</h3>
       </div>
-      <div className="mt-2 space-y-2">
+      <div className="mt-2 space-y-2 overflow-y-auto pr-1 flex-grow">
         {sensors.map((sensor) => (
           <SensorRow key={sensor.id} sensor={sensor} accent={accent} />
         ))}
