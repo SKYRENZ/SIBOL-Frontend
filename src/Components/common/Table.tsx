@@ -36,6 +36,7 @@ interface TableProps<T> {
   filterTypes?: string[];
   rowKey?: string;
   customToolbar?: React.ReactNode;
+  hideSearch?: boolean;
 }
 
 const HEADER_BG = "bg-[#355E3B] text-white";
@@ -56,6 +57,7 @@ const Table = <T extends Record<string, any>>({
   filterTypes,
   rowKey = "id",
   customToolbar,
+  hideSearch = false,
 }: TableProps<T>) => {
   const [search, setSearch] = useState("");
   const [selectedFilters, setSelectedFilters] = useState<string[]>([]);
@@ -124,24 +126,28 @@ const Table = <T extends Record<string, any>>({
       {/* Table wrapper */}
       <div className="relative w-full rounded-xl border border-[#00001A4D] bg-white shadow-sm flex flex-col">
         {/* Search + Filter + Toolbar row */}
-        <div className="px-4 py-3 border-b border-[#00001A4D]">
-          <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
-            <div className="flex items-center gap-3 flex-1">
-              <div className="w-full lg:w-1/3">
-                <SearchBar value={search} onChange={setSearch} />
-              </div>
-              <div className="w-full lg:w-auto">
-                {showFilter && (
-                  <FilterPanel
-                    types={filterTypes}
-                    onFilterChange={handleFilterChange}
-                  />
+        {(!hideSearch || showFilter || customToolbar) && (
+          <div className="px-4 py-3 border-b border-[#00001A4D]">
+            <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+              <div className="flex items-center gap-3 flex-1">
+                {!hideSearch && (
+                  <div className="w-full lg:w-1/3">
+                    <SearchBar value={search} onChange={setSearch} />
+                  </div>
                 )}
+                <div className="w-full lg:w-auto">
+                  {showFilter && (
+                    <FilterPanel
+                      types={filterTypes}
+                      onFilterChange={handleFilterChange}
+                    />
+                  )}
+                </div>
               </div>
+              {customToolbar && <div className="flex-shrink-0">{customToolbar}</div>}
             </div>
-            {customToolbar && <div className="flex-shrink-0">{customToolbar}</div>}
           </div>
-        </div>
+        )}
 
         {/* Table scrollable area */}
         <div className="overflow-x-auto">
