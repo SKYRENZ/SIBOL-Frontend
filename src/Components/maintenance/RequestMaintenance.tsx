@@ -6,10 +6,12 @@ import CancelConfirmModal from "./CancelConfirmModal";
 import DeletedRequestsModal from "./DeletedRequestsModal";
 import { useAppSelector } from '../../store/hooks';
 import { Trash2 } from "lucide-react";
+import { FaTable, FaThLarge } from 'react-icons/fa';
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
 import { MaintenanceCard } from "./MaintenanceCard";
-import Pagination from "../common/Pagination";
+import EndlessScroll from "../common/EndlessScroll";
+import Table from "../common/Table";
 
 interface RequestMaintenanceProps {
   onOpenForm: (mode: 'assign', ticket: MaintenanceTicket) => void;
@@ -32,13 +34,12 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
   const [loadingDeleted, setLoadingDeleted] = useState(false);
   const [deletedError, setDeletedError] = useState<string | null>(null);
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+
   // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
 
   const getPriorityColor = (priority: string | null | undefined) => {
     const p = (priority || '').toLowerCase();
@@ -95,7 +96,14 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
     setIsDeletedModalOpen(false);
   };
 
-  // Filter and search tickets
+  // Priority order for sorting
+  const priorityOrder: Record<string, number> = {
+    'critical': 1,
+    'urgent': 2,
+    'mild': 3,
+  };
+
+  // Filter, search, and sort tickets
   const filteredTickets = useMemo(() => {
     let result = tickets;
 
@@ -116,31 +124,78 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
       );
     }
 
+    // Sort by priority
+    result.sort((a, b) => {
+      const aPriority = (a.Priority || '').toLowerCase();
+      const bPriority = (b.Priority || '').toLowerCase();
+      const aOrder = priorityOrder[aPriority] ?? 999;
+      const bOrder = priorityOrder[bPriority] ?? 999;
+      return aOrder - bOrder;
+    });
+
     return result;
   }, [tickets, searchQuery, activeFilters]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredTickets.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const currentTickets = filteredTickets.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  useMemo(() => {
-    setCurrentPage(1);
-  }, [searchQuery, activeFilters]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
-  };
+  // Table columns definition
+  const columns = [
+    {
+      key: 'Title',
+      label: 'Title',
+      render: (value: string) => (
+        <span className="text-sibol-green font-medium">{value}</span>
+      ),
+    },
+    {
+      key: 'Priority',
+      label: 'Priority',
+      render: (value: string) => (
+        <span className={`px-2 py-1 text-xs rounded-full border ${getPriorityColor(value)}`}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: 'Due_date',
+      label: 'Due Date',
+      render: (value: string) => (
+        <span className="text-sibol-green">
+          {value
+            ? new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+            : 'Not set'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_: any, ticket: MaintenanceTicket) => (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenForm('assign', ticket);
+            }}
+            className="px-3 py-1 text-sm font-semibold rounded-full border transition-all duration-200 bg-[#355842] text-white border-[#2f5236] hover:bg-[#2e4a36]"
+          >
+            View
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedTicketForDelete(ticket);
+            }}
+            disabled={isDeleting}
+            className="px-3 py-1 text-sm font-semibold rounded-full border transition-all duration-200 bg-red-600 text-white border-red-500 hover:bg-red-700"
+          >
+            Delete
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="pb-20"> {/* Add padding bottom for pagination */}
+    <div>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {/* Toolbar */}
@@ -152,21 +207,44 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
           placeholder="Search maintenance requests..."
           className="flex-1 max-w-2xl"
         />
-        
+
         {/* Right Side: Buttons */}
         <div className="flex gap-3 items-center">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-2 rounded-full transition-all duration-200 border ${
+              viewMode === 'table'
+                ? 'bg-sibol-green text-white border-sibol-green/60 shadow-md'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-sibol-green hover:text-sibol-green'
+            }`}
+            title="Table View"
+          >
+            <FaTable size={18} />
+          </button>
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-2 rounded-full transition-all duration-200 border ${
+              viewMode === 'card'
+                ? 'bg-sibol-green text-white border-sibol-green/60 shadow-md'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-sibol-green hover:text-sibol-green'
+            }`}
+            title="Card View"
+          >
+            <FaThLarge size={18} />
+          </button>
+
           <button
             onClick={onOpenCreateForm}
             className="px-4 py-2 bg-[#355842] text-white text-sm rounded-md shadow-sm hover:bg-[#2e4a36] transition whitespace-nowrap"
           >
             New Maintenance Request
           </button>
-          
+
           <FilterPanel
             types={["maintenancePriorities"]}
             onFilterChange={setActiveFilters}
           />
-          
+
           <button
             type="button"
             onClick={openDeletedModal}
@@ -179,39 +257,48 @@ export const RequestMaintenance: React.FC<RequestMaintenanceProps> = ({
         </div>
       </div>
 
-      {/* Cards Grid */}
-      {loading ? (
-        <p className="text-center text-gray-500 py-8">Loading...</p>
-      ) : currentTickets.length === 0 ? (
-        <p className="text-center text-gray-500 py-8">
-          {searchQuery || activeFilters.length > 0 ? "No matching requests found" : "No maintenance requests found"}
-        </p>
+      {/* Content based on view mode */}
+      {viewMode === 'table' ? (
+        loading ? (
+          <p className="text-center text-gray-500 py-8">Loading...</p>
+        ) : (
+          <Table
+            columns={columns}
+            data={filteredTickets}
+            emptyMessage={searchQuery || activeFilters.length > 0 ? "No matching requests found" : "No maintenance requests found"}
+            enablePagination={false}
+            rowKey="Request_Id"
+            hideSearch={true}
+          />
+        )
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {currentTickets.map((ticket) => (
-            <MaintenanceCard
-              key={ticket.Request_Id ?? ticket.request_id}
-              ticket={ticket}
-              mode="request"
-              onViewDetails={(ticket) => onOpenForm('assign', ticket)}
-              onDelete={setSelectedTicketForDelete}
-              isDeleting={isDeleting}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {filteredTickets.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          pageSize={pageSize}
-          totalItems={filteredTickets.length}
-          onPageSizeChange={handlePageSizeChange}
-          fixed={true}
-        />
+        <EndlessScroll
+          hasMore={false}
+          loading={loading}
+          onLoadMore={() => {}}
+          className="w-full"
+        >
+          {loading ? (
+            <p className="text-center text-gray-500 py-8">Loading...</p>
+          ) : filteredTickets.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              {searchQuery || activeFilters.length > 0 ? "No matching requests found" : "No maintenance requests found"}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTickets.map((ticket) => (
+                <MaintenanceCard
+                  key={ticket.Request_Id ?? ticket.request_id}
+                  ticket={ticket}
+                  mode="request"
+                  onViewDetails={(ticket) => onOpenForm('assign', ticket)}
+                  onDelete={setSelectedTicketForDelete}
+                  isDeleting={isDeleting}
+                />
+              ))}
+            </div>
+          )}
+        </EndlessScroll>
       )}
 
       <CancelConfirmModal
