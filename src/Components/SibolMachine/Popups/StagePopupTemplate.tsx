@@ -132,7 +132,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   return (
     <div
       className={cn(
-        "relative isolate flex flex-col justify-between w-full max-w-[940px] h-[590px] rounded-[26px] border border-[#E0E9E2] bg-white px-6 pt-4 pb-6 shadow-[0_28px_70px_-32px_rgba(40,70,52,0.35)] transition-all duration-500 ease-[cubic-bezier(.16,.84,.44,1)] md:px-8 md:pt-5 md:pb-6",
+        "relative isolate flex flex-col w-full max-w-[940px] h-[620px] rounded-[26px] border border-[#E0E9E2] bg-white px-6 pt-4 pb-6 shadow-[0_28px_70px_-32px_rgba(40,70,52,0.35)] transition-all duration-500 ease-[cubic-bezier(.16,.84,.44,1)] md:px-8 md:pt-5 md:pb-6",
         className
       )}
     >
@@ -173,24 +173,24 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       </div>
 
 
-      <div className="mt-1 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px]">
+      <div className="mt-4 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px]">
         <aside className="space-y-3">
-          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-4 py-3 shadow-sm h-[175px]">
-            <div className="space-y-2">
+          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-4 py-3 shadow-sm min-h-[175px] flex flex-col overflow-hidden">
+            <div className="space-y-1.5 flex-1 flex flex-col justify-center">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">On</span>
-                <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#1E3426]">
-                  <Power size={16} className="text-[#2E523A]" />
-                  <span>{activityName}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A] block mb-0.5">On</span>
+                <p className="flex items-center gap-2 text-sm font-semibold text-[#1E3426]">
+                  <Power size={16} className="text-[#2E523A] shrink-0" />
+                  <span className="truncate">{activityName}</span>
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">Date</span>
-                <p className="mt-1 text-sm text-[#40594A]">{activityDate}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A] block mb-0.5">Date</span>
+                <p className="text-xs text-[#40594A] leading-snug">{activityDate}</p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">Action</span>
-                <p className="mt-1 text-sm text-[#40594A]">{activityAction}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A] block mb-0.5">Action</span>
+                <p className="text-xs text-[#40594A] truncate">{activityAction}</p>
               </div>
             </div>
           </div>
@@ -266,31 +266,31 @@ const SupportCardContent: React.FC<{
 }> = ({ card, accent, onAdditivesHistoryOpen }) => {
   if (card.type === "additives") {
     return (
-      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden flex flex-col">
+      <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col overflow-hidden">
         {onAdditivesHistoryOpen && (
           <button
             type="button"
             onClick={onAdditivesHistoryOpen}
             data-testid="additives-history-topright"
-            className="absolute -right-4 -top-4 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+            className="absolute right-1 top-1 text-[11px] font-semibold uppercase rounded-full px-3 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30 transition-colors"
           >
             View All
           </button>
         )}
-        <div className="flex items-center justify-between shrink-0">
+        <div className="flex items-center justify-between shrink-0 pr-20">
           <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
         </div>
         <div className="mt-2 space-y-2 overflow-y-auto pr-1 flex-grow">
           {card.items.map((item) => (
             <div key={item.name} className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-[13px] font-medium text-[#1F3527]">{item.name}</p>
-                <p className="text-[11px] text-[#5B7462]">{item.detail}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-[#1F3527] truncate">{item.name}</p>
+                <p className="text-[11px] text-[#5B7462] truncate">{item.detail}</p>
               </div>
               {item.trailing ? (
-                <span className="text-sm font-semibold text-[#2E523A]">{item.trailing}</span>
+                <span className="text-sm font-semibold text-[#2E523A] shrink-0">{item.trailing}</span>
               ) : (
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#E4F2E9] text-[#2E523A]">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#E4F2E9] text-[#2E523A] shrink-0">
                   <Check className="h-3.5 w-3.5" strokeWidth={2.2} />
                 </span>
               )}
@@ -303,7 +303,7 @@ const SupportCardContent: React.FC<{
 
   if (card.type === "gauge") {
     return (
-      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden">
+      <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col justify-center overflow-hidden">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
         <div className="mt-2 flex flex-col items-center gap-1.5">
           <CircularGauge percent={card.percent} accent={accent} />
@@ -317,7 +317,7 @@ const SupportCardContent: React.FC<{
   }
 
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden">
+    <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col justify-center overflow-hidden">
       <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       <div className="mt-4 flex flex-col items-center gap-3">
         <CounterDisplay value={card.value} />
@@ -329,18 +329,18 @@ const SupportCardContent: React.FC<{
 
 const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: () => void }> = ({ card, onHistoryOpen }) => {
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[115px] overflow-hidden flex flex-col">
+    <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col overflow-hidden">
       {onHistoryOpen && (
         <button
           type="button"
           onClick={onHistoryOpen}
           data-testid="waste-history-topright"
-          className="absolute -right-4 -top-4 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+          className="absolute right-1 top-1 text-[11px] font-semibold uppercase rounded-full px-3 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30 transition-colors"
         >
           View All
         </button>
       )}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between shrink-0 pr-20">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       </div>
       <div className="mt-1 overflow-y-auto pr-1 flex-grow">
@@ -349,7 +349,7 @@ const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: ()
             <p className="text-xs text-[#5B7462]">{card.item.date}</p>
             <p className="text-sm font-semibold text-[#1F3527]">{card.item.weight}</p>
             {card.item.operator && (
-              <p className="text-xs text-[#6B8976]">{card.item.operator}</p>
+              <p className="text-xs text-[#6B8976] truncate">{card.item.operator}</p>
             )}
           </div>
         ) : (
@@ -376,7 +376,7 @@ const SensorsCard: React.FC<{
   onSensorsHistoryOpen?: () => void;
 }> = ({ sensors, accent, onSensorsHistoryOpen }) => {
   return (
-    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm h-[175px] overflow-hidden z-20 flex flex-col">
+    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[175px] z-20 flex flex-col overflow-hidden">
       {/* sensor-level refresh removed: stage-level refresh is used instead */}
 
       {typeof onSensorsHistoryOpen === 'function' && (
@@ -385,13 +385,13 @@ const SensorsCard: React.FC<{
           onClick={onSensorsHistoryOpen}
           data-testid="sensors-history-topright"
           title="View sensor history"
-          className="absolute -right-4 -top-4 inline-flex items-center gap-2 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+          className="absolute right-1 top-1 inline-flex items-center gap-2 text-[11px] font-semibold uppercase rounded-full px-3 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30 transition-colors"
         >
           View All
         </button>
       )}
 
-      <div className="flex items-center justify-between flex-wrap shrink-0">
+      <div className="flex items-center justify-between flex-wrap shrink-0 pr-20">
         <h3 className="text-sm font-semibold text-[#2E523A]">Sensors</h3>
       </div>
       <div className="mt-2 space-y-2 overflow-y-auto pr-1 flex-grow">
@@ -406,8 +406,8 @@ const SensorsCard: React.FC<{
 const SensorRow: React.FC<{ sensor: SensorMetric; accent: string }> = ({ sensor, accent }) => (
   <div className="space-y-1">
     <div className="flex items-center justify-between text-sm text-[#1F3527]">
-      <span>{sensor.label}</span>
-      <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#5C7664]">{sensor.status}</span>
+      <span className="text-xs font-medium">{sensor.label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#5C7664]">{sensor.status}</span>
     </div>
     <div className="relative h-2 rounded-full bg-[#E5EEE8]">
       <div
@@ -417,7 +417,7 @@ const SensorRow: React.FC<{ sensor: SensorMetric; accent: string }> = ({ sensor,
           background: `linear-gradient(90deg, ${accent}, rgba(46,82,58,0.65))`,
         }}
       />
-      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#1F3527]">
+      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#1F3527]">
         {sensor.value}
       </span>
     </div>

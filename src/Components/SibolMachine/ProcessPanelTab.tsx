@@ -524,7 +524,7 @@ const ProcessPanelTab: React.FC = () => {
               onWasteInputHistoryOpen={
                 stages[activeIndex].id === "stage-3" ? () => setIsWasteHistoryOpen(true) : undefined
               }
-              onRefreshStage={stages[activeIndex].id === "stage-3" ? refreshStage : undefined}
+              onRefreshStage={stages[activeIndex].id === "stage-3" || stages[activeIndex].id === "stage-4" ? refreshStage : undefined}
               onSensorsHistoryOpen={openSensorsHistory}
               className="w-full w-[940px] max-w-[940px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible mx-auto"
             />
