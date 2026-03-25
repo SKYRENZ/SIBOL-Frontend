@@ -11,13 +11,7 @@ export const stage4Data: StagePopupData = {
     "Processed methane is routed through the collector to stabilize flow before entering the generator stack.",
   operatorName: "Laurenz Listangco",
   date: "November 1, 2026",
-  supportCard: {
-    type: "gauge",
-    title: "Biogas Meter Gauge",
-    status: "Normal",
-    percent: 80,
-    valueLabel: "Stable",
-  },
+  supportCard: undefined,
   sensors: [
     {
       id: "pressure",

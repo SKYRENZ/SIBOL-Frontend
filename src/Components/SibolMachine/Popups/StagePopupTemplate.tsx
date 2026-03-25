@@ -173,7 +173,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       </div>
 
 
-      <div className="mt-4 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px]">
+      <div className="mt-4 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px] items-start">
         <aside className="space-y-3">
           <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-4 py-3 shadow-sm min-h-[175px] flex flex-col overflow-hidden">
             <div className="space-y-1.5 flex-1 flex flex-col justify-center">
@@ -204,7 +204,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
           )}
         </aside>
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center md:pt-12">
           <StageIllustration image={stageImage} accent={stageAccent} />
         </div>
 
@@ -361,11 +361,11 @@ const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: ()
 };
 
 const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image, accent }) => (
-  <div className="relative h-[9rem] w-[9rem] max-w-full md:h-44 md:w-44">
+  <div className="relative h-[11rem] w-[11rem] max-w-full md:h-56 md:w-56">
     <div className="absolute inset-0 rounded-full border border-[#D2E2D7] bg-[#F7FBF8]" />
     <CircularArrows accent={accent} />
-    <div className="absolute inset-[16px] flex items-center justify-center rounded-full bg-white shadow-[0_18px_38px_-22px_rgba(46,82,58,0.55)] md:inset-[20px]">
-      <img src={image} alt="Stage illustration" className="max-h-24 w-auto md:max-h-[8rem]" />
+    <div className="absolute inset-[16px] flex items-center justify-center rounded-full bg-white shadow-[0_18px_38px_-22px_rgba(46,82,58,0.55)] md:inset-[24px]">
+      <img src={image} alt="Stage illustration" className="max-h-32 w-auto md:max-h-[10rem]" />
     </div>
   </div>
 );

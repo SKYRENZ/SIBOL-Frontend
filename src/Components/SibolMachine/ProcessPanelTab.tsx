@@ -11,6 +11,7 @@ import FormModal from "../common/FormModal";
 import type { Machine } from "../../services/machineService";
 import { getWasteInputsByMachineId, type WasteInputRow } from "../../services/wasteInputService";
 import { getLatestS3Readings, type S3SensorReading } from "../../services/s3SensorService";
+import { getLatestVoltageCurrentReadings, type VoltageCurrentReading } from "../../services/voltageCurrentService";
 
 const formatDate = (date?: string) => {
   if (!date) return "N/A";
@@ -140,8 +141,11 @@ const ProcessPanelTab: React.FC = () => {
   const wastePageSize = 6;
 
   const [s3Readings, setS3Readings] = useState<S3SensorReading | null>(null);
+  const [s4Readings, setS4Readings] = useState<VoltageCurrentReading | null>(null);
   const [isSensorsHistoryOpen, setIsSensorsHistoryOpen] = useState(false);
+  const [isS4HistoryOpen, setIsS4HistoryOpen] = useState(false);
   const [sensorHistory, setSensorHistory] = useState<S3SensorReading[]>([]);
+  const [s4History, setS4History] = useState<VoltageCurrentReading[]>([]);
   const [sensorHistoryLoading, setSensorHistoryLoading] = useState(false);
 
   useEffect(() => {
@@ -190,16 +194,23 @@ const ProcessPanelTab: React.FC = () => {
   const refreshSensors = async () => {
     if (!selectedMachine?.machine_id) return;
     try {
-      const data = await getLatestS3Readings(selectedMachine.machine_id, 1);
-      if (data && data.length > 0) {
-        setS3Readings(data[0]);
-        console.log('refreshSensors: got', data.length, 'rows', data[0]);
+      // Stage 3
+      const s3Data = await getLatestS3Readings(selectedMachine.machine_id, 1);
+      if (s3Data && s3Data.length > 0) {
+        setS3Readings(s3Data[0]);
       } else {
         setS3Readings((prev) => (prev && prev.Machine_id === selectedMachine.machine_id ? prev : null));
-        console.log('refreshSensors: no rows returned for machine', selectedMachine.machine_id);
+      }
+
+      // Stage 4
+      const s4Data = await getLatestVoltageCurrentReadings();
+      if (s4Data && s4Data.length > 0) {
+        setS4Readings(s4Data[0]);
+      } else {
+        setS4Readings(null);
       }
     } catch (err) {
-      console.error('Failed to refresh S3 sensor readings', err);
+      console.error('Failed to refresh sensor readings', err);
     }
   };
 
@@ -234,6 +245,21 @@ const ProcessPanelTab: React.FC = () => {
       console.error('Failed to load sensor history', err);
       setSensorHistory([]);
       setIsSensorsHistoryOpen(true);
+    } finally {
+      setSensorHistoryLoading(false);
+    }
+  };
+
+  const openS4History = async () => {
+    setSensorHistoryLoading(true);
+    try {
+      const rows = await getLatestVoltageCurrentReadings(undefined, 200);
+      setS4History(rows || []);
+      setIsS4HistoryOpen(true);
+    } catch (err) {
+      console.error('Failed to load Stage 4 sensor history', err);
+      setS4History([]);
+      setIsS4HistoryOpen(true);
     } finally {
       setSensorHistoryLoading(false);
     }
@@ -438,12 +464,34 @@ const ProcessPanelTab: React.FC = () => {
     ];
   }, [s3Readings]);
 
+  const stage4Sensors = useMemo(() => {
+    if (!s4Readings) return [];
+
+    return [
+      {
+        id: "kwh-1",
+        label: "Energy (kWh)",
+        value: s4Readings.intervalKwh != null ? Number(s4Readings.intervalKwh).toFixed(4) : "0.0000",
+        status: "",
+        percent: Math.min((Number(s4Readings.intervalKwh || 0) / 1) * 100, 100),
+      },
+      {
+        id: "cumulative-1",
+        label: "Accumulative",
+        value: s4Readings.cumulativeKwh != null ? Number(s4Readings.cumulativeKwh).toFixed(4) : "0.0000",
+        status: "",
+        percent: Math.min((Number(s4Readings.cumulativeKwh || 0) / 10) * 100, 100),
+      },
+    ];
+  }, [s4Readings]);
+
   const stages = useMemo(
     () => [
       {
         ...stage3Data,
         stageSummary: "The bio-digester breaks down organic waste using anaerobic bacteria to produce nutrient-rich biogas.",
         sensors: stage3Sensors,
+        onSensorsHistoryOpen: openSensorsHistory,
         supportCard: stage3SupportCard,
         selectedMachine: selectedMachineLabel,
         activity: {
@@ -457,6 +505,8 @@ const ProcessPanelTab: React.FC = () => {
       },
       {
         ...stage4Data,
+        sensors: stage4Sensors,
+        onSensorsHistoryOpen: openS4History,
         selectedMachine: selectedMachineLabel,
         activity: {
           by: activityBy,
@@ -525,7 +575,7 @@ const ProcessPanelTab: React.FC = () => {
                 stages[activeIndex].id === "stage-3" ? () => setIsWasteHistoryOpen(true) : undefined
               }
               onRefreshStage={stages[activeIndex].id === "stage-3" || stages[activeIndex].id === "stage-4" ? refreshStage : undefined}
-              onSensorsHistoryOpen={openSensorsHistory}
+              onSensorsHistoryOpen={stages[activeIndex].onSensorsHistoryOpen}
               className="w-full w-[940px] max-w-[940px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible mx-auto"
             />
             
@@ -915,7 +965,7 @@ const ProcessPanelTab: React.FC = () => {
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                 {(() => {
                   const arr = [...sensorHistory];
                   arr.sort((a, b) => {
@@ -969,6 +1019,47 @@ const ProcessPanelTab: React.FC = () => {
                 })()}
               </div>
             </>
+          )}
+      </FormModal>
+      <FormModal
+        isOpen={isS4HistoryOpen}
+        onClose={() => setIsS4HistoryOpen(false)}
+        title={`Energy & Accumulative History`}
+        width="920px"
+      >
+          {sensorHistoryLoading && (
+            <div className="py-4 text-center text-xs text-[#6B8976]">Loading readings...</div>
+          )}
+
+          {!sensorHistoryLoading && s4History.length === 0 && (
+            <div className="py-12 text-center text-sm text-[#6B8976]">No readings found.</div>
+          )}
+
+          {!sensorHistoryLoading && s4History.length > 0 && (
+            <div className="overflow-x-auto overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+              <table className="w-full text-left text-xs text-[#3F5D49]">
+                <thead className="text-[11px] uppercase tracking-wider text-[#6B8976]">
+                  <tr className="border-b border-[#E4EFE7]">
+                    <th className="py-2">Timestamp</th>
+                    <th className="py-2">Energy (kWh)</th>
+                    <th className="py-2">Accumulative</th>
+                    <th className="py-2">Voltage (V)</th>
+                    <th className="py-2">Current (A)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {s4History.map((r) => (
+                    <tr key={r.id} className="border-b border-[#EEF4F0]">
+                      <td className="py-2 font-semibold text-[#1F3527]">{r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}</td>
+                      <td className="py-2">{r.intervalKwh != null ? Number(r.intervalKwh).toFixed(4) : '—'}</td>
+                      <td className="py-2">{r.cumulativeKwh != null ? Number(r.cumulativeKwh).toFixed(4) : '—'}</td>
+                      <td className="py-2">{Number(r.voltage).toFixed(2)}V</td>
+                      <td className="py-2">{Number(r.current).toFixed(2)}A</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
       </FormModal>
     </div>
