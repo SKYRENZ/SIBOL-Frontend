@@ -11,6 +11,7 @@ import FormModal from "../common/FormModal";
 import type { Machine } from "../../services/machineService";
 import { getWasteInputsByMachineId, type WasteInputRow } from "../../services/wasteInputService";
 import { getLatestS3Readings, type S3SensorReading } from "../../services/s3SensorService";
+import { getLatestVoltageCurrentReadings, type VoltageCurrentReading } from "../../services/voltageCurrentService";
 
 const formatDate = (date?: string) => {
   if (!date) return "N/A";
@@ -140,8 +141,11 @@ const ProcessPanelTab: React.FC = () => {
   const wastePageSize = 6;
 
   const [s3Readings, setS3Readings] = useState<S3SensorReading | null>(null);
+  const [s4Readings, setS4Readings] = useState<VoltageCurrentReading | null>(null);
   const [isSensorsHistoryOpen, setIsSensorsHistoryOpen] = useState(false);
+  const [isS4HistoryOpen, setIsS4HistoryOpen] = useState(false);
   const [sensorHistory, setSensorHistory] = useState<S3SensorReading[]>([]);
+  const [s4History, setS4History] = useState<VoltageCurrentReading[]>([]);
   const [sensorHistoryLoading, setSensorHistoryLoading] = useState(false);
 
   useEffect(() => {
@@ -190,16 +194,23 @@ const ProcessPanelTab: React.FC = () => {
   const refreshSensors = async () => {
     if (!selectedMachine?.machine_id) return;
     try {
-      const data = await getLatestS3Readings(selectedMachine.machine_id, 1);
-      if (data && data.length > 0) {
-        setS3Readings(data[0]);
-        console.log('refreshSensors: got', data.length, 'rows', data[0]);
+      // Stage 3
+      const s3Data = await getLatestS3Readings(selectedMachine.machine_id, 1);
+      if (s3Data && s3Data.length > 0) {
+        setS3Readings(s3Data[0]);
       } else {
         setS3Readings((prev) => (prev && prev.Machine_id === selectedMachine.machine_id ? prev : null));
-        console.log('refreshSensors: no rows returned for machine', selectedMachine.machine_id);
+      }
+
+      // Stage 4
+      const s4Data = await getLatestVoltageCurrentReadings();
+      if (s4Data && s4Data.length > 0) {
+        setS4Readings(s4Data[0]);
+      } else {
+        setS4Readings(null);
       }
     } catch (err) {
-      console.error('Failed to refresh S3 sensor readings', err);
+      console.error('Failed to refresh sensor readings', err);
     }
   };
 
@@ -234,6 +245,21 @@ const ProcessPanelTab: React.FC = () => {
       console.error('Failed to load sensor history', err);
       setSensorHistory([]);
       setIsSensorsHistoryOpen(true);
+    } finally {
+      setSensorHistoryLoading(false);
+    }
+  };
+
+  const openS4History = async () => {
+    setSensorHistoryLoading(true);
+    try {
+      const rows = await getLatestVoltageCurrentReadings(undefined, 200);
+      setS4History(rows || []);
+      setIsS4HistoryOpen(true);
+    } catch (err) {
+      console.error('Failed to load Stage 4 sensor history', err);
+      setS4History([]);
+      setIsS4HistoryOpen(true);
     } finally {
       setSensorHistoryLoading(false);
     }
@@ -292,7 +318,7 @@ const ProcessPanelTab: React.FC = () => {
   }, [additives]);
 
   const stage3SupportCard = useMemo(() => {
-    const items = latestStage3Additives.slice(0, 3).map((row) => ({
+    const items = latestStage3Additives.slice(0, 1).map((row) => ({
       name: row.additive_input,
       detail: formatDate(row.date),
       trailing:
@@ -438,11 +464,34 @@ const ProcessPanelTab: React.FC = () => {
     ];
   }, [s3Readings]);
 
+  const stage4Sensors = useMemo(() => {
+    if (!s4Readings) return [];
+
+    return [
+      {
+        id: "kwh-1",
+        label: "Energy (kWh)",
+        value: s4Readings.intervalKwh != null ? Number(s4Readings.intervalKwh).toFixed(4) : "0.0000",
+        status: "",
+        percent: Math.min((Number(s4Readings.intervalKwh || 0) / 1) * 100, 100),
+      },
+      {
+        id: "cumulative-1",
+        label: "Accumulative",
+        value: s4Readings.cumulativeKwh != null ? Number(s4Readings.cumulativeKwh).toFixed(4) : "0.0000",
+        status: "",
+        percent: Math.min((Number(s4Readings.cumulativeKwh || 0) / 10) * 100, 100),
+      },
+    ];
+  }, [s4Readings]);
+
   const stages = useMemo(
     () => [
       {
         ...stage3Data,
+        stageSummary: "The bio-digester breaks down organic waste using anaerobic bacteria to produce nutrient-rich biogas.",
         sensors: stage3Sensors,
+        onSensorsHistoryOpen: openSensorsHistory,
         supportCard: stage3SupportCard,
         selectedMachine: selectedMachineLabel,
         activity: {
@@ -456,6 +505,8 @@ const ProcessPanelTab: React.FC = () => {
       },
       {
         ...stage4Data,
+        sensors: stage4Sensors,
+        onSensorsHistoryOpen: openS4History,
         selectedMachine: selectedMachineLabel,
         activity: {
           by: activityBy,
@@ -494,123 +545,77 @@ const ProcessPanelTab: React.FC = () => {
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-220px)] w-full overflow-hidden rounded-[36px] border border-[#D4E2D9] bg-[#FAFBFA] px-6 py-10 shadow-[0_40px_90px_-50px_rgba(46,82,58,0.35)] md:px-10">
-      <header className="flex flex-col gap-6 pb-6">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2 text-center md:text-left">
-            <h1 className="text-2xl font-semibold text-[#1F3527] md:text-[28px]">Process Panels</h1>
-            <p className="text-sm text-[#476152]">
-              Review each stage of the SIBOL machine flow and track operator notes, additive inputs, and live sensor health.
-            </p>
-          </div>
+    <div className="relative min-h-[calc(100vh-220px)] w-full overflow-hidden py-2 flex flex-col items-center justify-center">
 
-          <div className="flex items-center justify-center gap-4">
-            <button
-              type="button"
-              onClick={goPrev}
-              className="group relative inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/70 bg-white/80 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] transition hover:-translate-y-0.5 hover:border-[#6EA37F]"
-              aria-label="Previous stage"
-            >
-              <ArrowLeft className="h-5 w-5 text-[#3F5D49] transition group-hover:text-[#2E523A]" />
-            </button>
-            <button
-              type="button"
-              onClick={goNext}
-              className="group relative inline-flex h-14 w-14 items-center justify-center rounded-full border border-white/70 bg-white/80 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] transition hover:-translate-y-0.5 hover:border-[#6EA37F]"
-              aria-label="Next stage"
-            >
-              <ArrowRight className="h-5 w-5 text-[#3F5D49] transition group-hover:text-[#2E523A]" />
-            </button>
-          </div>
-        </div>
+      <main className="relative z-10 flex items-center justify-center w-full max-w-[1300px] mx-auto overflow-visible gap-4 xl:gap-8">
+        {/* Left Arrow Button */}
+        <button
+          type="button"
+          onClick={goPrev}
+          className="group relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#2E523A] border-2 border-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all hover:-translate-y-0.5 hover:bg-[#1F3527] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)] active:scale-95 z-20"
+          aria-label="Previous stage"
+        >
+          <ArrowLeft className="h-6 w-6 text-white transition group-hover:scale-110" />
+        </button>
 
-      </header>
-
-      <main className="relative z-10 mt-6 flex justify-center overflow-visible">
-        <div className="relative w-full max-w-[1200px] overflow-visible">
+        {/* Active Stage Card */}
+        <div className="relative w-full max-w-[1100px] overflow-visible">
           <div
-            className="pointer-events-none absolute inset-y-6 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#e8f5e963] via-transparent to-[#e8f5e963] blur-3xl"
+            className="pointer-events-none absolute inset-y-6 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-[#e8f5e963] via-transparent to-[#e8f5e963] blur-3xl z-0"
             aria-hidden
           />
-          {stages.map((stage, index) => {
-            const position = (index - activeIndex + stages.length) % stages.length;
-            const isActive = position === 0;
-            const isRight = position === 1;
-            const isLeft = position === stages.length - 1;
-
-            const translateX = isActive ? "0px" : isRight ? "min(28vw, 300px)" : isLeft ? "max(-28vw, -300px)" : "0px";
-            const translateY = isActive ? "0px" : "28px";
-            const scale = isActive ? 1.0 : 0.85;
-            const opacity = isActive ? 1 : isRight || isLeft ? 0.6 : 0;
-            const filter = isActive ? "none" : isRight || isLeft ? "blur(8px) saturate(85%)" : "blur(12px)";
-            const zIndex = isActive ? 30 : isRight || isLeft ? 20 : 10;
-
-            return (
-              <div
-                key={stage.id}
-                className="absolute top-0 flex w-full justify-center transition-all duration-[620ms] ease-[cubic-bezier(.18,.89,.32,1.28)]"
-                style={{
-                  left: "50%",
-                  transform: `translateX(-50%) translateX(${translateX}) translateY(${translateY}) scale(${scale})`,
-                  opacity,
-                  filter,
-                  pointerEvents: isActive ? "auto" : "none",
-                  zIndex,
-                }}
-              >
-                <div className="relative">
-                  <StagePopupTemplate
-                    {...stage}
-                    onMachinePickerOpen={() => setIsMachinePickerOpen(true)}
-                    onAdditivesHistoryOpen={
-                      stage.id === "stage-3" ? () => setIsAdditivesHistoryOpen(true) : undefined
-                    }
-                    onWasteInputHistoryOpen={
-                      stage.id === "stage-3" ? () => setIsWasteHistoryOpen(true) : undefined
-                    }
-                    // expose refresh/history for sensors to ALL stages so buttons are always present
-                    onRefreshSensors={refreshSensors}
-                    onRefreshStage={stage.id === "stage-3" ? refreshStage : undefined}
-                    onSensorsHistoryOpen={openSensorsHistory}
-                    className={cn(
-                      "w-[1100px] max-w-[1100px] min-h-[650px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible",
-                      !isActive && "w-[1000px] max-w-[1000px] min-h-[600px] border-white/60 bg-white/85 backdrop-blur-md"
-                    )}
-                  />
-                  {isActive && (
-                    <>
-                      <span className="pointer-events-none absolute left-8 top-6 hidden rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
-                        <span className="m-2 h-3 w-3 rounded-full bg-[#2E523A]" />
-                      </span>
-                      <span className="pointer-events-none absolute right-8 bottom-6 hidden rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
-                        <span className="m-2 h-3 w-3 rounded-full bg-[#2E523A]" />
-                      </span>
-                    </>
+          <div className="relative z-10">
+            <StagePopupTemplate
+              {...stages[activeIndex]}
+              onMachinePickerOpen={() => setIsMachinePickerOpen(true)}
+              onAdditivesHistoryOpen={
+                stages[activeIndex].id === "stage-3" ? () => setIsAdditivesHistoryOpen(true) : undefined
+              }
+              onWasteInputHistoryOpen={
+                stages[activeIndex].id === "stage-3" ? () => setIsWasteHistoryOpen(true) : undefined
+              }
+              onRefreshStage={stages[activeIndex].id === "stage-3" || stages[activeIndex].id === "stage-4" ? refreshStage : undefined}
+              onSensorsHistoryOpen={stages[activeIndex].onSensorsHistoryOpen}
+              className="w-full w-[940px] max-w-[940px] shadow-[0_36px_80px_-48px_rgba(34,62,48,0.48)] overflow-visible mx-auto"
+            />
+            
+            {/* Stage Indicators outside the modal */}
+            <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex justify-center gap-2 z-[100]">
+              {stages.map((stage, index) => (
+                <button
+                  key={stage.id}
+                  type="button"
+                  onClick={() => setActiveIndex(index)}
+                  className={cn(
+                    "h-1.5 w-6 rounded-full transition-all",
+                    index === activeIndex
+                      ? "bg-[#2D5F2E] shadow-[0_4px_8px_-4px_rgba(46,82,58,0.6)]"
+                      : "bg-[#b9cfc0] hover:bg-[#8db59e]"
                   )}
-                </div>
-              </div>
-            );
-          })}
-          <div className="relative h-[750px]" aria-hidden />
-        </div>
-      </main>
+                  aria-label={`Go to ${stage.stageName}`}
+                />
+              ))}
+            </div>
 
-      <div className="mt-10 flex justify-center gap-2">
-        {stages.map((stage, index) => (
-          <button
-            key={stage.id}
-            type="button"
-            onClick={() => setActiveIndex(index)}
-            className={cn(
-              "h-2 w-8 rounded-full transition-all",
-              index === activeIndex
-                ? "bg-[#2D5F2E] shadow-[0_8px_14px_-8px_rgba(46,82,58,0.6)]"
-                : "bg-[#b9cfc0] hover:bg-[#8db59e]"
-            )}
-            aria-label={`Go to ${stage.stageName}`}
-          />
-        ))}
-      </div>
+            <span className="pointer-events-none absolute left-8 top-6 hidden rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
+              <span className="m-2 h-3 w-3 rounded-full bg-[#2E523A]" />
+            </span>
+            <span className="pointer-events-none absolute right-8 bottom-10 hidden rounded-full bg-white/75 shadow-[0_18px_34px_-18px_rgba(46,82,58,0.45)] backdrop-blur-md md:flex">
+              <span className="m-2 h-3 w-3 rounded-full bg-[#2E523A]" />
+            </span>
+          </div>
+        </div>
+
+        {/* Right Arrow Button */}
+        <button
+          type="button"
+          onClick={goNext}
+          className="group relative inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-[#2E523A] border-2 border-white shadow-[0_8px_30px_rgba(0,0,0,0.12)] transition-all hover:-translate-y-0.5 hover:bg-[#1F3527] hover:shadow-[0_12px_40px_rgba(0,0,0,0.2)] active:scale-95 z-20"
+          aria-label="Next stage"
+        >
+          <ArrowRight className="h-6 w-6 text-white transition group-hover:scale-110" />
+        </button>
+      </main>
 
       <FormModal
         isOpen={isMachinePickerOpen}
@@ -960,7 +965,7 @@ const ProcessPanelTab: React.FC = () => {
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
                 {(() => {
                   const arr = [...sensorHistory];
                   arr.sort((a, b) => {
@@ -1016,8 +1021,47 @@ const ProcessPanelTab: React.FC = () => {
             </>
           )}
       </FormModal>
+      <FormModal
+        isOpen={isS4HistoryOpen}
+        onClose={() => setIsS4HistoryOpen(false)}
+        title={`Energy & Accumulative History`}
+        width="920px"
+      >
+          {sensorHistoryLoading && (
+            <div className="py-4 text-center text-xs text-[#6B8976]">Loading readings...</div>
+          )}
 
-      <div className="pointer-events-none absolute inset-6 rounded-[30px] border border-dashed border-[#E2ECE5]" aria-hidden />
+          {!sensorHistoryLoading && s4History.length === 0 && (
+            <div className="py-12 text-center text-sm text-[#6B8976]">No readings found.</div>
+          )}
+
+          {!sensorHistoryLoading && s4History.length > 0 && (
+            <div className="overflow-x-auto overflow-y-auto max-h-[400px] pr-2 custom-scrollbar">
+              <table className="w-full text-left text-xs text-[#3F5D49]">
+                <thead className="text-[11px] uppercase tracking-wider text-[#6B8976]">
+                  <tr className="border-b border-[#E4EFE7]">
+                    <th className="py-2">Timestamp</th>
+                    <th className="py-2">Energy (kWh)</th>
+                    <th className="py-2">Accumulative</th>
+                    <th className="py-2">Voltage (V)</th>
+                    <th className="py-2">Current (A)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {s4History.map((r) => (
+                    <tr key={r.id} className="border-b border-[#EEF4F0]">
+                      <td className="py-2 font-semibold text-[#1F3527]">{r.timestamp ? new Date(r.timestamp).toLocaleString() : '—'}</td>
+                      <td className="py-2">{r.intervalKwh != null ? Number(r.intervalKwh).toFixed(4) : '—'}</td>
+                      <td className="py-2">{r.cumulativeKwh != null ? Number(r.cumulativeKwh).toFixed(4) : '—'}</td>
+                      <td className="py-2">{Number(r.voltage).toFixed(2)}V</td>
+                      <td className="py-2">{Number(r.current).toFixed(2)}A</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+      </FormModal>
     </div>
   );
 };

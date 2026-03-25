@@ -94,7 +94,6 @@ interface StagePopupTemplateProps extends StagePopupData {
   className?: string;
   onMachinePickerOpen?: () => void;
   onAdditivesHistoryOpen?: () => void;
-  onRefreshSensors?: () => void;
   onRefreshStage?: () => void;
   onSensorsHistoryOpen?: () => void;
   onWasteInputHistoryOpen?: () => void;
@@ -115,11 +114,8 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   stageImage,
   stageAccent,
   isActive,
-  statusLabel,
-  toggleDisplay = "0",
   onMachinePickerOpen,
   onAdditivesHistoryOpen,
-  onRefreshSensors,
   onRefreshStage,
   onSensorsHistoryOpen,
   onWasteInputHistoryOpen,
@@ -136,7 +132,7 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
   return (
     <div
       className={cn(
-        "relative isolate w-full max-w-[840px] rounded-[26px] border border-[#E0E9E2] bg-white px-7 py-9 shadow-[0_28px_70px_-32px_rgba(40,70,52,0.35)] transition-all duration-500 ease-[cubic-bezier(.16,.84,.44,1)] md:px-10 md:py-10",
+        "relative isolate flex flex-col w-full max-w-[940px] h-[620px] rounded-[26px] border border-[#E0E9E2] bg-white px-6 pt-4 pb-6 shadow-[0_28px_70px_-32px_rgba(40,70,52,0.35)] transition-all duration-500 ease-[cubic-bezier(.16,.84,.44,1)] md:px-8 md:pt-5 md:pb-6",
         className
       )}
     >
@@ -148,20 +144,14 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       />
       <div className="pointer-events-none absolute inset-0 -z-10 rounded-[28px] bg-[radial-gradient(circle_at_top_left,rgba(212,230,216,0.45),transparent_60%)]" />
 
-      <div className="flex items-center justify-between">
-        <StageToggle
-          accent={stageAccent}
-          display={toggleDisplay}
-          isActive={isActive}
-          statusLabel={statusLabel}
-        />
-        <div className="w-[88px]" aria-hidden />
-      </div>
 
-      <div className="text-center relative overflow-visible z-[55]">
+
+    <div className="flex flex-col h-full">
+      {/* Header Section with stable height - fixes inconsistency between stages with/without summaries */}
+      <div className="text-center relative overflow-visible z-[55] min-h-[60px] md:min-h-[70px] flex flex-col justify-center">
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#356245]">Stage {stageNumber}</p>
-        <div className="mt-1 flex items-Fcenter justify-center gap-3 relative z-[60]">
-          <h2 className="text-2xl font-semibold text-[#1F3527] md:text-[26px]">{stageName}</h2>
+        <div className="mt-1 flex items-center justify-center gap-3 relative z-[60]">
+          <h2 className="text-xl font-semibold text-[#1F3527] md:text-2xl">{stageName}</h2>
           {typeof onRefreshStage === 'function' && (
             <button
               type="button"
@@ -183,24 +173,24 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
       </div>
 
 
-      <div className="mt-7 grid gap-5 md:grid-cols-[196px_minmax(0,1fr)_196px]">
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-5 py-5 shadow-sm min-h-[150px]">
-            <div className="space-y-3">
+      <div className="mt-4 grid gap-5 md:grid-cols-[186px_minmax(0,1fr)_186px] items-start">
+        <aside className="space-y-3">
+          <div className="rounded-2xl border border-[#D6E4D9] bg-[#F6FAF7] px-4 py-3 shadow-sm min-h-[175px] flex flex-col overflow-hidden">
+            <div className="space-y-1.5 flex-1 flex flex-col justify-center">
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">On</span>
-                <p className="mt-1 flex items-center gap-2 text-sm font-semibold text-[#1E3426]">
-                  <Power size={16} className="text-[#2E523A]" />
-                  <span>{activityName}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A] block mb-0.5">On</span>
+                <p className="flex items-center gap-2 text-sm font-semibold text-[#1E3426]">
+                  <Power size={16} className="text-[#2E523A] shrink-0" />
+                  <span className="truncate">{activityName}</span>
                 </p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">Date</span>
-                <p className="mt-1 text-sm text-[#40594A]">{activityDate}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A] block mb-0.5">Date</span>
+                <p className="text-xs text-[#40594A] leading-snug">{activityDate}</p>
               </div>
               <div>
-                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A]">Action</span>
-                <p className="mt-1 text-sm text-[#40594A]">{activityAction}</p>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-[#3B624A] block mb-0.5">Action</span>
+                <p className="text-xs text-[#40594A] truncate">{activityAction}</p>
               </div>
             </div>
           </div>
@@ -214,15 +204,14 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
           )}
         </aside>
 
-        <div className="flex items-center justify-center">
+        <div className="flex items-center justify-center md:pt-12">
           <StageIllustration image={stageImage} accent={stageAccent} />
         </div>
 
-        <aside className="md:pr-1 space-y-4">
+        <aside className="md:pr-1 space-y-3">
           <SensorsCard
             sensors={sensors}
             accent={stageAccent}
-            onRefreshSensors={onRefreshSensors}
             onSensorsHistoryOpen={onSensorsHistoryOpen}
           />
           {wasteInputCard && (
@@ -231,8 +220,9 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         </aside>
       </div>
 
-      <footer className="mt-10 flex flex-col items-center gap-4">
-        <div className="flex flex-col items-center gap-4 w-full">
+      {/* Footer Section - now stable at bottom of card */}
+      <footer className="mt-auto flex flex-col items-center gap-3 relative z-30 pt-4">
+        <div className="flex flex-col items-center gap-2 w-full">
           <button
             type="button"
             onClick={onMachinePickerOpen}
@@ -263,47 +253,11 @@ const StagePopupTemplate: React.FC<StagePopupTemplateProps> = ({
         <p className="max-w-3xl text-center text-sm leading-relaxed text-[#405B4D]">{narration}</p>
       </footer>
     </div>
-  );
-};
-
-const StageToggle: React.FC<{ accent: string; display: string; isActive?: boolean; statusLabel?: string }> = ({
-  accent,
-  display,
-  isActive,
-  statusLabel,
-}) => {
-  const active = isActive !== false;
-  const badgeText = statusLabel ?? (active ? "Active" : "Inactive");
-  const badgeClass = active
-    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
-    : "bg-red-100 text-red-700 border-red-200";
-  const toggleAccent = active ? accent : "#B91C1C";
-
-  return (
-    <div className="inline-flex items-center gap-2">
-      <span
-        className="relative inline-flex h-8 min-w-[72px] items-center rounded-full border border-[#D1E3D7] bg-white/90 px-1 shadow-[0_14px_32px_-20px_rgba(33,64,46,0.6)] backdrop-blur-sm"
-        style={{ boxShadow: "0 18px 38px -26px rgba(33,64,46,0.65)" }}
-      >
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-white text-xs font-semibold text-[#2E523A] shadow-[0_3px_8px_rgba(46,82,58,0.18)]">
-          {display}
-        </span>
-        <span
-          className="ml-2 flex h-6 min-w-[36px] items-center justify-end rounded-full px-2"
-          style={{
-            background: `linear-gradient(135deg, ${toggleAccent} 0%, ${toggleAccent}d0 100%)`,
-            boxShadow: "inset 0 1px 1px rgba(255,255,255,0.5)",
-          }}
-        >
-          <span className="h-2.5 w-2.5 rounded-full bg-white/90" />
-        </span>
-      </span>
-      <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] ${badgeClass}`}>
-        {badgeText}
-      </span>
     </div>
   );
 };
+
+
 
 const SupportCardContent: React.FC<{
   card: SupportCard;
@@ -312,31 +266,31 @@ const SupportCardContent: React.FC<{
 }> = ({ card, accent, onAdditivesHistoryOpen }) => {
   if (card.type === "additives") {
     return (
-      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
+      <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col overflow-hidden">
         {onAdditivesHistoryOpen && (
           <button
             type="button"
             onClick={onAdditivesHistoryOpen}
             data-testid="additives-history-topright"
-            className="absolute -right-4 -top-4 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+            className="absolute right-1 top-1 text-[11px] font-semibold uppercase rounded-full px-3 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30 transition-colors"
           >
             View All
           </button>
         )}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between shrink-0 pr-20">
           <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
         </div>
-        <div className="mt-4 space-y-3 overflow-visible">
+        <div className="mt-2 space-y-2 overflow-y-auto pr-1 flex-grow">
           {card.items.map((item) => (
             <div key={item.name} className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-medium text-[#1F3527]">{item.name}</p>
-                <p className="text-xs text-[#5B7462]">{item.detail}</p>
+              <div className="min-w-0 flex-1">
+                <p className="text-[13px] font-medium text-[#1F3527] truncate">{item.name}</p>
+                <p className="text-[11px] text-[#5B7462] truncate">{item.detail}</p>
               </div>
               {item.trailing ? (
-                <span className="text-sm font-semibold text-[#2E523A]">{item.trailing}</span>
+                <span className="text-sm font-semibold text-[#2E523A] shrink-0">{item.trailing}</span>
               ) : (
-                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#E4F2E9] text-[#2E523A]">
+                <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#E4F2E9] text-[#2E523A] shrink-0">
                   <Check className="h-3.5 w-3.5" strokeWidth={2.2} />
                 </span>
               )}
@@ -349,19 +303,21 @@ const SupportCardContent: React.FC<{
 
   if (card.type === "gauge") {
     return (
-      <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
+      <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col justify-center overflow-hidden">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
-        <div className="mt-4 flex flex-col items-center gap-3">
+        <div className="mt-2 flex flex-col items-center gap-1.5">
           <CircularGauge percent={card.percent} accent={accent} />
-          <span className="text-sm font-semibold text-[#1F3527]">{card.status}</span>
-          <span className="rounded-full bg-[#F1F6F2] px-4 py-1 text-xs font-semibold text-[#2E523A]">{card.valueLabel}</span>
+          <div className="flex flex-col items-center">
+            <span className="text-sm font-semibold text-[#1F3527]">{card.status}</span>
+            <span className="mt-0.5 rounded-full bg-[#F1F6F2] px-3 py-0.5 text-[11px] font-semibold text-[#2E523A]">{card.valueLabel}</span>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
+    <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col justify-center overflow-hidden">
       <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       <div className="mt-4 flex flex-col items-center gap-3">
         <CounterDisplay value={card.value} />
@@ -373,27 +329,27 @@ const SupportCardContent: React.FC<{
 
 const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: () => void }> = ({ card, onHistoryOpen }) => {
   return (
-    <div className="relative z-10 rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[208px] overflow-visible">
+    <div className="relative z-20 rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[115px] flex flex-col overflow-hidden">
       {onHistoryOpen && (
         <button
           type="button"
           onClick={onHistoryOpen}
           data-testid="waste-history-topright"
-          className="absolute -right-4 -top-4 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+          className="absolute right-1 top-1 text-[11px] font-semibold uppercase rounded-full px-3 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30 transition-colors"
         >
           View All
         </button>
       )}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between shrink-0 pr-20">
         <h3 className="text-sm font-semibold text-[#2E523A]">{card.title}</h3>
       </div>
-      <div className="mt-4 overflow-visible">
+      <div className="mt-1 overflow-y-auto pr-1 flex-grow">
         {card.item ? (
           <div className="space-y-1">
             <p className="text-xs text-[#5B7462]">{card.item.date}</p>
             <p className="text-sm font-semibold text-[#1F3527]">{card.item.weight}</p>
             {card.item.operator && (
-              <p className="text-xs text-[#6B8976]">{card.item.operator}</p>
+              <p className="text-xs text-[#6B8976] truncate">{card.item.operator}</p>
             )}
           </div>
         ) : (
@@ -405,11 +361,11 @@ const WasteInputCardContent: React.FC<{ card: WasteInputCard; onHistoryOpen?: ()
 };
 
 const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image, accent }) => (
-  <div className="relative h-[13.5rem] w-[13.5rem] max-w-full md:h-56 md:w-56">
+  <div className="relative h-[11rem] w-[11rem] max-w-full md:h-56 md:w-56">
     <div className="absolute inset-0 rounded-full border border-[#D2E2D7] bg-[#F7FBF8]" />
     <CircularArrows accent={accent} />
-    <div className="absolute inset-[20px] flex items-center justify-center rounded-full bg-white shadow-[0_18px_38px_-22px_rgba(46,82,58,0.55)] md:inset-[21px]">
-      <img src={image} alt="Stage illustration" className="max-h-36 w-auto md:max-h-[9.5rem]" />
+    <div className="absolute inset-[16px] flex items-center justify-center rounded-full bg-white shadow-[0_18px_38px_-22px_rgba(46,82,58,0.55)] md:inset-[24px]">
+      <img src={image} alt="Stage illustration" className="max-h-32 w-auto md:max-h-[10rem]" />
     </div>
   </div>
 );
@@ -417,12 +373,10 @@ const StageIllustration: React.FC<{ image: string; accent: string }> = ({ image,
 const SensorsCard: React.FC<{
   sensors: SensorMetric[];
   accent: string;
-  onRefreshSensors?: () => void;
   onSensorsHistoryOpen?: () => void;
-}> = ({ sensors, accent, onRefreshSensors, onSensorsHistoryOpen }) => {
-  const statusLabel = sensors[0]?.status ?? "Status";
+}> = ({ sensors, accent, onSensorsHistoryOpen }) => {
   return (
-    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-5 pt-7 pb-5 shadow-sm min-h-[150px] overflow-visible z-20">
+    <div className="relative rounded-2xl border border-[#D6E4D9] bg-white px-4 pt-4 pb-3 shadow-sm min-h-[175px] z-20 flex flex-col overflow-hidden">
       {/* sensor-level refresh removed: stage-level refresh is used instead */}
 
       {typeof onSensorsHistoryOpen === 'function' && (
@@ -431,16 +385,16 @@ const SensorsCard: React.FC<{
           onClick={onSensorsHistoryOpen}
           data-testid="sensors-history-topright"
           title="View sensor history"
-          className="absolute -right-4 -top-4 inline-flex items-center gap-2 text-sm font-semibold uppercase rounded-full px-4 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30"
+          className="absolute right-1 top-1 inline-flex items-center gap-2 text-[11px] font-semibold uppercase rounded-full px-3 py-1 text-[#2E523A] bg-emerald-50 hover:bg-emerald-100 z-30 transition-colors"
         >
           View All
         </button>
       )}
 
-      <div className="flex items-center justify-between flex-wrap">
+      <div className="flex items-center justify-between flex-wrap shrink-0 pr-20">
         <h3 className="text-sm font-semibold text-[#2E523A]">Sensors</h3>
       </div>
-      <div className="mt-3 space-y-3">
+      <div className="mt-2 space-y-2 overflow-y-auto pr-1 flex-grow">
         {sensors.map((sensor) => (
           <SensorRow key={sensor.id} sensor={sensor} accent={accent} />
         ))}
@@ -450,12 +404,12 @@ const SensorsCard: React.FC<{
 };
 
 const SensorRow: React.FC<{ sensor: SensorMetric; accent: string }> = ({ sensor, accent }) => (
-  <div className="space-y-2">
+  <div className="space-y-1">
     <div className="flex items-center justify-between text-sm text-[#1F3527]">
-      <span>{sensor.label}</span>
-      <span className="text-xs font-semibold uppercase tracking-[0.24em] text-[#5C7664]">{sensor.status}</span>
+      <span className="text-xs font-medium">{sensor.label}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#5C7664]">{sensor.status}</span>
     </div>
-    <div className="relative h-3 rounded-full bg-[#E5EEE8]">
+    <div className="relative h-2 rounded-full bg-[#E5EEE8]">
       <div
         className="absolute inset-0 rounded-full"
         style={{
@@ -463,7 +417,7 @@ const SensorRow: React.FC<{ sensor: SensorMetric; accent: string }> = ({ sensor,
           background: `linear-gradient(90deg, ${accent}, rgba(46,82,58,0.65))`,
         }}
       />
-      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-semibold text-[#1F3527]">
+      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-[#1F3527]">
         {sensor.value}
       </span>
     </div>
@@ -474,7 +428,7 @@ const CircularGauge: React.FC<{ percent: number; accent: string }> = ({ percent,
   const normalized = Math.min(Math.max(percent, 0), 100);
   const rotation = (normalized / 100) * 180 - 90;
   return (
-    <div className="relative h-28 w-28">
+    <div className="relative h-20 w-20">
       <svg viewBox="0 0 120 120" className="h-full w-full">
         <defs>
           <linearGradient id="gaugeGradient" x1="0%" y1="0%" x2="100%" y2="0%">
