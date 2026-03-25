@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from "react";
+import { FaTable, FaThLarge } from 'react-icons/fa';
 import Table from "../common/Table";
+import SearchBar from "../common/SearchBar";
+import FilterPanel from "../common/filterPanel";
+import EndlessScroll from "../common/EndlessScroll";
 import useClaimedReward from "../../hooks/household/useClaimedReward";
 import ClaimViewModal from "./claimViewModal";
 
@@ -33,6 +37,13 @@ const ClaimedRewards: React.FC = () => {
 
   // removed confirm modal state
   const [isMarking, setIsMarking] = useState(false);
+
+  // View mode state
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilters, setActiveFilters] = useState<string[]>([]);
 
   const columns = [
     { key: "Fullname", label: "Name" },
@@ -81,17 +92,164 @@ const ClaimedRewards: React.FC = () => {
     },
   ];
 
+  // Filter and search data for card view
+  const filteredRewards = useMemo(() => {
+    let result = data;
+
+    // Apply search
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      result = result.filter((reward) =>
+        reward.Fullname?.toLowerCase().includes(query) ||
+        reward.Item?.toLowerCase().includes(query) ||
+        reward.Redemption_code?.toLowerCase().includes(query) ||
+        reward.Status?.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply filters
+    if (activeFilters.length > 0) {
+      result = result.filter((reward) =>
+        activeFilters.includes(reward.Status || '')
+      );
+    }
+
+    return result;
+  }, [data, searchQuery, activeFilters]);
+
+  // Card component
+  const RewardCard: React.FC<{ reward: any }> = ({ reward }) => {
+    const getInitials = (name: string) => {
+      return name
+        ?.split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2) || 'R';
+    };
+
+    return (
+      <div className="bg-white border border-[#00001A4D] rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-0.5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-full bg-sibol-green/10 text-sibol-green border border-sibol-green/30 flex items-center justify-center text-sm font-bold">
+            {getInitials(reward.Fullname)}
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-sibol-green">{reward.Item}</h3>
+            <p className="text-sm text-gray-600">{reward.Fullname}</p>
+          </div>
+        </div>
+        <div className="space-y-1 mb-4">
+          <p className="text-sm">
+            <span className="font-medium">Points Used:</span>
+            <span className="ml-2 text-sibol-green">{reward.Total_points ?? 0}</span>
+          </p>
+          <p className="text-sm">
+            <span className="font-medium">Code:</span>
+            <span className="ml-2 text-sibol-green">{reward.Redemption_code || '---'}</span>
+          </p>
+          <p className="text-sm">
+            <span className="font-medium">Date Generated:</span>
+            <span className="ml-2 text-sibol-green">{formatDate(reward.Created_at)}</span>
+          </p>
+          {reward.Redeemed_at && (
+            <p className="text-sm">
+              <span className="font-medium">Date Claimed:</span>
+              <span className="ml-2 text-sibol-green">{formatDate(reward.Redeemed_at)}</span>
+            </p>
+          )}
+        </div>
+        <button
+          onClick={() => setSelectedRowForView(reward)}
+          className="w-full px-3 py-2 bg-sibol-green text-white text-sm font-semibold rounded-lg hover:bg-sibol-green/90 transition-all duration-200"
+        >
+          View Details
+        </button>
+      </div>
+    );
+  };
+
   return (
     <div className="w-full px-6 py-4">
-      <Table
-        columns={columns}
-        data={data}
-        emptyMessage={loading ? "Loading..." : "No claimed rewards found."}
-        enablePagination={true}
-        initialPageSize={5}
-        filterTypes={["rewardStatuses"]}
-        className=""
-      />
+      {/* View Toggle and Controls */}
+      <div className="flex justify-end gap-2 mb-6">
+        <button
+          onClick={() => setViewMode('table')}
+          className={`p-2 rounded-full transition-all duration-200 border ${
+            viewMode === 'table'
+              ? 'bg-sibol-green text-white border-sibol-green/60 shadow-md'
+              : 'bg-white text-gray-700 border-gray-300 hover:border-sibol-green hover:text-sibol-green'
+          }`}
+          title="Table View"
+        >
+          <FaTable size={18} />
+        </button>
+        <button
+          onClick={() => setViewMode('card')}
+          className={`p-2 rounded-full transition-all duration-200 border ${
+            viewMode === 'card'
+              ? 'bg-sibol-green text-white border-sibol-green/60 shadow-md'
+              : 'bg-white text-gray-700 border-gray-300 hover:border-sibol-green hover:text-sibol-green'
+          }`}
+          title="Card View"
+        >
+          <FaThLarge size={18} />
+        </button>
+      </div>
+
+      {/* Content based on view mode */}
+      {viewMode === 'table' ? (
+        <Table
+          columns={columns}
+          data={data}
+          emptyMessage={loading ? "Loading..." : "No claimed rewards found."}
+          enablePagination={true}
+          initialPageSize={5}
+          filterTypes={["rewardStatuses"]}
+          className=""
+        />
+      ) : (
+        <div>
+          {/* Search and Filter Toolbar for Card View */}
+          <div className="flex gap-4 mb-6 items-center justify-between">
+            {/* Left Side: Search Bar */}
+            <SearchBar
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder="Search rewards..."
+              className="flex-1 max-w-2xl"
+            />
+
+            {/* Right Side: Filter */}
+            <FilterPanel
+              types={["rewardStatuses"]}
+              onFilterChange={setActiveFilters}
+            />
+          </div>
+
+          {/* Cards Grid with Endless Scroll */}
+          <EndlessScroll
+            hasMore={false}
+            loading={loading}
+            onLoadMore={() => {}}
+            className="w-full"
+          >
+            {loading ? (
+              <p className="text-center text-gray-500 py-8">Loading...</p>
+            ) : filteredRewards.length === 0 ? (
+              <p className="text-center text-gray-500 py-8">
+                {searchQuery || activeFilters.length > 0 ? "No matching rewards found." : "No claimed rewards found."}
+              </p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredRewards.map((reward, idx) => (
+                  <RewardCard key={reward.Redemption_code || idx} reward={reward} />
+                ))}
+              </div>
+            )}
+          </EndlessScroll>
+        </div>
+      )}
 
       {error && <div className="mt-3 text-red-600">Error: {error}</div>}
 
