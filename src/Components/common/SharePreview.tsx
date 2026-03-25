@@ -1,9 +1,24 @@
 import React, { useRef, useState } from 'react';
-import { X, Facebook, Download, Loader } from 'lucide-react';
+import { X, Facebook, Loader } from 'lucide-react';
 import ReactDOM from 'react-dom';
 import { ShareCard } from './ShareCard';
 import html2canvas from 'html2canvas';
 import { uploadToCloudinary } from '../../utils/cloudinaryUpload';
+import { API_URL } from '../../services/apiClient';
+
+const PUBLIC_BACKEND_BASE_URL =
+  import.meta.env.VITE_SHARE_BRIDGE_BASE_URL ||
+  import.meta.env.VITE_API_PUBLIC_URL ||
+  'https://sibol-backend-i0i6.onrender.com';
+
+const getShareBridgeBaseUrl = () => {
+  const configured = (PUBLIC_BACKEND_BASE_URL || '').trim();
+  if (configured) {
+    return configured.replace(/\/+$/, '');
+  }
+
+  return (API_URL || '').replace(/\/+$/, '');
+};
 
 interface SharePreviewProps {
   isOpen: boolean;
@@ -98,9 +113,12 @@ const SharePreview: React.FC<SharePreviewProps> = ({
       const imageUrl = await uploadToCloudinary(imageBlob);
       console.log('Image uploaded to Cloudinary:', imageUrl);
 
-      // Create Facebook share URL with the Cloudinary image URL
-      // Facebook will fetch the image and display it in the preview
-      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(imageUrl)}&quote=${encodeURIComponent(shareText)}`;
+      // Share backend bridge URL so OG preview uses dynamic image while click-through goes to production site.
+      const baseApiUrl = getShareBridgeBaseUrl();
+      const normalizedGame = gameName.toLowerCase().includes('matching') ? 'matching' : gameName.toLowerCase().replace(/\s+/g, '-');
+      const cacheBust = Date.now();
+      const bridgeUrl = `${baseApiUrl}/api/share/bridge?image=${encodeURIComponent(imageUrl)}&score=${encodeURIComponent(String(score))}&game=${encodeURIComponent(normalizedGame)}&cb=${cacheBust}`;
+      const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(bridgeUrl)}&quote=${encodeURIComponent(shareText)}`;
 
       // Open Facebook Sharer
       window.open(facebookUrl, '_blank', 'width=600,height=400');
