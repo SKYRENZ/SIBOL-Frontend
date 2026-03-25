@@ -7,10 +7,12 @@ import * as maintenanceService from "../../services/maintenanceService";
 import type { MaintenanceTicket } from "../../types/maintenance";
 
 import { useAppSelector } from '../../store/hooks';
+import { FaTable, FaThLarge } from 'react-icons/fa';
 import SearchBar from "../common/SearchBar";
 import FilterPanel from "../common/filterPanel";
 import { MaintenanceCard } from "./MaintenanceCard";
-import Pagination from "../common/Pagination";
+import EndlessScroll from "../common/EndlessScroll";
+import Table from "../common/Table";
 
 interface PendingMaintenanceProps {
   onOpenForm: (mode: 'pending', ticket: MaintenanceTicket) => void;
@@ -28,12 +30,11 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
   const [selectedTicketForCancel, setSelectedTicketForCancel] = useState<MaintenanceTicket | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // View mode state
+  const [viewMode, setViewMode] = useState<'table' | 'card'>('card');
+
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilters, setActiveFilters] = useState<string[]>([]);
-  
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6);
 
   const getPriorityColor = (priority: string | null | undefined) => {
     const p = (priority || '').toLowerCase();
@@ -98,6 +99,13 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
     }
   };
 
+  // Priority order for sorting
+  const priorityOrder: Record<string, number> = {
+    'critical': 1,
+    'urgent': 2,
+    'mild': 3,
+  };
+
   const filteredTickets = useMemo(() => {
     let result = tickets;
 
@@ -120,31 +128,99 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
       );
     }
 
+    // Sort by priority
+    result.sort((a, b) => {
+      const aPriority = (a.Priority || '').toLowerCase();
+      const bPriority = (b.Priority || '').toLowerCase();
+      const aOrder = priorityOrder[aPriority] ?? 999;
+      const bOrder = priorityOrder[bPriority] ?? 999;
+      return aOrder - bOrder;
+    });
+
     return result;
   }, [tickets, searchQuery, activeFilters]);
 
-  // Pagination calculations
-  const totalPages = Math.ceil(filteredTickets.length / pageSize);
-  const startIndex = (currentPage - 1) * pageSize;
-  const endIndex = startIndex + pageSize;
-  const currentTickets = filteredTickets.slice(startIndex, endIndex);
-
-  // Reset to first page when filters change
-  useMemo(() => {
-    setCurrentPage(1);
-  }, [searchQuery, activeFilters]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
-    setCurrentPage(1); // Reset to first page when changing page size
-  };
+  // Table columns definition
+  const columns = [
+    {
+      key: 'Title',
+      label: 'Title',
+      render: (value: string) => (
+        <span className="text-sibol-green font-medium">{value}</span>
+      ),
+    },
+    {
+      key: 'Priority',
+      label: 'Priority',
+      render: (value: string) => (
+        <span className={`px-2 py-1 text-xs rounded-full border ${getPriorityColor(value)}`}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: 'Status',
+      label: 'Status',
+      render: (value: string) => (
+        <span className={`px-2 py-1 text-xs rounded-full border ${getStatusColor(value)}`}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: 'AssignedOperatorName',
+      label: 'Operator',
+      render: (value: string) => (
+        <span className="text-sibol-green">
+          {value || 'Unassigned'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: 'Actions',
+      render: (_: any, ticket: MaintenanceTicket) => (
+        <div className="flex gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onOpenForm('pending', ticket);
+            }}
+            className="px-3 py-1 text-sm font-semibold rounded-full border transition-all duration-200 bg-[#355842] text-white border-[#2f5236] hover:bg-[#2e4a36]"
+          >
+            View
+          </button>
+          {ticket.Status?.toLowerCase() === 'for verification' && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTicketForCompletion(ticket);
+              }}
+              className="px-3 py-1 text-sm font-semibold rounded-full border transition-all duration-200 bg-green-600 text-white border-green-500 hover:bg-green-700"
+            >
+              Complete
+            </button>
+          )}
+          {(ticket.Status?.toLowerCase() === 'on-going' ||
+            ticket.Status?.toLowerCase() === 'for verification' ||
+            ticket.Status?.toLowerCase() === 'cancel requested') && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedTicketForCancel(ticket);
+              }}
+              className="px-3 py-1 text-sm font-semibold rounded-full border transition-all duration-200 bg-red-600 text-white border-red-500 hover:bg-red-700"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
-    <div className="pb-20"> {/* Add padding bottom for pagination */}
+    <div>
       {error && <p className="text-sm text-red-600 mb-4">{error}</p>}
 
       {/* Toolbar: Search and Filter */}
@@ -156,47 +232,81 @@ export const PendingMaintenance: React.FC<PendingMaintenanceProps> = ({
           placeholder="Search pending maintenance..."
           className="flex-1 max-w-2xl"
         />
-        
-        {/* Right Side: Filter */}
-        <FilterPanel
-          types={["maintenancePriorities", "maintenanceStatuses"]}
-          onFilterChange={setActiveFilters}
-        />
+
+        {/* Right Side: View Toggle and Filter */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`p-2 rounded-full transition-all duration-200 border ${
+              viewMode === 'table'
+                ? 'bg-sibol-green text-white border-sibol-green/60 shadow-md'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-sibol-green hover:text-sibol-green'
+            }`}
+            title="Table View"
+          >
+            <FaTable size={18} />
+          </button>
+          <button
+            onClick={() => setViewMode('card')}
+            className={`p-2 rounded-full transition-all duration-200 border ${
+              viewMode === 'card'
+                ? 'bg-sibol-green text-white border-sibol-green/60 shadow-md'
+                : 'bg-white text-gray-700 border-gray-300 hover:border-sibol-green hover:text-sibol-green'
+            }`}
+            title="Card View"
+          >
+            <FaThLarge size={18} />
+          </button>
+
+          <FilterPanel
+            types={["maintenancePriorities", "maintenanceStatuses"]}
+            onFilterChange={setActiveFilters}
+          />
+        </div>
       </div>
 
-      {/* Cards Grid */}
-      {loading ? (
-        <p className="text-center text-gray-500 py-8">Loading...</p>
-      ) : currentTickets.length === 0 ? (
-        <p className="text-center text-gray-500 py-8">
-          {searchQuery || activeFilters.length > 0 ? "No matching maintenance found" : "No pending maintenance found"}
-        </p>
+      {/* Content based on view mode */}
+      {viewMode === 'table' ? (
+        loading ? (
+          <p className="text-center text-gray-500 py-8">Loading...</p>
+        ) : (
+          <Table
+            columns={columns}
+            data={filteredTickets}
+            emptyMessage={searchQuery || activeFilters.length > 0 ? "No matching maintenance found" : "No pending maintenance found"}
+            enablePagination={false}
+            rowKey="Request_Id"
+            hideSearch={true}
+          />
+        )
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {currentTickets.map((ticket) => (
-            <MaintenanceCard
-              key={ticket.Request_Id ?? ticket.request_id}
-              ticket={ticket}
-              mode="pending"
-              onViewDetails={(ticket) => onOpenForm('pending', ticket)}
-              onComplete={setSelectedTicketForCompletion}
-              onCancel={setSelectedTicketForCancel}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {filteredTickets.length > 0 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={handlePageChange}
-          pageSize={pageSize}
-          totalItems={filteredTickets.length}
-          onPageSizeChange={handlePageSizeChange}
-          fixed={true}
-        />
+        <EndlessScroll
+          hasMore={false}
+          loading={loading}
+          onLoadMore={() => {}}
+          className="w-full"
+        >
+          {loading ? (
+            <p className="text-center text-gray-500 py-8">Loading...</p>
+          ) : filteredTickets.length === 0 ? (
+            <p className="text-center text-gray-500 py-8">
+              {searchQuery || activeFilters.length > 0 ? "No matching maintenance found" : "No pending maintenance found"}
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTickets.map((ticket) => (
+                <MaintenanceCard
+                  key={ticket.Request_Id ?? ticket.request_id}
+                  ticket={ticket}
+                  mode="pending"
+                  onViewDetails={(ticket) => onOpenForm('pending', ticket)}
+                  onComplete={setSelectedTicketForCompletion}
+                  onCancel={setSelectedTicketForCancel}
+                />
+              ))}
+            </div>
+          )}
+        </EndlessScroll>
       )}
 
       <CompletionConfirmModal

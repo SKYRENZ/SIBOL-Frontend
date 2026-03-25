@@ -3,6 +3,12 @@
   command = "bun install && bun run build"
 
 [[redirects]]
+  from = "/api/share/bridge"
+  to = "https://sibol-backend-i0i6.onrender.com/api/share/bridge"
+  status = 200
+  force = true
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
