@@ -19,7 +19,8 @@ export interface MatchingGameState {
   gamePhase: 'showing' | 'shuffling' | 'flipping' | 'playing'; // NEW: Track animation phase
 }
 
-const WASTE_EMOJIS = ['🍎', '🥕', '🥬', '🍌', '🥚', '🥘', '🍽️', '🧄'];
+// Requested pair set: pig, tomato, apple, banana, broccoli, cow, poop, bulb
+const WASTE_EMOJIS = ['🐷', '🍅', '🍎', '🍌', '🥦', '🐄', '💩', '💡'];
 
 export const useMatchingGame = (gridSize: number = 4) => {
   // gridSize: 4 = 4x4 = 16 cards = 8 pairs, 3 = 3x3 = 9 cards (not perfect pairs), 4 recommended
@@ -97,21 +98,33 @@ export const useMatchingGame = (gridSize: number = 4) => {
         }, 1000)
       );
     } else if (gameState.gamePhase === 'shuffling') {
-      // Phase 2: Shuffle animation for 1 second, then move to flipping
+      // Phase 2: Perform multiple real reorders so cards visibly switch places.
       timers.push(
         setTimeout(() => {
-          // Shuffle cards array for visual effect
-          const shuffledCards = [...gameState.cards];
+          setGameState((prev) => ({ ...prev, gamePhase: 'flipping' }));
+        }, 1000)
+      );
+
+      const shuffleInterval = setInterval(() => {
+        setGameState((prev) => {
+          if (prev.gamePhase !== 'shuffling') return prev;
+
+          const shuffledCards = [...prev.cards];
           for (let i = shuffledCards.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [shuffledCards[i], shuffledCards[j]] = [shuffledCards[j], shuffledCards[i]];
           }
 
-          setGameState((prev) => ({
+          return {
             ...prev,
             cards: shuffledCards,
-            gamePhase: 'flipping',
-          }));
+          };
+        });
+      }, 170);
+
+      timers.push(
+        setTimeout(() => {
+          clearInterval(shuffleInterval);
         }, 1000)
       );
     } else if (gameState.gamePhase === 'flipping') {

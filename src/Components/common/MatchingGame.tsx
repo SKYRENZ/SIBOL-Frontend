@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React from 'react';
 import { X, Facebook } from 'lucide-react';
 import { useMatchingGame } from '../../hooks/useMatchingGame';
 import { getMidGameTemplate, getPostGameTemplate } from '../../utils/socialShare';
@@ -59,10 +59,42 @@ const Diamond: React.FC<{ className?: string; size?: number }> = ({
 );
 
 const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
-  const { gameState, flipCard, togglePause, resetGame } = useMatchingGame(4);
-  const gameLoopRef = useRef<number>();
+  const { gameState, flipCard, resetGame } = useMatchingGame(4);
+  const cardRefs = React.useRef<Map<number, HTMLButtonElement | null>>(new Map());
+  const previousRectsRef = React.useRef<Map<number, DOMRect>>(new Map());
+  const [isLeafBackImageBroken, setIsLeafBackImageBroken] = React.useState(false);
   const [sharePreviewOpen, setSharePreviewOpen] = React.useState(false);
   const [shareText, setShareText] = React.useState('');
+
+  React.useLayoutEffect(() => {
+    const currentRects = new Map<number, DOMRect>();
+
+    gameState.cards.forEach((card) => {
+      const el = cardRefs.current.get(card.id);
+      if (!el) return;
+
+      const newRect = el.getBoundingClientRect();
+      currentRects.set(card.id, newRect);
+
+      const prevRect = previousRectsRef.current.get(card.id);
+      if (!prevRect || gameState.gamePhase !== 'shuffling') {
+        return;
+      }
+
+      const deltaX = prevRect.left - newRect.left;
+      const deltaY = prevRect.top - newRect.top;
+
+      if (deltaX === 0 && deltaY === 0) return;
+
+      el.style.transition = 'none';
+      el.style.transform = `translate(${deltaX}px, ${deltaY}px)`;
+      void el.offsetWidth;
+      el.style.transition = 'transform 160ms cubic-bezier(0.22, 1, 0.36, 1)';
+      el.style.transform = 'translate(0px, 0px)';
+    });
+
+    previousRectsRef.current = currentRects;
+  }, [gameState.cards, gameState.gamePhase]);
 
   // Handle ESC key
   React.useEffect(() => {
@@ -172,7 +204,7 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
               </div>
 
               {/* ── Header ──────────────────────────────────── */}
-              <div className="relative flex items-center justify-center mb-2 relative z-10">
+              <div className="relative flex items-center justify-center mb-2 z-10">
                 <div className="text-center">
                   <span className="text-white/90 text-lg sm:text-2xl font-bold tracking-widest uppercase block mb-1">
                     SIBOL GAMES
@@ -297,8 +329,8 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
                       )}
                       {gameState.gamePhase === 'shuffling' && (
                         <>
-                          <p className="text-3xl font-bold text-[#00c853] animate-spin">
-                            🔄 Shuffling...
+                          <p className="text-3xl font-bold text-[#00c853] animate-pulse">
+                            🍃 Shuffling...
                           </p>
                           <p className="text-sm text-[#4caf50]/70 mt-2">
                             Cards are being mixed...
@@ -347,15 +379,12 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
                           ? 'opacity-75'
                           : ''
                       }
-                      ${gameState.gamePhase === 'shuffling' ? 'animate-bounce' : ''}
                     `}
                     style={{
                       width: `${cardSize}px`,
                       height: `${cardSize}px`,
-                      transform:
-                        gameState.gamePhase !== 'playing'
-                          ? 'scale(1.05)'
-                          : 'scale(1)',
+                      transform: gameState.gamePhase !== 'playing' ? 'scale(1.05)' : 'scale(1)',
+                      willChange: gameState.gamePhase === 'shuffling' ? 'transform' : undefined,
                       background: card.isMatched
                         ? 'linear-gradient(135deg, #1b5e20, #2e7d32)'
                         : card.isFlipped
@@ -367,6 +396,9 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
                         ? '#4caf50'
                         : '#1b5e20',
                     }}
+                    ref={(node) => {
+                      cardRefs.current.set(card.id, node);
+                    }}
                   >
                     {card.isFlipped || card.isMatched ? (
                       <span style={{ filter: card.isMatched ? 'brightness(1.2)' : 'none' }}>
@@ -374,15 +406,36 @@ const MatchingGame: React.FC<MatchingGameProps> = ({ isOpen, onClose }) => {
                       </span>
                     ) : (
                       <div className="relative flex items-center justify-center w-full h-full">
-                        <div className="absolute inset-3 rounded-full bg-[#00e676]/20 blur-sm" />
-                        <img
-                          src={leafIcon}
-                          alt="Leaf card back"
-                          className="relative w-12 h-12 object-contain"
+                        <div
+                          className="relative flex items-center justify-center rounded-full"
                           style={{
-                            filter: 'drop-shadow(0 0 8px rgba(0, 230, 118, 0.65))',
+                            width: '46px',
+                            height: '46px',
+                            background: 'transparent',
+                            boxShadow: 'none',
                           }}
-                        />
+                        >
+                          <span
+                            className="text-2xl"
+                            aria-hidden="true"
+                            style={{ opacity: isLeafBackImageBroken ? 1 : 0.6 }}
+                          >
+                            🍃
+                          </span>
+
+                          {!isLeafBackImageBroken && (
+                            <img
+                              src={leafIcon}
+                              alt="Leaf card back"
+                              className="absolute w-7 h-7 object-contain"
+                              style={{
+                                filter: 'brightness(0) invert(1)',
+                                opacity: 0.88,
+                              }}
+                              onError={() => setIsLeafBackImageBroken(true)}
+                            />
+                          )}
+                        </div>
                       </div>
                     )}
                   </button>
